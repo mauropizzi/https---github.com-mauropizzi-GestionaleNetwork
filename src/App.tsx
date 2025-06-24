@@ -3,11 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DashboardLayout from "./components/layout/DashboardLayout"; // Import the new layout
-import DashboardOverview from "./pages/DashboardOverview"; // Import the renamed Index page
+import DashboardLayout from "./components/layout/DashboardLayout";
+import DashboardOverview from "./pages/DashboardOverview";
 import NotFound from "./pages/NotFound";
 import ServiceRequest from "./pages/ServiceRequest";
 import Anagrafiche from "./pages/Anagrafiche";
+import DotazioniDiServizio from "./pages/DotazioniDiServizio"; // Import the new page
+import ServiceList from "./pages/ServiceList"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -19,11 +21,13 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<DashboardOverview />} /> {/* Default content for the dashboard */}
+            <Route index element={<DashboardOverview />} />
             <Route path="service-request" element={<ServiceRequest />} />
             <Route path="anagrafiche" element={<Anagrafiche />} />
+            <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} /> {/* New route */}
+            <Route path="service-list" element={<ServiceList />} /> {/* New route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} /> {/* NotFound should still be outside the layout if it's a full page error */}
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </BrowserRouter>

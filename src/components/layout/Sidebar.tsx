@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen } from "lucide-react";
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car } from "lucide-react"; // Import new icons
 
 interface NavItem {
   title: string;
@@ -32,6 +32,16 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    title: "Elenco Servizi Richiesti", // New main item
+    href: "/service-list",
+    icon: ListChecks,
+  },
+  {
+    title: "Dotazioni di Servizio", // New main item
+    href: "/dotazioni-di-servizio",
+    icon: Car,
+  },
+  {
     title: "Anagrafiche",
     href: "/anagrafiche",
     icon: Building2,
@@ -52,6 +62,14 @@ interface SidebarProps {
 export function Sidebar({ onLinkClick }: SidebarProps) {
   const location = useLocation();
 
+  const isLinkActive = (href: string) => {
+    const [path, query] = href.split('?');
+    if (query) {
+      return location.pathname === path && location.search === `?${query}`;
+    }
+    return location.pathname === path;
+  };
+
   return (
     <ScrollArea className="h-full py-4 px-3">
       <div className="space-y-4">
@@ -59,10 +77,10 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
           <div key={item.title} className="space-y-1">
             <Link to={item.href} onClick={onLinkClick}>
               <Button
-                variant={location.pathname === item.href ? "secondary" : "ghost"}
+                variant={isLinkActive(item.href) ? "secondary" : "ghost"}
                 className={cn(
                   "w-full justify-start",
-                  location.pathname === item.href && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                  isLinkActive(item.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
                 )}
               >
                 <item.icon className="mr-2 h-4 w-4" />
@@ -74,10 +92,10 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
                 {item.subItems.map((subItem) => (
                   <Link key={subItem.title} to={subItem.href} onClick={onLinkClick}>
                     <Button
-                      variant={location.search === subItem.href.split('?')[1] ? "secondary" : "ghost"}
+                      variant={isLinkActive(subItem.href) ? "secondary" : "ghost"}
                       className={cn(
                         "w-full justify-start text-sm",
-                        location.pathname === subItem.href.split('?')[0] && location.search === `?${subItem.href.split('?')[1]}` && "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90"
+                        isLinkActive(subItem.href) && "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90"
                       )}
                     >
                       <subItem.icon className="mr-2 h-3 w-3" />

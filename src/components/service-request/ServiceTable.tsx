@@ -1,0 +1,192 @@
+import React from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { format } from "date-fns";
+import { it } from 'date-fns/locale';
+
+// Define the structure of a service request
+interface ServiceRequest {
+  id: string;
+  type: string;
+  client: string;
+  location: string;
+  startDate: Date;
+  endDate: Date;
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  cost?: number;
+}
+
+// Mock data for demonstration
+const mockData: ServiceRequest[] = [
+  {
+    id: "SR001",
+    type: "Piantonamento",
+    client: "Azienda Alpha",
+    location: "Palermo - Segmento VIGILANZA",
+    startDate: new Date(2024, 7, 1), // August 1, 2024
+    endDate: new Date(2024, 7, 31), // August 31, 2024
+    status: "Approved",
+    cost: 2500,
+  },
+  {
+    id: "SR002",
+    type: "Ispezioni",
+    client: "Società Beta",
+    location: "Catania - Segmento Portierato",
+    startDate: new Date(2024, 8, 10), // September 10, 2024
+    endDate: new Date(2024, 8, 10), // September 10, 2024
+    status: "Pending",
+    cost: undefined,
+  },
+  {
+    id: "SR003",
+    type: "Bonifiche",
+    client: "Gruppo Gamma",
+    location: "Agrigento - Segmento Portierato",
+    startDate: new Date(2024, 6, 15), // July 15, 2024
+    endDate: new Date(2024, 6, 15), // July 15, 2024
+    status: "Completed",
+    cost: 150,
+  },
+  {
+    id: "SR004",
+    type: "Gestione Chiavi",
+    client: "Azienda Alpha",
+    location: "Messina - Segmento VIGILANZA",
+    startDate: new Date(2024, 9, 1), // October 1, 2024
+    endDate: new Date(2024, 9, 1), // October 1, 2024
+    status: "Rejected",
+    cost: undefined,
+  },
+];
+
+const columns: ColumnDef<ServiceRequest>[] = [
+  {
+    accessorKey: "id",
+    header: "ID Servizio",
+  },
+  {
+    accessorKey: "type",
+    header: "Tipo Servizio",
+  },
+  {
+    accessorKey: "client",
+    header: "Cliente",
+  },
+  {
+    accessorKey: "location",
+    header: "Località",
+  },
+  {
+    accessorKey: "startDate",
+    header: "Data Inizio",
+    cell: ({ row }) => format(row.original.startDate, "PPP", { locale: it }),
+  },
+  {
+    accessorKey: "endDate",
+    header: "Data Fine",
+    cell: ({ row }) => format(row.original.endDate, "PPP", { locale: it }),
+  },
+  {
+    accessorKey: "status",
+    header: "Stato",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      let statusClass = "";
+      switch (status) {
+        case "Approved":
+          statusClass = "bg-green-100 text-green-800";
+          break;
+        case "Pending":
+          statusClass = "bg-yellow-100 text-yellow-800";
+          break;
+        case "Rejected":
+          statusClass = "bg-red-100 text-red-800";
+          break;
+        case "Completed":
+          statusClass = "bg-blue-100 text-blue-800";
+          break;
+        default:
+          statusClass = "bg-gray-100 text-gray-800";
+      }
+      return (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>
+          {status}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "cost",
+    header: "Costo Stimato (€)",
+    cell: ({ row }) => (row.original.cost !== undefined ? `${row.original.cost.toFixed(2)} €` : "N/A"),
+  },
+];
+
+export function ServiceTable() {
+  const table = useReactTable({
+    data: mockData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                Nessun risultato.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
