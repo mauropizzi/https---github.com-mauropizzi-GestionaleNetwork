@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, parseISO, isValid } from "date-fns"; // Import isValid
 import { it } from 'date-fns/locale';
 import { CalendarIcon } from "lucide-react";
 
@@ -23,10 +23,23 @@ import { cn } from "@/lib/utils";
 const BASE_RATE_APERTURA_CHIUSURA = 100; // Example base rate
 
 const formSchema = z.object({
-  serviceDate: z.date({
-    required_error: "La data del servizio è richiesta.",
+  startDate: z.date({
+    required_error: "La data di inizio è richiesta.",
   }),
-  requestedTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
+  endDate: z.date({
+    required_error: "La data di fine è richiesta.",
+  }),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
+}).refine(data => {
+  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${data.startTime}:00`;
+  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${data.endTime}:00`;
+  const start = parseISO(startDateTimeStr);
+  const end = parseISO(endDateTimeStr);
+  return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
+}, {
+  message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
+  path: ["endDate"],
 });
 
 export function AperturaChiusuraForm() {
@@ -35,7 +48,8 @@ export function AperturaChiusuraForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      requestedTime: "09:00",
+      startTime: "09:00",
+      endTime: "17:00",
     },
   });
 
@@ -43,63 +57,118 @@ export function AperturaChiusuraForm() {
     const cost = BASE_RATE_APERTURA_CHIUSURA;
     setCalculatedCost(cost);
     console.log("Calculated Apertura/Chiusura Cost:", cost);
+    console.log("Apertura/Chiusura Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="serviceDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data del servizio</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: it })
-                      ) : (
-                        <span>Seleziona una data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                    locale={it}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="requestedTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Orario richiesto (HH:MM)</FormLabel>
-              <FormControl>
-                <Input type="text" placeholder="09:00" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data di inizio servizio</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="startTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ora di inizio servizio (HH:MM)</FormLabel>
+                <FormControl>
+                  <Input type="text" placeholder="09:00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data di fine servizio</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ora di fine servizio (HH:MM)</FormLabel>
+                <FormControl>
+                  <Input type="text" placeholder="17:00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <Button type="submit" className="w-full">Calcola Costo</Button>
         {calculatedCost !== null && (
           <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
