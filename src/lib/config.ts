@@ -1,0 +1,1 @@
+export const RECIPIENT_EMAIL = 'bella@securityservicesrl.net';
