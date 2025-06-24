@@ -11,7 +11,7 @@ import { OperatoriNetworkForm } from "@/components/anagrafiche/OperatoriNetworkF
 import { FornitoriForm } from "@/components/anagrafiche/FornitoriForm";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Download, Upload } from "lucide-react"; // Import icons
-import { toast } from "@/utils/toast"; // Import toast for notifications
+import { showSuccess, showError, showInfo } from "@/utils/toast"; // Import specific toast functions
 
 const Anagrafiche = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,7 +50,7 @@ const Anagrafiche = () => {
   const handleExport = () => {
     const keys = getFormSchemaKeys(currentTab);
     if (keys.length === 0) {
-      toast.error("Nessun campo definito per l'esportazione per questa scheda.");
+      showError("Nessun campo definito per l'esportazione per questa scheda.");
       return;
     }
 
@@ -68,9 +68,9 @@ const Anagrafiche = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success(`File ${currentTab}_sample.csv esportato con successo!`);
+      showSuccess(`File ${currentTab}_sample.csv esportato con successo!`);
     } else {
-      toast.error("Il tuo browser non supporta il download automatico.");
+      showError("Il tuo browser non supporta il download automatico.");
     }
   };
 
@@ -78,7 +78,7 @@ const Anagrafiche = () => {
     const file = event.target.files?.[0];
     if (file) {
       console.log("File selezionato per l'importazione:", file.name);
-      toast.info(`File "${file.name}" selezionato per l'importazione. La logica di parsing e importazione deve essere implementata.`);
+      showInfo(`File "${file.name}" selezionato per l'importazione. La logica di parsing e importazione deve essere implementata.`);
       // Qui si dovrebbe implementare la logica per leggere il file (es. usando una libreria come 'xlsx' o 'papaparse' per CSV),
       // validare i dati e poi processarli (es. inviarli a un backend o aggiornare lo stato locale).
     }
