@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, isValid, addDays, isWeekend, isHoliday } from "date-fns";
+import { format, parseISO, isValid, addDays, isWeekend } from "date-fns";
 import { it } from 'date-fns/locale'; // Import Italian locale
-import { CalendarIcon, PlusCircle, MinusCircle } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,25 +22,7 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-
-// Define a list of holidays (example, you might want a more robust solution)
-const italianHolidays = [
-  new Date(2024, 0, 1), // Capodanno
-  new Date(2024, 0, 6), // Epifania
-  new Date(2024, 3, 1), // Pasquetta (example for 2024)
-  new Date(2024, 3, 25), // Festa della Liberazione
-  new Date(2024, 4, 1), // Festa dei Lavoratori
-  new Date(2024, 5, 2), // Festa della Repubblica
-  new Date(2024, 7, 15), // Ferragosto
-  new Date(2024, 10, 1), // Ognissanti
-  new Date(2024, 11, 8), // Immacolata Concezione
-  new Date(2024, 11, 25), // Natale
-  new Date(2024, 11, 26), // Santo Stefano
-];
-
-const isDateHoliday = (date: Date) => {
-  return italianHolidays.some(holiday => format(holiday, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'));
-};
+import { isDateHoliday } from "@/lib/date-utils"; // Import from new utility
 
 const dailyHoursSchema = z.object({
   day: z.string(),
