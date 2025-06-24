@@ -37,7 +37,7 @@ const nameOptions = [
 
 const serviceLocationOptions = [
   "Agrigento - Segmento Portierato", "Agrigento - Segmento VIGILANZA",
-  "Caltanissetta - Segmento Portierato", "Caltanissetta - Segmento VIGILANZA",
+  "Caltanissetto - Segmento Portierato", "Caltanissetto - Segmento VIGILANZA",
   "Catania - Segmento Portierato", "Catania - Segmento VIGILANZA",
   "Enna - Segmento Portierato", "Enna - Segmento VIGILANZA",
   "Messina - Segmento Portierato", "Messina - Segmento VIGILANZA",
@@ -157,7 +157,7 @@ export function ServiceReportForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4">
-        <h1 className="text-3xl font-bold text-center mb-6">Rapporto Dotazioni di Servizio</h1>
+        {/* Removed the h1 tag from here */}
 
         {/* Generalità Section */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
