@@ -20,7 +20,7 @@ const ServiceRequest = () => {
           <Tabs defaultValue="ore" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="ore">Servizi in ORE</TabsTrigger>
-              <TabsTrigger value="cadenza">Servizi a CADENZA</TabsTrigger>
+              <TabsTrigger value="cadenza">Ispezioni</TabsTrigger> {/* Changed from "Servizi a CADENZA" to "Ispezioni" */}
               <TabsTrigger value="una-tantum">Servizi UNA TANTUM</TabsTrigger>
             </TabsList>
             <TabsContent value="ore" className="mt-4">
