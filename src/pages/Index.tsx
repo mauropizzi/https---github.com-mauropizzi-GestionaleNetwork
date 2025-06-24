@@ -10,11 +10,18 @@ const Index = () => {
         <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
           Start building your amazing project here!
         </p>
-        <Link to="/service-request">
-          <Button size="lg" className="px-8 py-4 text-lg">
-            Go to Service Request System
-          </Button>
-        </Link>
+        <div className="flex flex-col space-y-4">
+          <Link to="/service-request">
+            <Button size="lg" className="px-8 py-4 text-lg w-full">
+              Go to Service Request System
+            </Button>
+          </Link>
+          <Link to="/anagrafiche">
+            <Button size="lg" className="px-8 py-4 text-lg w-full">
+              Go to Anagrafiche Management
+            </Button>
+          </Link>
+        </div>
       </div>
       <MadeWithDyad />
     </div>
