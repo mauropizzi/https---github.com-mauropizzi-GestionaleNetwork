@@ -2,6 +2,11 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PiantonamentoForm } from "@/components/service-request/PiantonamentoForm";
+import { ServiziFiduciariForm } from "@/components/service-request/ServiziFiduciariForm";
+import { IspezioniForm } from "@/components/service-request/IspezioniForm";
+import { BonificheForm } from "@/components/service-request/BonificheForm";
+import { GestioneChiaviForm } from "@/components/service-request/GestioneChiaviForm";
+import { AperturaChiusuraForm } from "@/components/service-request/AperturaChiusuraForm";
 
 const ServiceRequest = () => {
   return (
@@ -28,12 +33,12 @@ const ServiceRequest = () => {
                   <PiantonamentoForm />
                 </TabsContent>
                 <TabsContent value="fiduciari" className="mt-4">
-                  <p className="text-center text-gray-500">Form per Servizi Fiduciari (da implementare)</p>
+                  <ServiziFiduciariForm />
                 </TabsContent>
               </Tabs>
             </TabsContent>
             <TabsContent value="cadenza" className="mt-4">
-              <p className="text-center text-gray-500">Form per Ispezioni (da implementare)</p>
+              <IspezioniForm />
             </TabsContent>
             <TabsContent value="una-tantum" className="mt-4">
               <Tabs defaultValue="bonifiche">
@@ -43,13 +48,13 @@ const ServiceRequest = () => {
                   <TabsTrigger value="apertura-chiusura">Apertura/Chiusura</TabsTrigger>
                 </TabsList>
                 <TabsContent value="bonifiche" className="mt-4">
-                  <p className="text-center text-gray-500">Form per Bonifiche (da implementare)</p>
+                  <BonificheForm />
                 </TabsContent>
                 <TabsContent value="chiavi" className="mt-4">
-                  <p className="text-center text-gray-500">Form per Gestione Chiavi (da implementare)</p>
+                  <GestioneChiaviForm />
                 </TabsContent>
                 <TabsContent value="apertura-chiusura" className="mt-4">
-                  <p className="text-center text-gray-500">Form per Apertura/Chiusura (da implementare)</p>
+                  <AperturaChiusuraForm />
                 </TabsContent>
               </Tabs>
             </TabsContent>
