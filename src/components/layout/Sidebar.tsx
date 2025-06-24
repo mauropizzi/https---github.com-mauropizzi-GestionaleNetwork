@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car } from "lucide-react"; // Import new icons
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList } from "lucide-react"; // Import new icon ClipboardList
 
 interface NavItem {
   title: string;
@@ -32,14 +32,19 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: "Elenco Servizi Richiesti", // New main item
+    title: "Elenco Servizi Richiesti",
     href: "/service-list",
     icon: ListChecks,
   },
   {
-    title: "Dotazioni di Servizio", // New main item
+    title: "Dotazioni di Servizio",
     href: "/dotazioni-di-servizio",
     icon: Car,
+  },
+  {
+    title: "Registro di Cantiere", // New main item
+    href: "/registro-di-cantiere",
+    icon: ClipboardList, // Using ClipboardList icon
   },
   {
     title: "Anagrafiche",
