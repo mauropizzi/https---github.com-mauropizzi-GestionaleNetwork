@@ -27,8 +27,9 @@ import { PlusCircle } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { AutomezzoItem } from "./AutomezzoItem";
 import { AttrezzoItem } from "./AttrezzoItem";
-import { addettiList, servizioOptions, clienteOptions } from "@/lib/cantiere-data";
+import { addettiList, servizioOptions, tipologiaAutomezzoOptions, marcaAutomezzoOptions, tipologiaAttrezzoOptions, marcaAttrezzoOptions } from "@/lib/cantiere-data";
 import { RECIPIENT_EMAIL } from "@/lib/config";
+import { clienteOptions } from "@/lib/anagrafiche-data"; // Import corretto
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -47,7 +48,7 @@ const attrezzoSchema = z.object({
 const formSchema = z.object({
   reportDate: z.string().min(1, "La data del rapporto è richiesta."),
   reportTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  cliente: z.string().min(1, "Il cliente è richiesto."),
+  cliente: z.string().min(1, "Il cliente è richiesto."), // Now stores client ID
   cantiere: z.string().min(1, "Il cantiere è richiesto."),
   addetto: z.string().min(1, "L'addetto è richiesto."),
   servizio: z.string().min(1, "Il servizio è richiesto."),
@@ -177,8 +178,8 @@ export function CantiereForm() {
                   </FormControl>
                   <SelectContent>
                     {clienteOptions.map((cliente) => (
-                      <SelectItem key={cliente.codice} value={cliente.ragioneSociale}>
-                        {cliente.ragioneSociale}
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
