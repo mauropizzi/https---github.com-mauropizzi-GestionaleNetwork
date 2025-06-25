@@ -21,45 +21,59 @@ serve(async (req) => {
       });
     }
 
-    // Recupera la chiave API di Brevo dai segreti di Supabase
-    const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY');
-    // Imposta l'indirizzo email del mittente. ASSICURATI CHE QUESTO INDIRIZZO SIA VERIFICATO SU BREVO!
-    const SENDER_EMAIL = 'noreply@yourdomain.com'; // <-- CAMBIA QUESTO CON UN TUO INDIRIZZO VERIFICATO SU BREVO
+    // Retrieve Mailjet API keys from Supabase secrets
+    const MAILJET_API_KEY = Deno.env.get('MAILJET_API_KEY');
+    const MAILJET_SECRET_KEY = Deno.env.get('MAILJET_SECRET_KEY');
+    // Set the sender email address. ENSURE THIS ADDRESS IS VERIFIED IN MAILJET!
+    const SENDER_EMAIL = 'noreply@yourdomain.com'; // <-- CHANGE THIS TO YOUR VERIFIED SENDER EMAIL IN MAILJET
 
-    if (!BREVO_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Brevo API Key not configured in Supabase secrets.' }), {
+    if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY) {
+      return new Response(JSON.stringify({ error: 'Mailjet API Key or Secret Key not configured in Supabase secrets.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const auth = btoa(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`);
+
+    const mailjetResponse = await fetch('https://api.mailjet.com/v3.1/send', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
+        'Authorization': `Basic ${auth}`,
+        ...corsHeaders, // Include CORS headers for the response
       },
       body: JSON.stringify({
-        sender: { email: SENDER_EMAIL, name: "Security App" }, // Puoi cambiare il nome del mittente
-        to: [{ email: to }],
-        subject: subject,
-        textContent: body, // Usiamo textContent perché il body attuale è testo semplice
+        Messages: [
+          {
+            From: {
+              Email: SENDER_EMAIL,
+              Name: "Security App",
+            },
+            To: [
+              {
+                Email: to,
+              },
+            ],
+            Subject: subject,
+            TextPart: body, // Use TextPart for plain text email body
+          },
+        ],
       }),
     });
 
-    if (!brevoResponse.ok) {
-      const errorData = await brevoResponse.json();
-      console.error('Error sending email via Brevo:', errorData);
-      return new Response(JSON.stringify({ error: 'Failed to send email via Brevo', details: errorData }), {
-        status: brevoResponse.status,
+    if (!mailjetResponse.ok) {
+      const errorData = await mailjetResponse.json();
+      console.error('Error sending email via Mailjet:', errorData);
+      return new Response(JSON.stringify({ error: 'Failed to send email via Mailjet', details: errorData }), {
+        status: mailjetResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const successData = await brevoResponse.json();
-    console.log('Email sent successfully via Brevo:', successData);
-    return new Response(JSON.stringify({ message: 'Email sent successfully via Brevo', brevoResponse: successData }), {
+    const successData = await mailjetResponse.json();
+    console.log('Email sent successfully via Mailjet:', successData);
+    return new Response(JSON.stringify({ message: 'Email sent successfully via Mailjet', mailjetResponse: successData }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
