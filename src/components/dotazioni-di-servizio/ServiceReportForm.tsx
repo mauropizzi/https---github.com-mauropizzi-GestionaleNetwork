@@ -37,7 +37,7 @@ const nameOptions = [
 
 const serviceLocationOptions = [
   "Agrigento - Segmento Portierato", "Agrigento - Segmento VIGILANZA",
-  "Caltanissetto - Segmento Portierato", "Caltanissetto - Segmento VIGILANZA",
+  "Caltanissetta - Segmento Portierato", "Caltanissetta - Segmento VIGILANZA",
   "Catania - Segmento Portierato", "Catania - Segmento VIGILANZA",
   "Enna - Segmento Portierato", "Enna - Segmento VIGILANZA",
   "Messina - Segmento Portierato", "Messina - Segmento VIGILANZA",
@@ -77,6 +77,10 @@ const formSchema = z.object({
   extinguisher: z.enum(["SI", "NO"], { required_error: "Seleziona lo stato dell'Estintore." }),
   spareTire: z.enum(["SI", "NO"], { required_error: "Seleziona lo stato della Ruota di Scorta." }),
   highVisibilityVest: z.enum(["SI", "NO"], { required_error: "Seleziona lo stato del Gilet Alta Visibilità." }),
+  startLatitude: z.coerce.number().optional(), // New field for start latitude
+  startLongitude: z.coerce.number().optional(), // New field for start longitude
+  endLatitude: z.coerce.number().optional(), // New field for end latitude
+  endLongitude: z.coerce.number().optional(), // New field for end longitude
 }).refine(data => data.endKm >= data.startKm, {
   message: "KM Fine Servizio deve essere uguale o superiore a KM Inizio Servizio.",
   path: ["endKm"],
@@ -107,6 +111,10 @@ export function ServiceReportForm() {
       extinguisher: undefined,
       spareTire: undefined,
       highVisibilityVest: undefined,
+      startLatitude: undefined, // Default for new field
+      startLongitude: undefined, // Default for new field
+      endLatitude: undefined, // Default for new field
+      endLongitude: undefined, // Default for new field
     },
   });
 
@@ -148,10 +156,31 @@ export function ServiceReportForm() {
     form.setValue(field, format(new Date(), "HH:mm"));
   };
 
-  // Placeholder for GPS tracking logic (will be implemented in a separate hook/utility)
-  const handleGpsTracking = (type: 'start' | 'end') => {
-    showInfo(`Acquisizione posizione ${type === 'start' ? 'inizio' : 'fine'} servizio (funzionalità GPS da implementare).`);
-    // In a real scenario, this would call a GPS utility function
+  const getGpsPosition = (type: 'start' | 'end') => {
+    if (navigator.geolocation) {
+      showInfo(`Acquisizione posizione ${type === 'start' ? 'inizio' : 'fine'} servizio...`);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (type === 'start') {
+            form.setValue("startLatitude", latitude);
+            form.setValue("startLongitude", longitude);
+            showSuccess(`Posizione inizio servizio acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+          } else {
+            form.setValue("endLatitude", latitude);
+            form.setValue("endLongitude", longitude);
+            showSuccess(`Posizione fine servizio acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+          }
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS: ${error.message}`);
+          console.error("Error getting GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
   };
 
   return (
@@ -266,9 +295,14 @@ export function ServiceReportForm() {
                       Ora Attuale
                     </Button>
                   </div>
-                  <Button type="button" className="w-full mt-2 bg-red-600 hover:bg-red-700" onClick={() => handleGpsTracking("start")}>
+                  <Button type="button" className="w-full mt-2 bg-red-600 hover:bg-red-700" onClick={() => getGpsPosition("start")}>
                     POSIZIONE inizio Servizio
                   </Button>
+                  {form.watch("startLatitude") !== undefined && form.watch("startLongitude") !== undefined && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Lat: {form.watch("startLatitude")?.toFixed(6)}, Lon: {form.watch("startLongitude")?.toFixed(6)}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -287,9 +321,14 @@ export function ServiceReportForm() {
                       Ora Attuale
                     </Button>
                   </div>
-                  <Button type="button" className="w-full mt-2 bg-purple-600 hover:bg-purple-700" onClick={() => handleGpsTracking("end")}>
+                  <Button type="button" className="w-full mt-2 bg-purple-600 hover:bg-purple-700" onClick={() => getGpsPosition("end")}>
                     POSIZIONE Fine Servizio
                   </Button>
+                  {form.watch("endLatitude") !== undefined && form.watch("endLongitude") !== undefined && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Lat: {form.watch("endLatitude")?.toFixed(6)}, Lon: {form.watch("endLongitude")?.toFixed(6)}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
