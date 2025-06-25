@@ -24,14 +24,6 @@ export const servizioOptions: string[] = [
   "Servizio di Portierato",
 ];
 
-export const clienteOptions: { codice: string; ragioneSociale: string }[] = [
-  { codice: "CLI001", ragioneSociale: "AEROVIAGGI SPA" },
-  { codice: "CLI002", ragioneSociale: "COSEDIL SPA" },
-  { codice: "CLI003", ragioneSociale: "F.LLI MAMMANA SRL" },
-  { codice: "CLI004", ragioneSociale: "SICUREZZA PRO S.R.L." },
-  { codice: "CLI005", ragioneSociale: "EDILIZIA FUTURA S.P.A." },
-];
-
 export const tipologiaAutomezzoOptions: string[] = [
   "Auto",
   "Furgone",
