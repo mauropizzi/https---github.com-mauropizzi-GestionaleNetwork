@@ -26,14 +26,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Cliente, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
+import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
 import { showError } from "@/utils/toast";
 
 const BASE_RATE_BONIFICA = 150; // Example base rate
 
 const formSchema = z.object({
-  clienteId: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
@@ -56,14 +56,14 @@ const formSchema = z.object({
 
 export function BonificheForm() {
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
-  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]); // Changed from clienti
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const fetchedClienti = await fetchClienti();
+      const fetchedPuntiServizio = await fetchPuntiServizio(); // Changed from fetchClienti
       const fetchedFornitori = await fetchFornitori();
-      setClienti(fetchedClienti);
+      setPuntiServizio(fetchedPuntiServizio); // Changed from setClienti
       setFornitori(fetchedFornitori);
     };
     loadData();
@@ -72,7 +72,7 @@ export function BonificheForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      clienteId: "",
+      servicePointId: "", // Changed from clienteId
       fornitoreId: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -84,7 +84,7 @@ export function BonificheForm() {
     setCalculatedCost(cost);
     console.log("Calculated Bonifiche Cost:", cost);
     console.log("Bonifiche Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
-    console.log("Cliente ID:", values.clienteId);
+    console.log("Punto Servizio ID:", values.servicePointId); // Changed from Cliente ID
     console.log("Fornitore ID:", values.fornitoreId);
   };
 
@@ -94,20 +94,20 @@ export function BonificheForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="clienteId"
+            name="servicePointId" // Changed from clienteId
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cliente</FormLabel>
+                <FormLabel>Punto Servizio</FormLabel> {/* Changed label */}
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un cliente" />
+                      <SelectValue placeholder="Seleziona un punto servizio" /> {/* Changed placeholder */}
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {clienti.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nome_cliente}
+                    {puntiServizio.map((punto) => ( // Changed from clienti.map
+                      <SelectItem key={punto.id} value={punto.id}>
+                        {punto.nome_punto_servizio} {/* Changed display field */}
                       </SelectItem>
                     ))}
                   </SelectContent>
