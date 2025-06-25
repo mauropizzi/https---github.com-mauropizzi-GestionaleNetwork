@@ -37,6 +37,7 @@ const formSchema = z.object({
   cliente_id: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
   tipo_servizio: z.string().min(1, "Il tipo di servizio è richiesto."),
   importo: z.coerce.number().min(0.01, "L'importo deve essere un numero positivo."),
+  supplier_rate: z.coerce.number().min(0.01, "La tariffa fornitore deve essere un numero positivo."), // Nuovo campo
   unita_misura: z.string().min(1, "L'unità di misura è richiesta."),
   punto_servizio_id: z.string().uuid("Seleziona un punto servizio valido.").optional().or(z.literal("")),
   data_inizio_validita: z.date().optional(),
@@ -72,6 +73,7 @@ export function TariffeForm() {
       cliente_id: "",
       tipo_servizio: "",
       importo: 0,
+      supplier_rate: 0, // Default per il nuovo campo
       unita_misura: "",
       punto_servizio_id: "",
       data_inizio_validita: undefined,
@@ -148,7 +150,7 @@ export function TariffeForm() {
             name="importo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Importo (€)</FormLabel>
+                <FormLabel>Importo Cliente (€)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
@@ -158,29 +160,42 @@ export function TariffeForm() {
           />
           <FormField
             control={form.control}
-            name="unita_misura"
+            name="supplier_rate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unità di Misura</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona unità di misura" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {unitaMisuraOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Importo Fornitore (€)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
+        <FormField
+          control={form.control}
+          name="unita_misura"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Unità di Misura</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona unità di misura" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {unitaMisuraOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="punto_servizio_id"

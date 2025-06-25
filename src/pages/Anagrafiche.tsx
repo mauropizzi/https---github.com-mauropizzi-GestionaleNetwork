@@ -44,7 +44,7 @@ const Anagrafiche = () => {
       case "fornitori":
         return ["ragione_sociale", "partita_iva", "codice_fiscale", "indirizzo", "cap", "citta", "provincia", "telefono", "email", "pec", "tipo_servizio", "attivo", "note"];
       case "tariffe": // New case for Tariffe
-        return ["cliente_id", "tipo_servizio", "importo", "unita_misura", "punto_servizio_id", "data_inizio_validita", "data_fine_validita", "note"];
+        return ["cliente_id", "tipo_servizio", "importo", "supplier_rate", "unita_misura", "punto_servizio_id", "data_inizio_validita", "data_fine_validita", "note"];
       default:
         return [];
     }
