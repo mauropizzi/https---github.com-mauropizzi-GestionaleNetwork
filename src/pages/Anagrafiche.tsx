@@ -37,7 +37,7 @@ const Anagrafiche = () => {
       case "punti-servizio":
         return ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente", "telefono", "email", "note", "tempoIntervento", "fornitoreId", "codiceCliente", "codiceSicep", "codiceFatturazione"];
       case "personale":
-        return ["nome", "cognome", "codiceFiscale", "ruolo", "telefono", "email"];
+        return ["nome", "cognome", "codiceFiscale", "ruolo", "telefono", "email", "data_nascita", "luogo_nascita", "indirizzo", "cap", "citta", "provincia", "data_assunzione", "data_cessazione", "attivo", "note"];
       case "operatori-network":
         return ["nomeOperatore", "referente", "telefono", "email", "tipoServizio"];
       case "fornitori":
