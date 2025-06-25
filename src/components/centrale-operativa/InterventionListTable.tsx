@@ -79,12 +79,12 @@ export function InterventionListTable() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
-  const [servicePointFilter, setServicePointFilter] = useState<string>("");
-  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("");
-  const [coOperatorFilter, setCoOperatorFilter] = useState<string>("");
-  const [operatorClientFilter, setOperatorClientFilter] = useState<string>("");
-  const [gpgInterventionFilter, setGpgInterventionFilter] = useState<string>("");
-  const [serviceOutcomeFilter, setServiceOutcomeFilter] = useState<string>("");
+  const [servicePointFilter, setServicePointFilter] = useState<string>("all"); // Changed default to "all"
+  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all"); // Changed default to "all"
+  const [coOperatorFilter, setCoOperatorFilter] = useState<string>("all"); // Changed default to "all"
+  const [operatorClientFilter, setOperatorClientFilter] = useState<string>("all"); // Changed default to "all"
+  const [gpgInterventionFilter, setGpgInterventionFilter] = useState<string>("all"); // Changed default to "all"
+  const [serviceOutcomeFilter, setServiceOutcomeFilter] = useState<string>("all"); // Changed default to "all"
 
   const { data, isLoading, error, refetch } = useQuery<ServiziRichiesti[], Error>({
     queryKey: ['serviziRichiesti'],
@@ -183,8 +183,8 @@ export function InterventionListTable() {
         (!startDateFilter || (isValid(itemStartDate) && itemStartDate >= startDateFilter)) &&
         (!endDateFilter || (isValid(itemEndDate) && itemEndDate <= endDateFilter));
 
-      const matchesServicePoint = !servicePointFilter || item.service_point_id === servicePointFilter;
-      const matchesRequestType = !requestTypeFilter || item.type === requestTypeFilter;
+      const matchesServicePoint = servicePointFilter === "all" || item.service_point_id === servicePointFilter;
+      const matchesRequestType = requestTypeFilter === "all" || item.type === requestTypeFilter;
       // For other filters (coOperator, operatorClient, gpgIntervention, serviceOutcome),
       // these fields are not directly in 'servizi_richiesti' table.
       // They would typically be part of a related 'rapporti_servizio' or 'registri_cantiere' table,
@@ -217,12 +217,12 @@ export function InterventionListTable() {
     setGlobalFilter("");
     setStartDateFilter(undefined);
     setEndDateFilter(undefined);
-    setServicePointFilter("");
-    setRequestTypeFilter("");
-    setCoOperatorFilter("");
-    setOperatorClientFilter("");
-    setGpgInterventionFilter("");
-    setServiceOutcomeFilter("");
+    setServicePointFilter("all"); // Reset to "all"
+    setRequestTypeFilter("all"); // Reset to "all"
+    setCoOperatorFilter("all"); // Reset to "all"
+    setOperatorClientFilter("all"); // Reset to "all"
+    setGpgInterventionFilter("all"); // Reset to "all"
+    setServiceOutcomeFilter("all"); // Reset to "all"
     showSuccess("Filtri resettati!");
   };
 
@@ -316,7 +316,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Punto Servizio" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti i Punti Servizio</SelectItem>
+            <SelectItem value="all">Tutti i Punti Servizio</SelectItem> {/* Changed value */}
             {servicePointsData.map((point) => (
               <SelectItem key={point.code} value={point.code}>
                 {point.name}
@@ -330,7 +330,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Tipologia Richiesta" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutte le Tipologie</SelectItem>
+            <SelectItem value="all">Tutte le Tipologie</SelectItem> {/* Changed value */}
             {requestTypeOptions.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -345,7 +345,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Co-Operatore" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti i Co-Operatori</SelectItem>
+            <SelectItem value="all">Tutti i Co-Operatori</SelectItem> {/* Changed value */}
             {coOperatorOptions.map((op) => (
               <SelectItem key={op} value={op}>
                 {op}
@@ -359,7 +359,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Operatore Cliente" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti gli Operatori Cliente</SelectItem>
+            <SelectItem value="all">Tutti gli Operatori Cliente</SelectItem> {/* Changed value */}
             {operatorClientOptions.map((op) => (
               <SelectItem key={op} value={op}>
                 {op}
@@ -373,7 +373,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="G.P.G. Intervento" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti i G.P.G.</SelectItem>
+            <SelectItem value="all">Tutti i G.P.G.</SelectItem> {/* Changed value */}
             {gpgInterventionOptions.map((gpg) => (
               <SelectItem key={gpg} value={gpg}>
                 {gpg}
@@ -387,7 +387,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Esito Servizio" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tutti gli Esiti</SelectItem>
+            <SelectItem value="all">Tutti gli Esiti</SelectItem> {/* Changed value */}
             {serviceOutcomeOptions.map((outcome) => (
               <SelectItem key={outcome} value={outcome}>
                 {outcome}
