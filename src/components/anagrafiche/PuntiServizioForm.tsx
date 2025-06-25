@@ -108,13 +108,17 @@ export function PuntiServizioForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Cliente Associato</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                value={field.value || "DYAD_EMPTY_VALUE"}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona un cliente" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="DYAD_EMPTY_VALUE">Seleziona un cliente</SelectItem>
                   {clienti.map((cliente) => (
                     <SelectItem key={cliente.id} value={cliente.id}>
                       {cliente.nome_cliente}
@@ -269,14 +273,17 @@ export function PuntiServizioForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Fornitore Associato (Opzionale)</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                value={field.value || "DYAD_EMPTY_VALUE"}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona un fornitore" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Nessun Fornitore</SelectItem> {/* Opzione per nessun fornitore */}
+                  <SelectItem value="DYAD_EMPTY_VALUE">Nessun Fornitore</SelectItem>
                   {fornitori.map((fornitore) => (
                     <SelectItem key={fornitore.id} value={fornitore.id}>
                       {fornitore.nome_fornitore}
