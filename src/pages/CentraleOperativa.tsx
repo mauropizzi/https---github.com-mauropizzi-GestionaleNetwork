@@ -10,8 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
-import { servicePointsData } from '@/lib/centrale-data';
+import {
+  servicePointsData,
+  requestTypeOptions,
+  coOperatorOptions,
+  operatorClientOptions,
+  gpgInterventionOptions,
+  serviceOutcomeOptions,
+} from '@/lib/centrale-data';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -45,7 +53,7 @@ const CentraleOperativa = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleToggleChange = (name: string, value: string) => {
+  const handleRadioChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -62,6 +70,7 @@ const CentraleOperativa = () => {
       description: "L'intervento è stato registrato con successo.",
     });
     console.log("Form data:", formData);
+    // Qui potresti inviare i dati a Supabase o a un altro backend
   };
 
   return (
@@ -115,19 +124,14 @@ const CentraleOperativa = () => {
               <SelectValue placeholder="Seleziona Tipologia Servizio..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Intervento">Intervento</SelectItem>
-              <SelectItem value="Ispezione">Ispezione</SelectItem>
-              <SelectItem value="Bonifica">Bonifica</SelectItem>
-              <SelectItem value="Apertura">Apertura</SelectItem>
-              <SelectItem value="Chiusura">Chiusura</SelectItem>
-              <SelectItem value="Verifica Chiavi">Verifica Chiavi</SelectItem>
-              <SelectItem value="Ritiro Chiavi">Ritiro Chiavi</SelectItem>
+              {requestTypeOptions.map(option => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-
-        {/* Continue with other form fields following the same pattern */}
-        {/* For brevity, I'll show a few more examples */}
 
         <div className="space-y-2">
           <Label htmlFor="co-operator">Operatore C.O. Security Service</Label>
@@ -139,11 +143,11 @@ const CentraleOperativa = () => {
               <SelectValue placeholder="Seleziona operatore..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Lisi Bruno">LISI BRUNO</SelectItem>
-              <SelectItem value="Mertoli Manuela">MERTOLI MANUELA</SelectItem>
-              <SelectItem value="Scuderia Nicoletta">SCUDERI NICOLETTA</SelectItem>
-              <SelectItem value="Sommese Mirco">SOMMESE MIRKO</SelectItem>
-              <SelectItem value="Avarino Andrea">AVARINO ANDREA</SelectItem>
+              {coOperatorOptions.map(option => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -176,7 +180,210 @@ const CentraleOperativa = () => {
           </div>
         </div>
 
-        {/* Add similar blocks for all other form fields */}
+        {/* Nuovi campi aggiunti */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="startTime">Orario Inizio Intervento</Label>
+            <div className="flex gap-2">
+              <Input
+                type="datetime-local"
+                id="startTime"
+                name="startTime"
+                value={formData.startTime}
+                onChange={handleInputChange}
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => handleSetCurrentTime('startTime')}
+              >
+                Ora Attuale
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="endTime">Orario Fine Intervento</Label>
+            <div className="flex gap-2">
+              <Input
+                type="datetime-local"
+                id="endTime"
+                name="endTime"
+                value={formData.endTime}
+                onChange={handleInputChange}
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => handleSetCurrentTime('endTime')}
+              >
+                Ora Attuale
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Accesso Completo</Label>
+          <RadioGroup
+            value={formData.fullAccess}
+            onValueChange={(value) => handleRadioChange('fullAccess', value)}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="fullAccessSi" />
+              <Label htmlFor="fullAccessSi">SI</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="fullAccessNo" />
+              <Label htmlFor="fullAccessNo">NO</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Accesso Caveau</Label>
+          <RadioGroup
+            value={formData.vaultAccess}
+            onValueChange={(value) => handleRadioChange('vaultAccess', value)}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="vaultAccessSi" />
+              <Label htmlFor="vaultAccessSi">SI</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="vaultAccessNo" />
+              <Label htmlFor="vaultAccessNo">NO</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="operator-client">Operatore Cliente</Label>
+          <Select
+            onValueChange={(value) => handleSelectChange('operatorClient', value)}
+            value={formData.operatorClient}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleziona operatore cliente..." />
+            </SelectTrigger>
+            <SelectContent>
+              {operatorClientOptions.map(option => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="gpg-intervention">G.P.G. Intervento</Label>
+          <Select
+            onValueChange={(value) => handleSelectChange('gpgIntervention', value)}
+            value={formData.gpgIntervention}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleziona G.P.G. intervento..." />
+            </SelectTrigger>
+            <SelectContent>
+              {gpgInterventionOptions.map(option => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Anomalie Riscontrate</Label>
+          <RadioGroup
+            value={formData.anomalies}
+            onValueChange={(value) => handleRadioChange('anomalies', value)}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="anomaliesSi" />
+              <Label htmlFor="anomaliesSi">SI</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="anomaliesNo" />
+              <Label htmlFor="anomaliesNo">NO</Label>
+            </div>
+          </RadioGroup>
+          {formData.anomalies === 'si' && (
+            <Textarea
+              id="anomalyDescription"
+              name="anomalyDescription"
+              placeholder="Descrivi le anomalie riscontrate..."
+              value={formData.anomalyDescription}
+              onChange={handleInputChange}
+              className="mt-2"
+            />
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Ritardo</Label>
+          <RadioGroup
+            value={formData.delay}
+            onValueChange={(value) => handleRadioChange('delay', value)}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="delaySi" />
+              <Label htmlFor="delaySi">SI</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="delayNo" />
+              <Label htmlFor="delayNo">NO</Label>
+            </div>
+          </RadioGroup>
+          {formData.delay === 'si' && (
+            <Textarea
+              id="delayNotes"
+              name="delayNotes"
+              placeholder="Motivo del ritardo..."
+              value={formData.delayNotes}
+              onChange={handleInputChange}
+              className="mt-2"
+            />
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="service-outcome">Esito Servizio</Label>
+          <Select
+            onValueChange={(value) => handleSelectChange('serviceOutcome', value)}
+            value={formData.serviceOutcome}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleziona esito..." />
+            </SelectTrigger>
+            <SelectContent>
+              {serviceOutcomeOptions.map(option => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="barcode">Barcode</Label>
+          <Input
+            type="text"
+            id="barcode"
+            name="barcode"
+            placeholder="Inserisci barcode..."
+            value={formData.barcode}
+            onChange={handleInputChange}
+          />
+        </div>
 
         <div className="pt-4">
           <Button type="submit" className="w-full">
