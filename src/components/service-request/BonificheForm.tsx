@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, isValid } from "date-fns"; // Import isValid
+import { format, parseISO, isValid } from "date-fns";
 import { it } from 'date-fns/locale';
 import { CalendarIcon } from "lucide-react";
 
@@ -18,11 +18,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Cliente, Fornitore } from "@/lib/anagrafiche-data";
+import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { showError } from "@/utils/toast";
 
 const BASE_RATE_BONIFICA = 150; // Example base rate
 
 const formSchema = z.object({
+  clienteId: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
+  fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
@@ -44,30 +56,90 @@ const formSchema = z.object({
 
 export function BonificheForm() {
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const fetchedClienti = await fetchClienti();
+      const fetchedFornitori = await fetchFornitori();
+      setClienti(fetchedClienti);
+      setFornitori(fetchedFornitori);
+    };
+    loadData();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      clienteId: "",
+      fornitoreId: "",
       startTime: "09:00",
       endTime: "17:00",
     },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // For "una tantum" services, the calculation is a base rate per daily unit.
-    // Here, "unità giornaliera" implies 1 unit per request.
-    // The start and end dates/times are now captured for record-keeping,
-    // but the cost remains fixed as per the "una tantum" nature.
     const cost = BASE_RATE_BONIFICA;
     setCalculatedCost(cost);
     console.log("Calculated Bonifiche Cost:", cost);
     console.log("Bonifiche Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
+    console.log("Cliente ID:", values.clienteId);
+    console.log("Fornitore ID:", values.fornitoreId);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="clienteId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cliente</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un cliente" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clienti.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome_cliente}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fornitoreId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fornitore</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un fornitore" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {fornitori.map((fornitore) => (
+                      <SelectItem key={fornitore.id} value={fornitore.id}>
+                        {fornitore.nome_fornitore}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="startDate"

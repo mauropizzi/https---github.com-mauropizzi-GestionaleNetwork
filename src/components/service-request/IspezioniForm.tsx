@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
+import { Cliente, Fornitore } from "@/lib/anagrafiche-data";
+import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { showError } from "@/utils/toast";
 
 const dailyHoursSchema = z.object({
   day: z.string(),
@@ -45,6 +48,8 @@ const dailyHoursSchema = z.object({
 });
 
 const formSchema = z.object({
+  clienteId: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
+  fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio servizio è richiesta.",
   }),
@@ -65,10 +70,24 @@ const formSchema = z.object({
 
 export function IspezioniForm() {
   const [calculatedInspections, setCalculatedInspections] = useState<number | null>(null);
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const fetchedClienti = await fetchClienti();
+      const fetchedFornitori = await fetchFornitori();
+      setClienti(fetchedClienti);
+      setFornitori(fetchedFornitori);
+    };
+    loadData();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      clienteId: "",
+      fornitoreId: "",
       cadenceHours: 2,
       inspectionType: "perimetrale",
       dailyHours: [
@@ -142,12 +161,62 @@ export function IspezioniForm() {
     const numInspections = Math.floor(totalOperationalHours / cadenceHours) + 1;
     setCalculatedInspections(numInspections);
     console.log("Calculated Inspections:", numInspections);
+    console.log("Cliente ID:", values.clienteId);
+    console.log("Fornitore ID:", values.fornitoreId);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="clienteId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cliente</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un cliente" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clienti.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome_cliente}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fornitoreId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fornitore</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un fornitore" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {fornitori.map((fornitore) => (
+                      <SelectItem key={fornitore.id} value={fornitore.id}>
+                        {fornitore.nome_fornitore}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="startDate"
