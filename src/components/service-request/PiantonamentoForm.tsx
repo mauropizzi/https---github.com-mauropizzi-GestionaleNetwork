@@ -30,8 +30,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
-import { Cliente, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
+import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
 import { showError } from "@/utils/toast";
 
 const dailyHoursSchema = z.object({
@@ -48,7 +48,7 @@ const dailyHoursSchema = z.object({
 });
 
 const formSchema = z.object({
-  clienteId: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
@@ -73,14 +73,14 @@ const formSchema = z.object({
 
 export function PiantonamentoForm() {
   const [calculatedHours, setCalculatedHours] = useState<number | null>(null);
-  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const fetchedClienti = await fetchClienti();
+      const fetchedPuntiServizio = await fetchPuntiServizio();
       const fetchedFornitori = await fetchFornitori();
-      setClienti(fetchedClienti);
+      setPuntiServizio(fetchedPuntiServizio);
       setFornitori(fetchedFornitori);
     };
     loadData();
@@ -89,7 +89,7 @@ export function PiantonamentoForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      clienteId: "",
+      servicePointId: "",
       fornitoreId: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -159,7 +159,7 @@ export function PiantonamentoForm() {
     const finalCalculatedHours = totalHours * numAgents;
     setCalculatedHours(finalCalculatedHours);
     console.log("Calculated Hours (simplified):", finalCalculatedHours);
-    console.log("Cliente ID:", values.clienteId);
+    console.log("Punto Servizio ID:", values.servicePointId);
     console.log("Fornitore ID:", values.fornitoreId);
   };
 
@@ -169,20 +169,20 @@ export function PiantonamentoForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="clienteId"
+            name="servicePointId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cliente</FormLabel>
+                <FormLabel>Punto Servizio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un cliente" />
+                      <SelectValue placeholder="Seleziona un punto servizio" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {clienti.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nome_cliente}
+                    {puntiServizio.map((punto) => (
+                      <SelectItem key={punto.id} value={punto.id}>
+                        {punto.nome_punto_servizio}
                       </SelectItem>
                     ))}
                   </SelectContent>
