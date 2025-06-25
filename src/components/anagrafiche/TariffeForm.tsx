@@ -28,8 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
-import { Cliente, PuntoServizio, serviceTypeRateOptions } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchPuntiServizio } from "@/lib/data-fetching";
+import { Cliente, PuntoServizio, Fornitore, serviceTypeRateOptions } from "@/lib/anagrafiche-data";
+import { fetchClienti, fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
 
 const unitaMisuraOptions = ["ora", "intervento", "km", "mese"];
 
@@ -37,9 +37,10 @@ const formSchema = z.object({
   cliente_id: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."),
   tipo_servizio: z.string().min(1, "Il tipo di servizio è richiesto."),
   importo: z.coerce.number().min(0.01, "L'importo deve essere un numero positivo."),
-  supplier_rate: z.coerce.number().min(0.01, "La tariffa fornitore deve essere un numero positivo."), // Nuovo campo
+  supplier_rate: z.coerce.number().min(0.01, "La tariffa fornitore deve essere un numero positivo."),
   unita_misura: z.string().min(1, "L'unità di misura è richiesta."),
   punto_servizio_id: z.string().uuid("Seleziona un punto servizio valido.").optional().or(z.literal("")),
+  fornitore_id: z.string().uuid("Seleziona un fornitore valido.").optional().or(z.literal("")), // Nuovo campo
   data_inizio_validita: z.date().optional(),
   data_fine_validita: z.date().optional(),
   note: z.string().optional(),
@@ -56,13 +57,16 @@ const formSchema = z.object({
 export function TariffeForm() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]); // Nuovo stato per i fornitori
 
   useEffect(() => {
     const loadData = async () => {
       const fetchedClienti = await fetchClienti();
       const fetchedPuntiServizio = await fetchPuntiServizio();
+      const fetchedFornitori = await fetchFornitori(); // Recupera i fornitori
       setClienti(fetchedClienti);
       setPuntiServizio(fetchedPuntiServizio);
+      setFornitori(fetchedFornitori); // Imposta i fornitori
     };
     loadData();
   }, []);
@@ -73,9 +77,10 @@ export function TariffeForm() {
       cliente_id: "",
       tipo_servizio: "",
       importo: 0,
-      supplier_rate: 0, // Default per il nuovo campo
+      supplier_rate: 0,
       unita_misura: "",
       punto_servizio_id: "",
+      fornitore_id: "", // Default per il nuovo campo
       data_inizio_validita: undefined,
       data_fine_validita: undefined,
       note: "",
@@ -216,6 +221,34 @@ export function TariffeForm() {
                   {puntiServizio.map((punto) => (
                     <SelectItem key={punto.id} value={punto.id}>
                       {punto.nome_punto_servizio}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="fornitore_id" // Nuovo campo Fornitore
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fornitore Associato (Opzionale)</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                value={field.value || "DYAD_EMPTY_VALUE"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un fornitore" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="DYAD_EMPTY_VALUE">Nessun Fornitore Specifico</SelectItem>
+                  {fornitori.map((fornitore) => (
+                    <SelectItem key={fornitore.id} value={fornitore.id}>
+                      {fornitore.nome_fornitore}
                     </SelectItem>
                   ))}
                 </SelectContent>
