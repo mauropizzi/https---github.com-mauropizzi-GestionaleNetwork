@@ -41,7 +41,7 @@ const Anagrafiche = () => {
       case "operatori-network":
         return ["nomeOperatore", "referente", "telefono", "email", "tipoServizio"];
       case "fornitori":
-        return ["nomeFornitore", "partitaIva", "referente", "telefono", "email", "tipoFornitura"];
+        return ["ragione_sociale", "partita_iva", "codice_fiscale", "indirizzo", "cap", "citta", "provincia", "telefono", "email", "pec", "tipo_servizio", "attivo", "note"];
       default:
         return [];
     }
