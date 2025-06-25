@@ -72,6 +72,70 @@ const fetchInterventions = async (): Promise<AllarmeIntervento[]> => {
   return data;
 };
 
+// Moved columns definition outside the component
+const columns: ColumnDef<AllarmeIntervento>[] = [
+  {
+    accessorKey: "id",
+    header: "ID",
+  },
+  {
+    accessorKey: "report_date",
+    header: "Data",
+    cell: ({ row }) => format(new Date(row.original.report_date), "dd/MM/yyyy", { locale: it }),
+  },
+  {
+    accessorKey: "report_time",
+    header: "Ora",
+  },
+  {
+    accessorKey: "service_point_code",
+    header: "Punto Servizio",
+    cell: ({ row }) => {
+      const point = servicePointsData.find(sp => sp.code === row.original.service_point_code);
+      return point ? point.name : row.original.service_point_code || "N/A";
+    },
+  },
+  {
+    accessorKey: "request_type",
+    header: "Tipologia Richiesta",
+  },
+  {
+    accessorKey: "co_operator",
+    header: "Co-Operatore",
+    cell: ({ row }) => row.original.co_operator || "N/A",
+  },
+  {
+    accessorKey: "operator_client",
+    header: "Operatore Cliente",
+    cell: ({ row }) => row.original.operator_client || "N/A",
+  },
+  {
+    accessorKey: "gpg_intervention",
+    header: "G.P.G. Intervento",
+    cell: ({ row }) => row.original.gpg_intervention || "N/A",
+  },
+  {
+    accessorKey: "service_outcome",
+    header: "Esito Servizio",
+    cell: ({ row }) => row.original.service_outcome || "N/A",
+  },
+  {
+    accessorKey: "notes",
+    header: "Note",
+  },
+  {
+    id: "actions",
+    header: "Azioni",
+    cell: ({ row }) => (
+      <div className="flex space-x-2">
+        <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)}>
+          <FileText className="h-4 w-4 mr-1" /> Dettagli/Stampa
+        </Button>
+      </div>
+    ),
+  },
+];
+
 export function InterventionListTable() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined); // Single date filter
@@ -86,69 +150,6 @@ export function InterventionListTable() {
     queryKey: ['allarmeInterventi'],
     queryFn: fetchInterventions,
   });
-
-  const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
-    {
-      accessorKey: "id",
-      header: "ID",
-    },
-    {
-      accessorKey: "report_date",
-      header: "Data",
-      cell: ({ row }) => format(new Date(row.original.report_date), "dd/MM/yyyy", { locale: it }),
-    },
-    {
-      accessorKey: "report_time",
-      header: "Ora",
-    },
-    {
-      accessorKey: "service_point_code",
-      header: "Punto Servizio",
-      cell: ({ row }) => {
-        const point = servicePointsData.find(sp => sp.code === row.original.service_point_code);
-        return point ? point.name : row.original.service_point_code || "N/A";
-      },
-    },
-    {
-      accessorKey: "request_type",
-      header: "Tipologia Richiesta",
-    },
-    {
-      accessorKey: "co_operator",
-      header: "Co-Operatore",
-      cell: ({ row }) => row.original.co_operator || "N/A",
-    },
-    {
-      accessorKey: "operator_client",
-      header: "Operatore Cliente",
-      cell: ({ row }) => row.original.operator_client || "N/A",
-    },
-    {
-      accessorKey: "gpg_intervention",
-      header: "G.P.G. Intervento",
-      cell: ({ row }) => row.original.gpg_intervention || "N/A",
-    },
-    {
-      accessorKey: "service_outcome",
-      header: "Esito Servizio",
-      cell: ({ row }) => row.original.service_outcome || "N/A",
-    },
-    {
-      accessorKey: "notes",
-      header: "Note",
-    },
-    {
-      id: "actions",
-      header: "Azioni",
-      cell: ({ row }) => (
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)}>
-            <FileText className="h-4 w-4 mr-1" /> Dettagli/Stampa
-          </Button>
-        </div>
-      ),
-    },
-  ], []);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
