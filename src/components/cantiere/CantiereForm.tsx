@@ -29,7 +29,8 @@ import { AutomezzoItem } from "./AutomezzoItem";
 import { AttrezzoItem } from "./AttrezzoItem";
 import { addettiList, servizioOptions, tipologiaAutomezzoOptions, marcaAutomezzoOptions, tipologiaAttrezzoOptions, marcaAttrezzoOptions } from "@/lib/cantiere-data";
 import { RECIPIENT_EMAIL } from "@/lib/config";
-import { clienteOptions } from "@/lib/anagrafiche-data"; // Import corretto
+import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
+import { fetchClienti } from "@/lib/data-fetching"; // Import fetchClienti
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -60,6 +61,16 @@ const formSchema = z.object({
 });
 
 export function CantiereForm() {
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+
+  useEffect(() => {
+    const loadClienti = async () => {
+      const fetchedClienti = await fetchClienti();
+      setClienti(fetchedClienti);
+    };
+    loadClienti();
+  }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -177,9 +188,9 @@ export function CantiereForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {clienteOptions.map((cliente) => (
+                    {clienti.map((cliente) => (
                       <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nome}
+                        {cliente.nome_cliente}
                       </SelectItem>
                     ))}
                   </SelectContent>

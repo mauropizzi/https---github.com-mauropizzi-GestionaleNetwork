@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clienteOptions } from "@/lib/anagrafiche-data"; // Import from new central file
+import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
+import { fetchClienti } from "@/lib/data-fetching"; // Import fetchClienti
+import { showError } from "@/utils/toast";
 
 const formSchema = z.object({
   nomePuntoServizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
@@ -33,6 +35,16 @@ const formSchema = z.object({
 });
 
 export function PuntiServizioForm() {
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+
+  useEffect(() => {
+    const loadClienti = async () => {
+      const fetchedClienti = await fetchClienti();
+      setClienti(fetchedClienti);
+    };
+    loadClienti();
+  }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,9 +94,9 @@ export function PuntiServizioForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {clienteOptions.map((cliente) => (
+                  {clienti.map((cliente) => (
                     <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nome}
+                      {cliente.nome_cliente}
                     </SelectItem>
                   ))}
                 </SelectContent>
