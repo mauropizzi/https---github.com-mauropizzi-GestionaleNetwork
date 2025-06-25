@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio } from "lucide-react"; // Import new icon Radio
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio } from "lucide-react";
 
 interface NavItem {
   title: string;
@@ -14,9 +14,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: "Dashboard",
-    href: "/",
-    icon: Home,
+    title: "Centrale Operativa", // Renamed from Dashboard
+    href: "/", // Kept as root path
+    icon: Radio, // Changed icon to Radio
   },
   {
     title: "Richiesta Servizi",
@@ -46,11 +46,7 @@ const navItems: NavItem[] = [
     href: "/registro-di-cantiere",
     icon: ClipboardList,
   },
-  {
-    title: "Centrale Operativa", // New main item
-    href: "/centrale-operativa",
-    icon: Radio, // Using Radio icon
-  },
+  // Removed the duplicate "Centrale Operativa" entry here
   {
     title: "Anagrafiche",
     href: "/anagrafiche",

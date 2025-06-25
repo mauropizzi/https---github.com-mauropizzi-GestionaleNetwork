@@ -21,11 +21,19 @@ const DashboardLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case "/":
-        return "Dashboard";
+        return "Centrale Operativa"; // Changed title for the root path
       case "/service-request":
         return "Richiesta Servizi";
       case "/anagrafiche":
         return "Gestione Anagrafiche";
+      case "/dotazioni-di-servizio":
+        return "Dotazioni di Servizio";
+      case "/service-list":
+        return "Elenco Servizi Richiesti";
+      case "/registro-di-cantiere":
+        return "Registro di Cantiere";
+      case "/centrale-operativa":
+        return "Centrale Operativa";
       default:
         return "Dashboard";
     }

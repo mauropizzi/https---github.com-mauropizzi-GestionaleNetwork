@@ -11,7 +11,7 @@ import Anagrafiche from "./pages/Anagrafiche";
 import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
-import CentraleOperativa from "./pages/CentraleOperativa"; // Import the new page
+import CentraleOperativa from "./pages/CentraleOperativa";
 
 const queryClient = new QueryClient();
 
@@ -23,13 +23,13 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<DashboardOverview />} />
+            <Route index element={<CentraleOperativa />} /> {/* Changed default route to CentraleOperativa */}
             <Route path="service-request" element={<ServiceRequest />} />
             <Route path="anagrafiche" element={<Anagrafiche />} />
             <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
-            <Route path="centrale-operativa" element={<CentraleOperativa />} /> {/* New route */}
+            <Route path="centrale-operativa" element={<CentraleOperativa />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Route>
