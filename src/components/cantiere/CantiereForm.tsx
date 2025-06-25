@@ -31,6 +31,7 @@ import { addettiList, servizioOptions, tipologiaAutomezzoOptions, marcaAutomezzo
 import { RECIPIENT_EMAIL } from "@/lib/config";
 import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
 import { fetchClienti } from "@/lib/data-fetching"; // Import fetchClienti
+import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -139,8 +140,52 @@ export function CantiereForm() {
   };
 
   const handleEmail = () => {
-    showInfo(`Invio email a ${RECIPIENT_EMAIL} (funzionalità da implementare).`);
-    // Logica per inviare email
+    const values = form.getValues();
+    const selectedClient = clienti.find(c => c.id === values.cliente);
+    const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
+
+    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`;
+    
+    let body = `Dettagli Rapporto di Cantiere:\n\n`;
+    body += `Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}\n`;
+    body += `Ora Rapporto: ${values.reportTime}\n`;
+    if (values.latitude !== undefined && values.longitude !== undefined) {
+      body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
+    }
+    body += `Cliente: ${clientName}\n`;
+    body += `Cantiere: ${values.cantiere}\n`;
+    body += `Addetto: ${values.addetto}\n`;
+    body += `Servizio: ${values.servizio}\n`;
+    body += `Ore di Servizio: ${values.oreServizio}\n`;
+    body += `\nDescrizione Lavori Svolti:\n${values.descrizioneLavori}\n`;
+
+    if (values.automezzi && values.automezzi.length > 0) {
+      body += `\n--- Automezzi Utilizzati ---\n`;
+      values.automezzi.forEach((auto, index) => {
+        body += `Automezzo ${index + 1}:\n`;
+        body += `  Tipologia: ${auto.tipologia}\n`;
+        body += `  Marca: ${auto.marca}\n`;
+        body += `  Targa: ${auto.targa}\n`;
+        body += `  Ore di Lavoro: ${auto.oreLavoro}\n`;
+      });
+    }
+
+    if (values.attrezzi && values.attrezzi.length > 0) {
+      body += `\n--- Attrezzi Utilizzati ---\n`;
+      values.attrezzi.forEach((attrezzo, index) => {
+        body += `Attrezzo ${index + 1}:\n`;
+        body += `  Tipologia: ${attrezzo.tipologia}\n`;
+        body += `  Marca: ${attrezzo.marca}\n`;
+        body += `  Quantità: ${attrezzo.quantita}\n`;
+        body += `  Ore di Utilizzo: ${attrezzo.oreUtilizzo}\n`;
+      });
+    }
+
+    if (values.noteVarie) {
+      body += `\n--- Note Varie ---\n${values.noteVarie}\n`;
+    }
+
+    sendEmail(subject, body);
   };
 
   const handlePrintPdf = () => {
