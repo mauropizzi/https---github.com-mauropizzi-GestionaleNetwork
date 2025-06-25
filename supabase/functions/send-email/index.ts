@@ -25,7 +25,7 @@ serve(async (req) => {
     const MAILJET_API_KEY = Deno.env.get('MAILJET_API_KEY');
     const MAILJET_SECRET_KEY = Deno.env.get('MAILJET_SECRET_KEY');
     // Set the sender email address. ENSURE THIS ADDRESS IS VERIFIED IN MAILJET!
-    const SENDER_EMAIL = 'noreply@yourdomain.com'; // <-- CHANGE THIS TO YOUR VERIFIED SENDER EMAIL IN MAILJET
+    const SENDER_EMAIL = 'mauro.pizzi@lumafinsrl.com'; // <-- UPDATED SENDER EMAIL
 
     if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY) {
       return new Response(JSON.stringify({ error: 'Mailjet API Key or Secret Key not configured in Supabase secrets.' }), {
