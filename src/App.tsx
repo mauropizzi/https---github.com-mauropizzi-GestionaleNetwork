@@ -12,6 +12,7 @@ import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
 import CentraleOperativa from "./pages/CentraleOperativa";
+import ServiziCanone from "./pages/ServiziCanone"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -23,13 +24,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<CentraleOperativa />} /> {/* Changed default route to CentraleOperativa */}
+            <Route index element={<CentraleOperativa />} />
             <Route path="service-request" element={<ServiceRequest />} />
             <Route path="anagrafiche" element={<Anagrafiche />} />
             <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
             <Route path="centrale-operativa" element={<CentraleOperativa />} />
+            <Route path="servizi-a-canone" element={<ServiziCanone />} /> {/* New route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Route>

@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro } from "lucide-react"; // Import Euro icon
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat } from "lucide-react"; // Import Repeat icon
 
 interface NavItem {
   title: string;
@@ -14,9 +14,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: "Centrale Operativa", // Renamed from Dashboard
-    href: "/", // Kept as root path
-    icon: Radio, // Changed icon to Radio
+    title: "Centrale Operativa",
+    href: "/",
+    icon: Radio,
   },
   {
     title: "Richiesta Servizi",
@@ -35,6 +35,11 @@ const navItems: NavItem[] = [
     title: "Elenco Servizi Richiesti",
     href: "/service-list",
     icon: ListChecks,
+  },
+  {
+    title: "Servizi a Canone", // New top-level item
+    href: "/servizi-a-canone",
+    icon: Repeat, // Icon for recurring services
   },
   {
     title: "Dotazioni di Servizio",
@@ -56,7 +61,7 @@ const navItems: NavItem[] = [
       { title: "Personale", href: "/anagrafiche?tab=personale", icon: Users },
       { title: "Operatori Network", href: "/anagrafiche?tab=operatori-network", icon: Briefcase },
       { title: "Fornitori", href: "/anagrafiche?tab=fornitori", icon: Package },
-      { title: "Tariffe", href: "/anagrafiche?tab=tariffe", icon: Euro }, // New sub-item for Tariffe
+      { title: "Tariffe", href: "/anagrafiche?tab=tariffe", icon: Euro },
     ],
   },
 ];

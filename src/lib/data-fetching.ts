@@ -40,3 +40,17 @@ export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
   }
   return data || [];
 }
+
+export async function fetchMonthlyTariffe(): Promise<{ id: string; service_type: string; }[]> {
+  const { data, error } = await supabase
+    .from('tariffe')
+    .select('id, service_type')
+    .eq('unita_misura', 'mese'); // Filter for monthly rates
+
+  if (error) {
+    showError(`Errore nel recupero delle tariffe mensili: ${error.message}`);
+    console.error("Error fetching monthly tariffe:", error);
+    return [];
+  }
+  return data || [];
+}
