@@ -41,6 +41,8 @@ const formSchema = z.object({
   codiceCliente: z.string().optional(), // Nuovo campo
   codiceSicep: z.string().optional(), // Nuovo campo
   codiceFatturazione: z.string().optional(), // Nuovo campo
+  latitude: z.coerce.number().optional(), // Nuovo campo
+  longitude: z.coerce.number().optional(), // Nuovo campo
 });
 
 export function PuntiServizioForm() {
@@ -76,6 +78,8 @@ export function PuntiServizioForm() {
       codiceCliente: "", // Default per nuovo campo
       codiceSicep: "", // Default per nuovo campo
       codiceFatturazione: "", // Default per nuovo campo
+      latitude: undefined, // Default per nuovo campo
+      longitude: undefined, // Default per nuovo campo
     },
   });
 
@@ -330,6 +334,34 @@ export function PuntiServizioForm() {
                 <FormLabel>Codice Fatturazione</FormLabel>
                 <FormControl>
                   <Input placeholder="Codice Fatturazione" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="latitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Latitudine</FormLabel>
+                <FormControl>
+                  <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="longitude"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Longitudine</FormLabel>
+                <FormControl>
+                  <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
