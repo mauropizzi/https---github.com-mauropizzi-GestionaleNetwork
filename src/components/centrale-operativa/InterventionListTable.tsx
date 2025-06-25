@@ -188,7 +188,7 @@ export function InterventionListTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(), // Corretto: getCoreRowModel()
+    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       globalFilter,
@@ -260,7 +260,7 @@ export function InterventionListTable() {
   }
 
   return (
-    <React.Fragment>
+    <>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <Input
@@ -439,6 +439,6 @@ export function InterventionListTable() {
           </Table>
         </div>
       </div>
-    </React.Fragment>
+    </>
   );
 }
