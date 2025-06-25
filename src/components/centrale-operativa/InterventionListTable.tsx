@@ -136,7 +136,6 @@ export function InterventionListTable() {
     {
       accessorKey: "notes",
       header: "Note",
-      cell: ({ row }) => row.original.notes || "N/A",
     },
     {
       id: "actions",
@@ -189,7 +188,7 @@ export function InterventionListTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowModel(), // Corretto: getCoreRowModel()
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       globalFilter,
@@ -261,183 +260,185 @@ export function InterventionListTable() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <Input
-          placeholder="Cerca in tutti i campi..."
-          value={globalFilter ?? ""}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm flex-grow"
-        />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[200px] justify-start text-left font-normal",
-                !dateFilter && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateFilter ? format(dateFilter, "PPP", { locale: it }) : <span>Seleziona Data</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dateFilter}
-              onSelect={setDateFilter}
-              initialFocus
-              locale={it}
-            />
-          </PopoverContent>
-        </Popover>
+    <React.Fragment>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <Input
+            placeholder="Cerca in tutti i campi..."
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
+            className="max-w-sm flex-grow"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[200px] justify-start text-left font-normal",
+                  !dateFilter && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateFilter ? format(dateFilter, "PPP", { locale: it }) : <span>Seleziona Data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFilter}
+                onSelect={setDateFilter}
+                initialFocus
+                locale={it}
+              />
+            </PopoverContent>
+          </Popover>
 
-        <Select onValueChange={setServicePointFilter} value={servicePointFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Punto Servizio" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti i Punti Servizio</SelectItem>
-            {servicePointsData.map((point) => (
-              <SelectItem key={point.code} value={point.code}>
-                {point.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setServicePointFilter} value={servicePointFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Punto Servizio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti i Punti Servizio</SelectItem>
+              {servicePointsData.map((point) => (
+                <SelectItem key={point.code} value={point.code}>
+                  {point.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select onValueChange={setRequestTypeFilter} value={requestTypeFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Tipologia Richiesta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutte le Tipologie</SelectItem>
-            {requestTypeOptions.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setRequestTypeFilter} value={requestTypeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Tipologia Richiesta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutte le Tipologie</SelectItem>
+              {requestTypeOptions.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select onValueChange={setCoOperatorFilter} value={coOperatorFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Co-Operatore" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti i Co-Operatori</SelectItem>
-            {coOperatorOptions.map((op) => (
-              <SelectItem key={op} value={op}>
-                {op}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setCoOperatorFilter} value={coOperatorFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Co-Operatore" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti i Co-Operatori</SelectItem>
+              {coOperatorOptions.map((op) => (
+                <SelectItem key={op} value={op}>
+                  {op}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select onValueChange={setOperatorClientFilter} value={operatorClientFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Operatore Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti gli Operatori Cliente</SelectItem>
-            {operatorClientOptions.map((op) => (
-              <SelectItem key={op} value={op}>
-                {op}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setOperatorClientFilter} value={operatorClientFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Operatore Cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli Operatori Cliente</SelectItem>
+              {operatorClientOptions.map((op) => (
+                <SelectItem key={op} value={op}>
+                  {op}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select onValueChange={setGpgInterventionFilter} value={gpgInterventionFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="G.P.G. Intervento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti i G.P.G.</SelectItem>
-            {gpgInterventionOptions.map((gpg) => (
-              <SelectItem key={gpg} value={gpg}>
-                {gpg}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setGpgInterventionFilter} value={gpgInterventionFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="G.P.G. Intervento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti i G.P.G.</SelectItem>
+              {gpgInterventionOptions.map((gpg) => (
+                <SelectItem key={gpg} value={gpg}>
+                  {gpg}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select onValueChange={setServiceOutcomeFilter} value={serviceOutcomeFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Esito Servizio" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti gli Esiti</SelectItem>
-            {serviceOutcomeOptions.map((outcome) => (
-              <SelectItem key={outcome} value={outcome}>
-                {outcome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select onValueChange={setServiceOutcomeFilter} value={serviceOutcomeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Esito Servizio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli Esiti</SelectItem>
+              {serviceOutcomeOptions.map((outcome) => (
+                <SelectItem key={outcome} value={outcome}>
+                  {outcome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Button onClick={handleResetFilters} variant="outline" className="flex-shrink-0">
-          <RotateCcw className="mr-2 h-4 w-4" /> Reset Filtri
-        </Button>
-      </div>
+          <Button onClick={handleResetFilters} variant="outline" className="flex-shrink-0">
+            <RotateCcw className="mr-2 h-4 w-4" /> Reset Filtri
+          </Button>
+        </div>
 
-      <div className="flex justify-end space-x-2 mb-4">
-        <Button onClick={handleEmail} variant="outline">
-          <Mail className="mr-2 h-4 w-4" /> Invia Email
-        </Button>
-        <Button onClick={handlePrint} variant="outline">
-          <Printer className="mr-2 h-4 w-4" /> Stampa PDF
-        </Button>
-        <Button onClick={handleExport} variant="outline">
-          <Download className="mr-2 h-4 w-4" /> Esporta Excel
-        </Button>
-      </div>
+        <div className="flex justify-end space-x-2 mb-4">
+          <Button onClick={handleEmail} variant="outline">
+            <Mail className="mr-2 h-4 w-4" /> Invia Email
+          </Button>
+          <Button onClick={handlePrint} variant="outline">
+            <Printer className="mr-2 h-4 w-4" /> Stampa PDF
+          </Button>
+          <Button onClick={handleExport} variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Esporta Excel
+          </Button>
+        </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableHead>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableHead>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    Nessun intervento trovato.
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun intervento trovato.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+    </React.Fragment>
   );
 }
