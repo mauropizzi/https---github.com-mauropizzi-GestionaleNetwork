@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio } from "lucide-react";
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro } from "lucide-react"; // Import Euro icon
 
 interface NavItem {
   title: string;
@@ -46,7 +46,6 @@ const navItems: NavItem[] = [
     href: "/registro-di-cantiere",
     icon: ClipboardList,
   },
-  // Removed the duplicate "Centrale Operativa" entry here
   {
     title: "Anagrafiche",
     href: "/anagrafiche",
@@ -57,6 +56,7 @@ const navItems: NavItem[] = [
       { title: "Personale", href: "/anagrafiche?tab=personale", icon: Users },
       { title: "Operatori Network", href: "/anagrafiche?tab=operatori-network", icon: Briefcase },
       { title: "Fornitori", href: "/anagrafiche?tab=fornitori", icon: Package },
+      { title: "Tariffe", href: "/anagrafiche?tab=tariffe", icon: Euro }, // New sub-item for Tariffe
     ],
   },
 ];

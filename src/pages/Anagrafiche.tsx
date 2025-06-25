@@ -9,6 +9,7 @@ import { PuntiServizioForm } from "@/components/anagrafiche/PuntiServizioForm";
 import { PersonaleForm } from "@/components/anagrafiche/PersonaleForm";
 import { OperatoriNetworkForm } from "@/components/anagrafiche/OperatoriNetworkForm";
 import { FornitoriForm } from "@/components/anagrafiche/FornitoriForm";
+import { TariffeForm } from "@/components/anagrafiche/TariffeForm"; // Import TariffeForm
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Download, Upload } from "lucide-react"; // Import icons
 import { showSuccess, showError, showInfo } from "@/utils/toast"; // Import specific toast functions
@@ -42,6 +43,8 @@ const Anagrafiche = () => {
         return ["nomeOperatore", "referente", "telefono", "email", "tipoServizio"];
       case "fornitori":
         return ["ragione_sociale", "partita_iva", "codice_fiscale", "indirizzo", "cap", "citta", "provincia", "telefono", "email", "pec", "tipo_servizio", "attivo", "note"];
+      case "tariffe": // New case for Tariffe
+        return ["cliente_id", "tipo_servizio", "importo", "unita_misura", "punto_servizio_id", "data_inizio_validita", "data_fine_validita", "note"];
       default:
         return [];
     }
@@ -105,12 +108,13 @@ const Anagrafiche = () => {
           </div>
 
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6"> {/* Updated grid-cols to 6 */}
               <TabsTrigger value="clienti">Clienti</TabsTrigger>
               <TabsTrigger value="punti-servizio">Punti Servizio</TabsTrigger>
               <TabsTrigger value="personale">Personale</TabsTrigger>
               <TabsTrigger value="operatori-network">Operatori Network</TabsTrigger>
               <TabsTrigger value="fornitori">Fornitori</TabsTrigger>
+              <TabsTrigger value="tariffe">Tariffe</TabsTrigger> {/* New tab trigger */}
             </TabsList>
             <TabsContent value="clienti" className="mt-4">
               <ClientiForm />
@@ -126,6 +130,9 @@ const Anagrafiche = () => {
             </TabsContent>
             <TabsContent value="fornitori" className="mt-4">
               <FornitoriForm />
+            </TabsContent>
+            <TabsContent value="tariffe" className="mt-4"> {/* New tab content */}
+              <TariffeForm />
             </TabsContent>
           </Tabs>
         </CardContent>
