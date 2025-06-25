@@ -19,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { clienteOptions } from "@/lib/anagrafiche-data"; // Import from new central file
 
 const formSchema = z.object({
   nomePuntoServizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
-  idCliente: z.string().min(1, "Seleziona un cliente."), // Placeholder for client ID
+  idCliente: z.string().min(1, "Seleziona un cliente."),
   indirizzo: z.string().optional(),
   citta: z.string().optional(),
   cap: z.string().optional(),
@@ -50,13 +51,6 @@ export function PuntiServizioForm() {
     console.log("Dati Punto Servizio:", values);
     // Qui potresti inviare i dati a un backend o gestirli in altro modo
   };
-
-  // Placeholder per i clienti, in un'applicazione reale verrebbero caricati da un database
-  const mockClienti = [
-    { id: "1", nome: "Azienda Alpha" },
-    { id: "2", nome: "Società Beta" },
-    { id: "3", nome: "Gruppo Gamma" },
-  ];
 
   return (
     <Form {...form}>
@@ -88,7 +82,7 @@ export function PuntiServizioForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {mockClienti.map((cliente) => (
+                  {clienteOptions.map((cliente) => (
                     <SelectItem key={cliente.id} value={cliente.id}>
                       {cliente.nome}
                     </SelectItem>
