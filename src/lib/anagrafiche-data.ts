@@ -3,6 +3,12 @@ export interface Cliente {
   nome_cliente: string;
 }
 
+export interface PuntoServizio {
+  id: string;
+  nome_punto_servizio: string;
+  id_cliente: string; // Assuming a link back to Cliente
+}
+
 export interface Fornitore {
   id: string;
   nome_fornitore: string;

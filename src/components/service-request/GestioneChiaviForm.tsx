@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, isValid } from "date-fns"; // Import isValid
+import { format, parseISO, isValid } from "date-fns";
 import { it } from 'date-fns/locale';
 import { CalendarIcon } from "lucide-react";
 
@@ -18,11 +18,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
+import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { showError } from "@/utils/toast";
 
 const BASE_RATE_CHIAVI = 80; // Example base rate
 
 const formSchema = z.object({
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
+  fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
@@ -44,10 +56,24 @@ const formSchema = z.object({
 
 export function GestioneChiaviForm() {
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      const fetchedFornitori = await fetchFornitori();
+      setPuntiServizio(fetchedPuntiServizio);
+      setFornitori(fetchedFornitori);
+    };
+    loadData();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      servicePointId: "",
+      fornitoreId: "",
       startTime: "09:00",
       endTime: "17:00",
     },
@@ -58,12 +84,62 @@ export function GestioneChiaviForm() {
     setCalculatedCost(cost);
     console.log("Calculated Gestione Chiavi Cost:", cost);
     console.log("Gestione Chiavi Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
+    console.log("Punto Servizio ID:", values.servicePointId);
+    console.log("Fornitore ID:", values.fornitoreId);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="servicePointId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Punto Servizio</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un punto servizio" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {puntiServizio.map((punto) => (
+                      <SelectItem key={punto.id} value={punto.id}>
+                        {punto.nome_punto_servizio}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fornitoreId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fornitore</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un fornitore" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {fornitori.map((fornitore) => (
+                      <SelectItem key={fornitore.id} value={fornitore.id}>
+                        {fornitore.nome_fornitore}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="startDate"
