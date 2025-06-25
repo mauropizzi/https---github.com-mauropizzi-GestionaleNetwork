@@ -25,6 +25,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
+import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
 
 // --- Schemas and Data (from original JS files) ---
 const nameOptions = [
@@ -181,6 +182,50 @@ export function ServiceReportForm() {
     } else {
       showError("La geolocalizzazione non è supportata dal tuo browser.");
     }
+  };
+
+  const handleEmail = () => {
+    const values = form.getValues();
+    const subject = `Rapporto Dotazioni di Servizio - ${values.name} - ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`;
+    
+    let body = `Dettagli Rapporto Dotazioni di Servizio:\n\n`;
+    body += `Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}\n`;
+    body += `Nominativo Dipendente: ${values.name}\n`;
+    body += `Provincia SEGMENTO: ${values.serviceLocation}\n`;
+    body += `Tipologia di Servizio: ${values.serviceType === "G.P.G." ? "Guardia Particolare Giurata" : "Addetto Servizi Fiduciari"}\n`;
+    body += `Inizio Servizio: ${values.startTime}\n`;
+    if (values.startLatitude !== undefined && values.startLongitude !== undefined) {
+      body += `Posizione Inizio (Lat, Lon): ${values.startLatitude.toFixed(6)}, ${values.startLongitude.toFixed(6)}\n`;
+    }
+    body += `Fine Servizio: ${values.endTime}\n`;
+    if (values.endLatitude !== undefined && values.endLongitude !== undefined) {
+      body += `Posizione Fine (Lat, Lon): ${values.endLatitude.toFixed(6)}, ${values.endLongitude.toFixed(6)}\n`;
+    }
+    body += `\n--- Dettagli Veicolo ---\n`;
+    body += `Marca/Modello Veicolo: ${values.vehicleMakeModel}\n`;
+    body += `Targa: ${values.vehiclePlate}\n`;
+    body += `KM Inizio Servizio: ${values.startKm}\n`;
+    body += `KM Fine Servizio: ${values.endKm}\n`;
+    body += `Stato del Veicolo ad Avvio Servizio: ${values.vehicleInitialState}\n`;
+    body += `Eventuali Danni: ${values.bodyworkDamage || 'Nessuno'}\n`;
+    body += `Dettaglio Anomalie Automezzo: ${values.vehicleAnomalies || 'Nessuna'}\n`;
+    
+    body += `\n--- Controllo Accessori ---\n`;
+    body += `GPS: ${values.gps}\n`;
+    body += `Apparato Radio Veicolare: ${values.radioVehicle}\n`;
+    body += `Faro Brandeggiante: ${values.swivelingLamp}\n`;
+    body += `Apparato Radio Portatile: ${values.radioPortable}\n`;
+    body += `Torcia Portatile: ${values.flashlight}\n`;
+    body += `Estintore: ${values.extinguisher}\n`;
+    body += `Ruota di Scorta: ${values.spareTire}\n`;
+    body += `Gilet Alta Visibilità: ${values.highVisibilityVest}\n`;
+
+    sendEmail(subject, body);
+  };
+
+  const handlePrintPdf = () => {
+    showInfo("Generazione PDF (funzionalità da implementare).");
+    // Logica per generare PDF
   };
 
   return (
@@ -524,10 +569,10 @@ export function ServiceReportForm() {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => showInfo("Funzionalità Email da implementare.")}>
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
             INVIA EMAIL
           </Button>
-          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => showInfo("Funzionalità Stampa PDF da implementare.")}>
+          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
             STAMPA PDF
           </Button>
           <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
