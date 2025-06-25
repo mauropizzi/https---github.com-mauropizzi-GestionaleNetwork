@@ -75,13 +75,7 @@ const CentraleOperativa = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <div className="logo-container mb-6">
-        <img 
-          src="/Screenshot 2025-03-21 alle 17.56.08.png" 
-          alt="Vigilanza Security Logo" 
-          className="max-w-full h-auto"
-        />
-      </div>
+      {/* Il logo è stato rimosso da qui */}
 
       <h1 className="text-2xl font-bold mb-6">Registrazione Servizi</h1>
       
