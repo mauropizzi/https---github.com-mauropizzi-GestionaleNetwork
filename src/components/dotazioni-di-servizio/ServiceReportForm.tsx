@@ -26,6 +26,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
+import jsPDF from 'jspdf'; // Import jsPDF
+import 'jspdf-autotable'; // Import jspdf-autotable
 
 // --- Schemas and Data (from original JS files) ---
 const nameOptions = [
@@ -224,8 +226,14 @@ export function ServiceReportForm() {
   };
 
   const handlePrintPdf = () => {
-    showInfo("Generazione PDF (funzionalità da implementare).");
-    // Logica per generare PDF
+    console.log("Tentativo di generazione PDF per Rapporto Dotazioni di Servizio..."); // Debug log
+    showInfo("Generazione PDF per il rapporto di servizio..."); // Updated toast message
+
+    const doc = new jsPDF();
+    doc.text("Questo è un PDF di prova.", 10, 10); // Simple text for testing
+
+    doc.output('dataurlnewwindow'); // Open in new tab
+    showSuccess("PDF di prova generato con successo!");
   };
 
   return (
@@ -265,6 +273,7 @@ export function ServiceReportForm() {
                     type="text"
                     placeholder="Inizia a digitare per cercare..."
                     list="nameOptions"
+                    autoComplete="off"
                     {...field}
                   />
                 </FormControl>
