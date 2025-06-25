@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/centrale-data';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { showSuccess, showError, showInfo } from "@/utils/toast";
 
 const CentraleOperativa = () => {
   const { toast } = useToast();
@@ -41,7 +42,9 @@ const CentraleOperativa = () => {
     delay: 'no',
     delayNotes: '',
     serviceOutcome: '',
-    barcode: ''
+    barcode: '',
+    latitude: undefined as number | undefined, // New field for latitude
+    longitude: undefined as number | undefined, // New field for longitude
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -61,6 +64,26 @@ const CentraleOperativa = () => {
     const now = new Date();
     const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm");
     setFormData(prev => ({ ...prev, [field]: formattedDateTime }));
+  };
+
+  const handleGpsTracking = () => {
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({ ...prev, latitude, longitude }));
+          showSuccess(`Posizione GPS acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS: ${error.message}`);
+          console.error("Error getting GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -164,17 +187,25 @@ const CentraleOperativa = () => {
             >
               Inserisci ora Attuale
             </Button>
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={() => toast({ title: "GPS confermato" })}
-            >
-              Conferma GPS
-            </Button>
           </div>
         </div>
 
-        {/* Nuovi campi aggiunti */}
+        {/* GPS Acquisition Button and Display */}
+        <div className="space-y-2">
+          <Button 
+            type="button" 
+            className="w-full bg-blue-600 hover:bg-blue-700" 
+            onClick={handleGpsTracking}
+          >
+            ACQUISIZIONE POSIZIONE GPS
+          </Button>
+          {formData.latitude !== undefined && formData.longitude !== undefined && (
+            <p className="text-sm text-gray-500 mt-1 text-center">
+              Latitudine: {formData.latitude?.toFixed(6)}, Longitudine: {formData.longitude?.toFixed(6)}
+            </p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startTime">Orario Inizio Intervento</Label>
