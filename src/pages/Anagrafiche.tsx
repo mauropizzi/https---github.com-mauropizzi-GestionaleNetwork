@@ -33,9 +33,9 @@ const Anagrafiche = () => {
   const getFormSchemaKeys = (tab: string) => {
     switch (tab) {
       case "clienti":
-        return ["nomeCliente", "codiceFiscale", "partitaIva", "indirizzo", "citta", "cap", "provincia", "telefono", "email"];
+        return ["ragione_sociale", "partita_iva", "codice_fiscale", "indirizzo", "cap", "citta", "provincia", "telefono", "email", "pec", "sdi", "attivo", "note"];
       case "punti-servizio":
-        return ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente"];
+        return ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente", "telefono", "email", "note", "tempoIntervento", "fornitoreId", "codiceCliente", "codiceSicep", "codiceFatturazione"];
       case "personale":
         return ["nome", "cognome", "codiceFiscale", "ruolo", "telefono", "email"];
       case "operatori-network":

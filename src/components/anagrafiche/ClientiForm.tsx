@@ -13,32 +13,42 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
-  nomeCliente: z.string().min(2, "Il nome del cliente è richiesto."),
-  codiceFiscale: z.string().optional(),
-  partitaIva: z.string().optional(),
+  ragione_sociale: z.string().min(2, "La ragione sociale è richiesta."),
+  partita_iva: z.string().optional(),
+  codice_fiscale: z.string().optional(),
   indirizzo: z.string().optional(),
-  citta: z.string().optional(),
   cap: z.string().optional(),
+  citta: z.string().optional(),
   provincia: z.string().optional(),
   telefono: z.string().optional(),
   email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
+  pec: z.string().email("Formato PEC non valido.").optional().or(z.literal("")),
+  sdi: z.string().optional(),
+  attivo: z.boolean().default(true).optional(),
+  note: z.string().optional(),
 });
 
 export function ClientiForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nomeCliente: "",
-      codiceFiscale: "",
-      partitaIva: "",
+      ragione_sociale: "",
+      codice_fiscale: "",
+      partita_iva: "",
       indirizzo: "",
       citta: "",
       cap: "",
       provincia: "",
       telefono: "",
       email: "",
+      pec: "",
+      sdi: "",
+      attivo: true,
+      note: "",
     },
   });
 
@@ -53,12 +63,12 @@ export function ClientiForm() {
         <h3 className="text-lg font-semibold">Dettagli Cliente</h3>
         <FormField
           control={form.control}
-          name="nomeCliente"
+          name="ragione_sociale"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome Cliente</FormLabel>
+              <FormLabel>Ragione Sociale</FormLabel>
               <FormControl>
-                <Input placeholder="Nome Cliente" {...field} />
+                <Input placeholder="Ragione Sociale del Cliente" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -67,7 +77,7 @@ export function ClientiForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="codiceFiscale"
+            name="codice_fiscale"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Codice Fiscale</FormLabel>
@@ -80,7 +90,7 @@ export function ClientiForm() {
           />
           <FormField
             control={form.control}
-            name="partitaIva"
+            name="partita_iva"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Partita IVA</FormLabel>
@@ -174,6 +184,66 @@ export function ClientiForm() {
             )}
           />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="pec"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>PEC</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="pec@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sdi"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Codice SDI</FormLabel>
+                <FormControl>
+                  <Input placeholder="Codice SDI" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="attivo"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  Cliente Attivo
+                </FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="note"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Note Aggiuntive</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Note sul cliente..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" className="w-full">Salva Cliente</Button>
       </form>
     </Form>
