@@ -58,6 +58,8 @@ const formSchema = z.object({
   noteVarie: z.string().optional(),
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
+  latitude: z.coerce.number().optional(), // New field for latitude
+  longitude: z.coerce.number().optional(), // New field for longitude
 });
 
 export function CantiereForm() {
@@ -85,6 +87,8 @@ export function CantiereForm() {
       noteVarie: "",
       automezzi: [],
       attrezzi: [],
+      latitude: undefined, // Default for new field
+      longitude: undefined, // Default for new field
     },
   });
 
@@ -114,8 +118,24 @@ export function CantiereForm() {
   };
 
   const handleGpsTracking = () => {
-    showInfo("Acquisizione posizione GPS (funzionalità da implementare).");
-    // In un'applicazione reale, qui si integrerebbe con un servizio GPS
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS del cantiere...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          form.setValue("latitude", latitude);
+          form.setValue("longitude", longitude);
+          showSuccess(`Posizione GPS acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS: ${error.message}`);
+          console.error("Error getting GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
   };
 
   const handleEmail = () => {
@@ -175,6 +195,11 @@ export function CantiereForm() {
           <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700 mb-4" onClick={handleGpsTracking}>
             ACQUISIZIONE POSIZIONE GPS
           </Button>
+          {form.watch("latitude") !== undefined && form.watch("longitude") !== undefined && (
+            <p className="text-sm text-gray-500 mt-1 text-center mb-4">
+              Latitudine: {form.watch("latitude")?.toFixed(6)}, Longitudine: {form.watch("longitude")?.toFixed(6)}
+            </p>
+          )}
           <FormField
             control={form.control}
             name="cliente"
