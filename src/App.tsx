@@ -10,7 +10,8 @@ import ServiceRequest from "./pages/ServiceRequest";
 import Anagrafiche from "./pages/Anagrafiche";
 import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
-import RegistroDiCantiere from "./pages/RegistroDiCantiere"; // Import the new page
+import RegistroDiCantiere from "./pages/RegistroDiCantiere";
+import CentraleOperativa from "./pages/CentraleOperativa"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,8 @@ const App = () => (
             <Route path="anagrafiche" element={<Anagrafiche />} />
             <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
             <Route path="service-list" element={<ServiceList />} />
-            <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} /> {/* New route */}
+            <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
+            <Route path="centrale-operativa" element={<CentraleOperativa />} /> {/* New route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Route>
