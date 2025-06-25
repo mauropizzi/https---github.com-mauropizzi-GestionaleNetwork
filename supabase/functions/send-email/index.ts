@@ -21,38 +21,45 @@ serve(async (req) => {
       });
     }
 
-    // --- In un'applicazione reale, qui integreresti un servizio di invio email come SendGrid, Mailgun, ecc. ---
-    // Esempio con un placeholder per un servizio di email API:
-    // const EMAIL_SERVICE_API_KEY = Deno.env.get('EMAIL_SERVICE_API_KEY'); // Recupera la chiave API dai segreti di Supabase
-    // const EMAIL_SENDER_ADDRESS = 'noreply@yourdomain.com'; // Indirizzo email del mittente configurato nel tuo servizio
+    // Recupera la chiave API di Brevo dai segreti di Supabase
+    const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY');
+    // Imposta l'indirizzo email del mittente. ASSICURATI CHE QUESTO INDIRIZZO SIA VERIFICATO SU BREVO!
+    const SENDER_EMAIL = 'noreply@yourdomain.com'; // <-- CAMBIA QUESTO CON UN TUO INDIRIZZO VERIFICATO SU BREVO
 
-    // const response = await fetch('https://api.emailservice.com/v3/send', { // Sostituisci con l'endpoint del tuo servizio
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${EMAIL_SERVICE_API_KEY}`,
-    //   },
-    //   body: JSON.stringify({
-    //     from: EMAIL_SENDER_ADDRESS,
-    //     to: to,
-    //     subject: subject,
-    //     text: body, // O 'html' per email formattate
-    //   }),
-    // });
+    if (!BREVO_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Brevo API Key not configured in Supabase secrets.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // if (!response.ok) {
-    //   const errorData = await response.json();
-    //   console.error('Error sending email via external service:', errorData);
-    //   return new Response(JSON.stringify({ error: 'Failed to send email', details: errorData }), {
-    //     status: 500,
-    //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    //   });
-    // }
+    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: { email: SENDER_EMAIL, name: "Security App" }, // Puoi cambiare il nome del mittente
+        to: [{ email: to }],
+        subject: subject,
+        textContent: body, // Usiamo textContent perché il body attuale è testo semplice
+      }),
+    });
 
-    console.log(`Simulating email sent to: ${to}, Subject: ${subject}`);
-    console.log(`Body: ${body}`);
+    if (!brevoResponse.ok) {
+      const errorData = await brevoResponse.json();
+      console.error('Error sending email via Brevo:', errorData);
+      return new Response(JSON.stringify({ error: 'Failed to send email via Brevo', details: errorData }), {
+        status: brevoResponse.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    return new Response(JSON.stringify({ message: 'Email sent successfully (simulated)' }), {
+    const successData = await brevoResponse.json();
+    console.log('Email sent successfully via Brevo:', successData);
+    return new Response(JSON.stringify({ message: 'Email sent successfully via Brevo', brevoResponse: successData }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
