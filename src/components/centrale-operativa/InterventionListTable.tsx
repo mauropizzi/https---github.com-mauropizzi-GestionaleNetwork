@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isValid } from "date-fns";
 import { it } from 'date-fns/locale';
-import { CalendarIcon, Mail, Printer, Download, RotateCcw } from "lucide-react";
+import { CalendarIcon, Mail, Printer, Download, RotateCcw, FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ import { sendEmail } from "@/utils/email";
 import { exportTableToExcel } from "@/utils/export";
 import { printTable } from "@/utils/print";
 import { showInfo, showSuccess } from "@/utils/toast";
+import { printSingleServiceReport } from "@/utils/printReport";
 import {
   servicePointsData,
   requestTypeOptions,
@@ -44,32 +45,28 @@ import {
   serviceOutcomeOptions,
 } from "@/lib/centrale-data";
 
-// Define the structure of a service request from Supabase
-interface ServiziRichiesti {
+// Define the structure of an alarm intervention from Supabase
+interface AllarmeIntervento {
   id: string;
   created_at: string;
-  type: string;
-  client_id: string;
-  service_point_id: string;
-  start_date: string; // ISO date string
-  start_time: string; // HH:MM:SS string
-  end_date: string;   // ISO date string
-  end_time: string;   // HH:MM:SS string
-  status: "Pending" | "Approved" | "Rejected" | "Completed";
-  calculated_cost?: number;
-  num_agents?: number;
-  cadence_hours?: number;
-  inspection_type?: string;
-  daily_hours_config?: any; // JSONB type
+  report_date: string; // ISO date string
+  report_time: string; // HH:MM:SS string
+  service_point_code: string;
+  request_type: string;
+  co_operator: string | null;
+  operator_client: string | null;
+  gpg_intervention: string | null;
+  service_outcome: string | null;
+  notes: string | null;
 }
 
-const fetchInterventions = async (): Promise<ServiziRichiesti[]> => {
+const fetchInterventions = async (): Promise<AllarmeIntervento[]> => {
   const { data, error } = await supabase
-    .from('servizi_richiesti')
+    .from('allarme_interventi') // Fetch from the correct table
     .select('*');
 
   if (error) {
-    console.error("Error fetching service requests:", error);
+    console.error("Error fetching alarm interventions:", error);
     throw new Error(error.message);
   }
   return data;
@@ -77,98 +74,80 @@ const fetchInterventions = async (): Promise<ServiziRichiesti[]> => {
 
 export function InterventionListTable() {
   const [globalFilter, setGlobalFilter] = useState("");
-  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
-  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
-  const [servicePointFilter, setServicePointFilter] = useState<string>("all"); // Changed default to "all"
-  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all"); // Changed default to "all"
-  const [coOperatorFilter, setCoOperatorFilter] = useState<string>("all"); // Changed default to "all"
-  const [operatorClientFilter, setOperatorClientFilter] = useState<string>("all"); // Changed default to "all"
-  const [gpgInterventionFilter, setGpgInterventionFilter] = useState<string>("all"); // Changed default to "all"
-  const [serviceOutcomeFilter, setServiceOutcomeFilter] = useState<string>("all"); // Changed default to "all"
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined); // Single date filter
+  const [servicePointFilter, setServicePointFilter] = useState<string>("all");
+  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
+  const [coOperatorFilter, setCoOperatorFilter] = useState<string>("all");
+  const [operatorClientFilter, setOperatorClientFilter] = useState<string>("all");
+  const [gpgInterventionFilter, setGpgInterventionFilter] = useState<string>("all");
+  const [serviceOutcomeFilter, setServiceOutcomeFilter] = useState<string>("all");
 
-  const { data, isLoading, error, refetch } = useQuery<ServiziRichiesti[], Error>({
-    queryKey: ['serviziRichiesti'],
+  const { data, isLoading, error, refetch } = useQuery<AllarmeIntervento[], Error>({
+    queryKey: ['allarmeInterventi'],
     queryFn: fetchInterventions,
   });
 
-  const columns: ColumnDef<ServiziRichiesti>[] = useMemo(() => [
+  const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
     {
       accessorKey: "id",
       header: "ID",
     },
     {
-      accessorKey: "type",
-      header: "Tipo Servizio",
+      accessorKey: "report_date",
+      header: "Data",
+      cell: ({ row }) => format(new Date(row.original.report_date), "dd/MM/yyyy", { locale: it }),
     },
     {
-      accessorKey: "client_id",
-      header: "ID Cliente",
-      cell: ({ row }) => row.original.client_id || "N/A",
+      accessorKey: "report_time",
+      header: "Ora",
     },
     {
-      accessorKey: "service_point_id",
+      accessorKey: "service_point_code",
       header: "Punto Servizio",
       cell: ({ row }) => {
-        const point = servicePointsData.find(sp => sp.code === row.original.service_point_id);
-        return point ? point.name : row.original.service_point_id || "N/A";
+        const point = servicePointsData.find(sp => sp.code === row.original.service_point_code);
+        return point ? point.name : row.original.service_point_code || "N/A";
       },
     },
     {
-      accessorKey: "start_date",
-      header: "Data Inizio",
-      cell: ({ row }) => format(new Date(row.original.start_date), "PPP", { locale: it }),
+      accessorKey: "request_type",
+      header: "Tipologia Richiesta",
     },
     {
-      accessorKey: "start_time",
-      header: "Ora Inizio",
+      accessorKey: "co_operator",
+      header: "Co-Operatore",
+      cell: ({ row }) => row.original.co_operator || "N/A",
     },
     {
-      accessorKey: "end_date",
-      header: "Data Fine",
-      cell: ({ row }) => format(new Date(row.original.end_date), "PPP", { locale: it }),
+      accessorKey: "operator_client",
+      header: "Operatore Cliente",
+      cell: ({ row }) => row.original.operator_client || "N/A",
     },
     {
-      accessorKey: "end_time",
-      header: "Ora Fine",
+      accessorKey: "gpg_intervention",
+      header: "G.P.G. Intervento",
+      cell: ({ row }) => row.original.gpg_intervention || "N/A",
     },
     {
-      accessorKey: "status",
-      header: "Stato",
-      cell: ({ row }) => {
-        const status = row.original.status;
-        let statusClass = "";
-        switch (status) {
-          case "Approved":
-            statusClass = "bg-green-100 text-green-800";
-            break;
-          case "Pending":
-            statusClass = "bg-yellow-100 text-yellow-800";
-            break;
-          case "Rejected":
-            statusClass = "bg-red-100 text-red-800";
-            break;
-          case "Completed":
-            statusClass = "bg-blue-100 text-blue-800";
-            break;
-          default:
-            statusClass = "bg-gray-100 text-gray-800";
-        }
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>
-            {status}
-          </span>
-        );
-      },
+      accessorKey: "service_outcome",
+      header: "Esito Servizio",
+      cell: ({ row }) => row.original.service_outcome || "N/A",
     },
     {
-      accessorKey: "num_agents",
-      header: "Agenti",
-      cell: ({ row }) => row.original.num_agents || "N/A",
+      accessorKey: "notes",
+      header: "Note",
+      cell: ({ row }) => row.original.notes || "N/A",
     },
     {
-      accessorKey: "calculated_cost",
-      header: "Costo Stimato (€)",
-      cell: ({ row }) => (row.original.calculated_cost !== undefined && row.original.calculated_cost !== null ? `${row.original.calculated_cost.toFixed(2)} €` : "N/A"),
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)}>
+            <FileText className="h-4 w-4 mr-1" /> Dettagli/Stampa
+          </Button>
+        </div>
+      ),
     },
   ], []);
 
@@ -176,31 +155,36 @@ export function InterventionListTable() {
     if (!data) return [];
 
     return data.filter(item => {
-      const itemStartDate = parseISO(item.start_date);
-      const itemEndDate = parseISO(item.end_date);
+      const itemReportDate = parseISO(item.report_date);
 
-      const matchesDateRange =
-        (!startDateFilter || (isValid(itemStartDate) && itemStartDate >= startDateFilter)) &&
-        (!endDateFilter || (isValid(itemEndDate) && itemEndDate <= endDateFilter));
-
-      const matchesServicePoint = servicePointFilter === "all" || item.service_point_id === servicePointFilter;
-      const matchesRequestType = requestTypeFilter === "all" || item.type === requestTypeFilter;
-      // For other filters (coOperator, operatorClient, gpgIntervention, serviceOutcome),
-      // these fields are not directly in 'servizi_richiesti' table.
-      // They would typically be part of a related 'rapporti_servizio' or 'registri_cantiere' table,
-      // or require a more complex join/lookup.
-      // For now, we'll assume they are not directly filterable on 'servizi_richiesti'
-      // or require additional data fetching/joining.
-      // If these filters are crucial, we'd need to adjust the Supabase query or data structure.
+      const matchesDate = !dateFilter || (isValid(itemReportDate) && format(itemReportDate, "yyyy-MM-dd") === format(dateFilter, "yyyy-MM-dd"));
+      const matchesServicePoint = servicePointFilter === "all" || item.service_point_code === servicePointFilter;
+      const matchesRequestType = requestTypeFilter === "all" || item.request_type === requestTypeFilter;
+      const matchesCoOperator = coOperatorFilter === "all" || item.co_operator === coOperatorFilter;
+      const matchesOperatorClient = operatorClientFilter === "all" || item.operator_client === operatorClientFilter;
+      const matchesGpgIntervention = gpgInterventionFilter === "all" || item.gpg_intervention === gpgInterventionFilter;
+      const matchesServiceOutcome = serviceOutcomeFilter === "all" || item.service_outcome === serviceOutcomeFilter;
 
       const matchesGlobalFilter = globalFilter === "" ||
         Object.values(item).some(value =>
           String(value).toLowerCase().includes(globalFilter.toLowerCase())
         );
 
-      return matchesDateRange && matchesServicePoint && matchesRequestType && matchesGlobalFilter;
+      return matchesDate && matchesServicePoint && matchesRequestType &&
+             matchesCoOperator && matchesOperatorClient && matchesGpgIntervention &&
+             matchesServiceOutcome && matchesGlobalFilter;
     });
-  }, [data, globalFilter, startDateFilter, endDateFilter, servicePointFilter, requestTypeFilter]);
+  }, [
+    data,
+    globalFilter,
+    dateFilter,
+    servicePointFilter,
+    requestTypeFilter,
+    coOperatorFilter,
+    operatorClientFilter,
+    gpgInterventionFilter,
+    serviceOutcomeFilter
+  ]);
 
   const table = useReactTable({
     data: filteredData,
@@ -215,30 +199,51 @@ export function InterventionListTable() {
 
   const handleResetFilters = () => {
     setGlobalFilter("");
-    setStartDateFilter(undefined);
-    setEndDateFilter(undefined);
-    setServicePointFilter("all"); // Reset to "all"
-    setRequestTypeFilter("all"); // Reset to "all"
-    setCoOperatorFilter("all"); // Reset to "all"
-    setOperatorClientFilter("all"); // Reset to "all"
-    setGpgInterventionFilter("all"); // Reset to "all"
-    setServiceOutcomeFilter("all"); // Reset to "all"
+    setDateFilter(undefined);
+    setServicePointFilter("all");
+    setRequestTypeFilter("all");
+    setCoOperatorFilter("all");
+    setOperatorClientFilter("all");
+    setGpgInterventionFilter("all");
+    setServiceOutcomeFilter("all");
     showSuccess("Filtri resettati!");
   };
 
   const handleExport = () => {
-    exportTableToExcel(filteredData, "interventi_centrale_operativa", "Interventi");
+    exportTableToExcel(filteredData, "interventi_allarme", "Interventi Allarme");
   };
 
   const handlePrint = () => {
-    printTable(columns, filteredData, "Rapporto Interventi Centrale Operativa");
+    // Prepare columns for printTable, ensuring headers match the displayed table
+    const printColumns = columns.filter(col => col.id !== 'actions').map(col => ({
+      header: typeof col.header === 'string' ? col.header : col.id,
+      accessorKey: col.accessorKey,
+    }));
+
+    // Prepare data for printTable, mapping complex cells to simple strings
+    const printData = filteredData.map(row => {
+      const newRow: { [key: string]: any } = {};
+      printColumns.forEach(col => {
+        if (col.accessorKey === 'report_date') {
+          newRow[col.accessorKey] = format(new Date(row.report_date), "dd/MM/yyyy", { locale: it });
+        } else if (col.accessorKey === 'service_point_code') {
+          const point = servicePointsData.find(sp => sp.code === row.service_point_code);
+          newRow[col.accessorKey] = point ? point.name : row.service_point_code || "N/A";
+        } else {
+          newRow[col.accessorKey] = (row as any)[col.accessorKey] || "N/A";
+        }
+      });
+      return newRow;
+    });
+
+    printTable(printColumns, printData, "Rapporto Interventi Allarme");
   };
 
   const handleEmail = () => {
     const subject = "Rapporto Interventi Centrale Operativa";
     const body = `Ciao,
     
-    In allegato trovi il rapporto degli interventi filtrati dalla Centrale Operativa.
+    In allegato trovi il rapporto degli interventi su allarme filtrati dalla Centrale Operativa.
     
     Totale interventi visualizzati: ${filteredData.length}
     
@@ -270,41 +275,18 @@ export function InterventionListTable() {
               variant={"outline"}
               className={cn(
                 "w-[200px] justify-start text-left font-normal",
-                !startDateFilter && "text-muted-foreground"
+                !dateFilter && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {startDateFilter ? format(startDateFilter, "PPP", { locale: it }) : <span>Data Inizio</span>}
+              {dateFilter ? format(dateFilter, "PPP", { locale: it }) : <span>Seleziona Data</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
-              selected={startDateFilter}
-              onSelect={setStartDateFilter}
-              initialFocus
-              locale={it}
-            />
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[200px] justify-start text-left font-normal",
-                !endDateFilter && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {endDateFilter ? format(endDateFilter, "PPP", { locale: it }) : <span>Data Fine</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={endDateFilter}
-              onSelect={setEndDateFilter}
+              selected={dateFilter}
+              onSelect={setDateFilter}
               initialFocus
               locale={it}
             />
@@ -316,7 +298,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Punto Servizio" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutti i Punti Servizio</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutti i Punti Servizio</SelectItem>
             {servicePointsData.map((point) => (
               <SelectItem key={point.code} value={point.code}>
                 {point.name}
@@ -330,7 +312,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Tipologia Richiesta" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutte le Tipologie</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutte le Tipologie</SelectItem>
             {requestTypeOptions.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -339,13 +321,12 @@ export function InterventionListTable() {
           </SelectContent>
         </Select>
 
-        {/* Placeholder for other filters not directly available in 'servizi_richiesti' */}
         <Select onValueChange={setCoOperatorFilter} value={coOperatorFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Co-Operatore" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutti i Co-Operatori</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutti i Co-Operatori</SelectItem>
             {coOperatorOptions.map((op) => (
               <SelectItem key={op} value={op}>
                 {op}
@@ -359,7 +340,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Operatore Cliente" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutti gli Operatori Cliente</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutti gli Operatori Cliente</SelectItem>
             {operatorClientOptions.map((op) => (
               <SelectItem key={op} value={op}>
                 {op}
@@ -373,7 +354,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="G.P.G. Intervento" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutti i G.P.G.</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutti i G.P.G.</SelectItem>
             {gpgInterventionOptions.map((gpg) => (
               <SelectItem key={gpg} value={gpg}>
                 {gpg}
@@ -387,7 +368,7 @@ export function InterventionListTable() {
             <SelectValue placeholder="Esito Servizio" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tutti gli Esiti</SelectItem> {/* Changed value */}
+            <SelectItem value="all">Tutti gli Esiti</SelectItem>
             {serviceOutcomeOptions.map((outcome) => (
               <SelectItem key={outcome} value={outcome}>
                 {outcome}
@@ -430,7 +411,7 @@ export function InterventionListTable() {
                     </TableHead>
                   );
                 })}
-              </TableRow>
+              </TableHead>
             ))}
           </TableHeader>
           <TableBody>

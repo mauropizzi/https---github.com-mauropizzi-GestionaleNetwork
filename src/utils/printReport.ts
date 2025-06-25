@@ -6,41 +6,38 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { servicePointsData } from "@/lib/centrale-data";
 
-interface ServiziRichiesti {
+// Define the structure of an alarm intervention report from Supabase
+interface AllarmeIntervento {
   id: string;
   created_at: string;
-  type: string;
-  client_id: string;
-  service_point_id: string;
-  start_date: string;
-  start_time: string;
-  end_date: string;
-  end_time: string;
-  status: "Pending" | "Approved" | "Rejected" | "Completed";
-  calculated_cost?: number;
-  num_agents?: number;
-  cadence_hours?: number;
-  inspection_type?: string;
-  daily_hours_config?: any;
+  report_date: string; // ISO date string
+  report_time: string; // HH:MM:SS string
+  service_point_code: string;
+  request_type: string;
+  co_operator?: string;
+  operator_client?: string;
+  gpg_intervention?: string;
+  service_outcome?: string;
+  notes?: string;
 }
 
 export const printSingleServiceReport = async (reportId: string) => {
-  showInfo(`Generazione PDF per il rapporto ${reportId}...`);
+  showInfo(`Generazione PDF per il rapporto di allarme ${reportId}...`);
 
   const { data: report, error } = await supabase
-    .from('servizi_richiesti')
+    .from('allarme_interventi') // Fetch from the correct table
     .select('*')
     .eq('id', reportId)
     .single();
 
   if (error) {
-    showError(`Errore nel recupero del rapporto: ${error.message}`);
-    console.error("Error fetching single service report:", error);
+    showError(`Errore nel recupero del rapporto di allarme: ${error.message}`);
+    console.error("Error fetching single alarm intervention report:", error);
     return;
   }
 
   if (!report) {
-    showError(`Rapporto con ID ${reportId} non trovato.`);
+    showError(`Rapporto di allarme con ID ${reportId} non trovato.`);
     return;
   }
 
@@ -48,7 +45,7 @@ export const printSingleServiceReport = async (reportId: string) => {
   let y = 20;
 
   doc.setFontSize(18);
-  doc.text("Dettagli Rapporto Servizio", 14, y);
+  doc.text("Dettagli Rapporto Intervento Allarme", 14, y);
   y += 10;
 
   doc.setFontSize(10);
@@ -56,50 +53,36 @@ export const printSingleServiceReport = async (reportId: string) => {
   y += 7;
   doc.text(`Data Creazione: ${format(new Date(report.created_at), "PPP HH:mm", { locale: it })}`, 14, y);
   y += 7;
-  doc.text(`Tipo Servizio: ${report.type}`, 14, y);
+  doc.text(`Data Intervento: ${format(new Date(report.report_date), "PPP", { locale: it })}`, 14, y);
   y += 7;
-  doc.text(`ID Cliente: ${report.client_id || 'N/A'}`, 14, y);
+  doc.text(`Ora Intervento: ${report.report_time}`, 14, y);
   y += 7;
 
-  const servicePointName = servicePointsData.find(sp => sp.code === report.service_point_id)?.name || report.service_point_id || 'N/A';
+  const servicePointName = servicePointsData.find(sp => sp.code === report.service_point_code)?.name || report.service_point_code || 'N/A';
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
   y += 7;
-
-  doc.text(`Periodo Servizio: dal ${format(new Date(report.start_date), "PPP", { locale: it })} ${report.start_time} al ${format(new Date(report.end_date), "PPP", { locale: it })} ${report.end_time}`, 14, y);
+  doc.text(`Tipologia Richiesta: ${report.request_type}`, 14, y);
   y += 7;
-  doc.text(`Stato: ${report.status}`, 14, y);
+  doc.text(`Co-Operatore: ${report.co_operator || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Agenti Richiesti: ${report.num_agents || 'N/A'}`, 14, y);
+  doc.text(`Operatore Cliente: ${report.operator_client || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Costo Stimato: ${report.calculated_cost !== undefined && report.calculated_cost !== null ? `${report.calculated_cost.toFixed(2)} €` : 'N/A'}`, 14, y);
+  doc.text(`G.P.G. Intervento: ${report.gpg_intervention || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Cadenza Ore (Ispezioni): ${report.cadence_hours || 'N/A'}`, 14, y);
-  y += 7;
-  doc.text(`Tipo Ispezione: ${report.inspection_type || 'N/A'}`, 14, y);
+  doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
 
-  // Add a section for daily_hours_config if it exists
-  if (report.daily_hours_config && Array.isArray(report.daily_hours_config) && report.daily_hours_config.length > 0) {
-    y += 10;
-    doc.setFontSize(14);
-    doc.text("Configurazione Orari Giornalieri:", 14, y);
-    y += 7;
+  if (report.notes) {
+    y += 5;
+    doc.setFontSize(12);
+    doc.text("Note:", 14, y);
+    y += 5;
     doc.setFontSize(10);
-    const dailyHoursTableData = report.daily_hours_config.map((dh: any) => [
-      dh.day,
-      dh.is24h ? "H24" : `${dh.startTime || 'N/A'} - ${dh.endTime || 'N/A'}`
-    ]);
-    (doc as any).autoTable({
-      startY: y,
-      head: [['Giorno', 'Orario']],
-      body: dailyHoursTableData,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-    });
-    y = (doc as any).autoTable.previous.finalY + 10;
+    const splitNotes = doc.splitTextToSize(report.notes, 180); // Max width 180mm
+    doc.text(splitNotes, 14, y);
+    y += (splitNotes.length * 5); // Adjust y for multiple lines
   }
 
   doc.output('dataurlnewwindow');
-  showSuccess(`PDF del rapporto ${reportId} generato con successo!`);
+  showSuccess(`PDF del rapporto di allarme ${reportId} generato con successo!`);
 };
