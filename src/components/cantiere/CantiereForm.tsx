@@ -32,6 +32,8 @@ import { RECIPIENT_EMAIL } from "@/lib/config";
 import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
 import { fetchClienti } from "@/lib/data-fetching"; // Import fetchClienti
 import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
+import jsPDF from 'jspdf'; // Import jsPDF
+import 'jspdf-autotable'; // Import jspdf-autotable
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -189,8 +191,92 @@ export function CantiereForm() {
   };
 
   const handlePrintPdf = () => {
-    showInfo("Generazione PDF (funzionalità da implementare).");
-    // Logica per generare PDF
+    showInfo("Generazione PDF per il rapporto di cantiere...");
+    const values = form.getValues();
+    const selectedClient = clienti.find(c => c.id === values.cliente);
+    const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
+
+    const doc = new jsPDF();
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text("Rapporto di Cantiere", 14, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.text(`Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`, 14, y);
+    y += 7;
+    doc.text(`Ora Rapporto: ${values.reportTime}`, 14, y);
+    y += 7;
+    if (values.latitude !== undefined && values.longitude !== undefined) {
+      doc.text(`Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}`, 14, y);
+      y += 7;
+    }
+    doc.text(`Cliente: ${clientName}`, 14, y);
+    y += 7;
+    doc.text(`Cantiere: ${values.cantiere}`, 14, y);
+    y += 7;
+    doc.text(`Addetto: ${values.addetto}`, 14, y);
+    y += 7;
+    doc.text(`Servizio: ${values.servizio}`, 14, y);
+    y += 7;
+    doc.text(`Ore di Servizio: ${values.oreServizio}`, 14, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text("Descrizione Lavori Svolti:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    const splitDescription = doc.splitTextToSize(values.descrizioneLavori, 180);
+    doc.text(splitDescription, 14, y);
+    y += (splitDescription.length * 5) + 10;
+
+    if (values.automezzi && values.automezzi.length > 0) {
+      doc.setFontSize(12);
+      doc.text("Automezzi Utilizzati:", 14, y);
+      y += 5;
+      (doc as any).autoTable({
+        startY: y,
+        head: [['Tipologia', 'Marca', 'Targa', 'Ore di Lavoro']],
+        body: values.automezzi.map(auto => [auto.tipologia, auto.marca, auto.targa, auto.oreLavoro]),
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data: any) => { y = data.cursor.y; } // Update y position after table
+      });
+      y += 10; // Add some space after the table
+    }
+
+    if (values.attrezzi && values.attrezzi.length > 0) {
+      doc.setFontSize(12);
+      doc.text("Attrezzi Utilizzati:", 14, y);
+      y += 5;
+      (doc as any).autoTable({
+        startY: y,
+        head: [['Tipologia', 'Marca', 'Quantità', 'Ore di Utilizzo']],
+        body: values.attrezzi.map(attrezzo => [attrezzo.tipologia, attrezzo.marca, attrezzo.quantita, attrezzo.oreUtilizzo]),
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data: any) => { y = data.cursor.y; } // Update y position after table
+      });
+      y += 10; // Add some space after the table
+    }
+
+    if (values.noteVarie) {
+      doc.setFontSize(12);
+      doc.text("Note Varie:", 14, y);
+      y += 5;
+      doc.setFontSize(10);
+      const splitNotes = doc.splitTextToSize(values.noteVarie, 180);
+      doc.text(splitNotes, 14, y);
+      y += (splitNotes.length * 5);
+    }
+
+    doc.output('dataurlnewwindow'); // Open in new tab
+    showSuccess("PDF del rapporto di cantiere generato con successo!");
   };
 
   return (
