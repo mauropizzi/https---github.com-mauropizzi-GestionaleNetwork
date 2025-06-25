@@ -1,1 +1,1 @@
-export const RECIPIENT_EMAIL = 'mauro.pizzi@icloud.com';
+export const RECIPIENT_EMAIL = 'm.pizzi.bs@gmail.com';
