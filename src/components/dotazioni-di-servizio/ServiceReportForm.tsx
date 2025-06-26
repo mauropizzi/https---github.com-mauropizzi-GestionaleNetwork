@@ -30,6 +30,12 @@ import {
   bodyworkDamageOptions,
   employeeNameOptions,
 } from "@/lib/dotazioni-data";
+import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
+import { RECIPIENT_EMAIL } from "@/lib/config"; // Import RECIPIENT_EMAIL
+import { showSuccess, showError, showInfo } from "@/utils/toast"; // Import toast utilities
+import jsPDF from 'jspdf'; // Import jsPDF
+import 'jspdf-autotable'; // Import jspdf-autotable
+import { format } from "date-fns"; // Import format for date formatting
 
 // Definizione dello schema
 const formSchema = z.object({
@@ -130,6 +136,9 @@ export const ServiceReportForm = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log(values);
+    showSuccess("Rapporto di servizio inviato con successo!");
+    // Qui potresti inviare i dati a un backend
+    form.reset(); // Reset form after submission
   };
 
   // Helper per i campi SI/NO con checkbox separate
@@ -191,6 +200,114 @@ export const ServiceReportForm = () => {
       )}
     </div>
   );
+
+  const handleEmail = () => {
+    const values = form.getValues();
+    const subject = `Rapporto Dotazioni di Servizio - ${values.employeeId} - ${values.serviceLocation} - ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`;
+    
+    let body = `Dettagli Rapporto Dotazioni di Servizio:\n\n`;
+    body += `Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}\n`;
+    body += `Addetto: ${values.employeeId}\n`;
+    body += `Località Servizio: ${values.serviceLocation}\n`;
+    body += `Tipo Servizio: ${values.serviceType}\n`;
+    body += `Ora Inizio: ${values.startTime}\n`;
+    body += `Ora Fine: ${values.endTime}\n`;
+    body += `Km Iniziali: ${values.startKm}\n`;
+    body += `Km Finali: ${values.endKm}\n`;
+    body += `\nDettagli Veicolo:\n`;
+    body += `Marca e Modello: ${values.vehicleMakeModel}\n`;
+    body += `Targa: ${values.vehiclePlate}\n`;
+    body += `Stato Iniziale: ${values.vehicleInitialState}\n`;
+    body += `Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}\n`;
+    if (values.vehicleAnomalies) {
+      body += `Anomalie Veicolo: ${values.vehicleAnomalies}\n`;
+    }
+
+    body += `\nControllo Accessori:\n`;
+    body += `GPS: ${values.gpsSi ? 'SI' : 'NO'}\n`;
+    body += `Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}\n`;
+    body += `Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}\n`;
+    body += `Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}\n`;
+    body += `Torcia: ${values.flashlightSi ? 'SI' : 'NO'}\n`;
+    body += `Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}\n`;
+    body += `Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}\n`;
+    body += `Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}\n`;
+
+    sendEmail(subject, body);
+  };
+
+  const handlePrintPdf = () => {
+    showInfo("Generazione PDF per il rapporto dotazioni di servizio...");
+    const values = form.getValues();
+
+    const doc = new jsPDF();
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text("Rapporto Dotazioni di Servizio", 14, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.text(`Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`, 14, y);
+    y += 7;
+    doc.text(`Addetto: ${values.employeeId}`, 14, y);
+    y += 7;
+    doc.text(`Località Servizio: ${values.serviceLocation}`, 14, y);
+    y += 7;
+    doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
+    y += 7;
+    doc.text(`Ora Inizio: ${values.startTime}`, 14, y);
+    y += 7;
+    doc.text(`Ora Fine: ${values.endTime}`, 14, y);
+    y += 7;
+    doc.text(`Km Iniziali: ${values.startKm}`, 14, y);
+    y += 7;
+    doc.text(`Km Finali: ${values.endKm}`, 14, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text("Dettagli Veicolo:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`Marca e Modello: ${values.vehicleMakeModel}`, 14, y);
+    y += 7;
+    doc.text(`Targa: ${values.vehiclePlate}`, 14, y);
+    y += 7;
+    doc.text(`Stato Iniziale: ${values.vehicleInitialState}`, 14, y);
+    y += 7;
+    doc.text(`Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}`, 14, y);
+    y += 7;
+    if (values.vehicleAnomalies) {
+      const splitAnomalies = doc.splitTextToSize(`Anomalie Veicolo: ${values.vehicleAnomalies}`, 180);
+      doc.text(splitAnomalies, 14, y);
+      y += (splitAnomalies.length * 5);
+    }
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text("Controllo Accessori:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`GPS: ${values.gpsSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Torcia: ${values.flashlightSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}`, 14, y);
+    y += 10;
+
+    doc.output('dataurlnewwindow'); // Open in new tab
+    showSuccess("PDF del rapporto dotazioni di servizio generato con successo!");
+  };
 
   return (
     <Form {...form}>
@@ -460,9 +577,17 @@ export const ServiceReportForm = () => {
           {renderBooleanCheckboxes("Giubbotto Alta Visibilità", "highVisibilityVestSi", "highVisibilityVestNo")}
         </div>
         
-        <Button type="submit" className="w-full">
-          Invia Rapporto
-        </Button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+            INVIA EMAIL
+          </Button>
+          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
+            STAMPA PDF
+          </Button>
+          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+            INVIA RAPPORTO
+          </Button>
+        </div>
       </form>
     </Form>
   );
