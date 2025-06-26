@@ -57,7 +57,7 @@ const formSchema = z.object({
   endDate: z.date({
     required_error: "La data di fine è richiesta.",
   }),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
   numAgents: z.coerce.number().min(1, "Il numero di agenti deve essere almeno 1."),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
 }).refine(data => {
@@ -327,7 +327,7 @@ export function PiantonamentoForm() {
             <FormItem>
               <FormLabel>Numero di agenti richiesti</FormLabel>
               <FormControl>
-                <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" {...field} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
