@@ -42,6 +42,8 @@ import {
 } from "@/lib/dotazioni-data";
 import { fetchPuntiServizio } from "@/lib/data-fetching";
 import { PuntoServizio } from "@/lib/anagrafiche-data";
+import { sendEmail } from "@/utils/email"; // Import sendEmail utility
+import { RECIPIENT_EMAIL } from "@/lib/config"; // Import recipient email
 
 const formSchema = z.object({
   serviceDate: z.date({
@@ -146,6 +148,45 @@ const ServiceReportForm = () => {
     } else {
       showError("La geolocalizzazione non è supportata dal tuo browser.");
     }
+  };
+
+  const handleEmail = () => {
+    const values = form.getValues();
+    const subject = `Rapporto Dotazioni di Servizio - ${values.employeeId} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
+    
+    let body = `Dettagli Rapporto Dotazioni di Servizio:\n\n`;
+    body += `Data Servizio: ${format(values.serviceDate, 'dd/MM/yyyy', { locale: it })}\n`;
+    body += `Addetto: ${values.employeeId}\n`;
+    body += `Località Servizio: ${values.serviceLocation}\n`;
+    body += `Tipo di Servizio: ${values.serviceType}\n`;
+    body += `Orario Inizio Servizio: ${values.startTime}\n`;
+    if (values.startLatitude !== undefined && values.startLongitude !== undefined) {
+      body += `  GPS Inizio: Lat ${values.startLatitude.toFixed(6)}, Lon ${values.startLongitude.toFixed(6)}\n`;
+    }
+    body += `Orario Fine Servizio: ${values.endTime}\n`;
+    if (values.endLatitude !== undefined && values.endLongitude !== undefined) {
+      body += `  GPS Fine: Lat ${values.endLatitude.toFixed(6)}, Lon ${values.endLongitude.toFixed(6)}\n`;
+    }
+    body += `\nDettagli Veicolo:\n`;
+    body += `  Marca/Modello: ${values.vehicleMakeModel}\n`;
+    body += `  Targa: ${values.vehiclePlate}\n`;
+    body += `  KM Iniziali: ${values.startKm}\n`;
+    body += `  KM Finali: ${values.endKm}\n`;
+    body += `  Stato Iniziale: ${values.vehicleInitialState}\n`;
+    body += `  Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}\n`;
+    body += `  Anomalie Veicolo: ${values.vehicleAnomalies || 'Nessuna'}\n`;
+
+    body += `\nDotazioni:\n`;
+    body += `  GPS: ${values.gps ? 'Sì' : 'No'}\n`;
+    body += `  Radio Veicolare: ${values.radioVehicle ? 'Sì' : 'No'}\n`;
+    body += `  Faro Girevole: ${values.swivelingLamp ? 'Sì' : 'No'}\n`;
+    body += `  Radio Portatile: ${values.radioPortable ? 'Sì' : 'No'}\n`;
+    body += `  Torcia: ${values.flashlight ? 'Sì' : 'No'}\n`;
+    body += `  Estintore: ${values.extinguisher ? 'Sì' : 'No'}\n`;
+    body += `  Ruota di Scorta: ${values.spareTire ? 'Sì' : 'No'}\n`;
+    body += `  Giubbotto Alta Visibilità: ${values.highVisibilityVest ? 'Sì' : 'No'}\n`;
+
+    sendEmail(subject, body);
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -371,20 +412,20 @@ const ServiceReportForm = () => {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona marca/modello" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicleMakeModelOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {vehicleMakeModelOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
             <FormField
               control={form.control}
               name="vehiclePlate"
@@ -620,9 +661,14 @@ const ServiceReportForm = () => {
           </div>
         </section>
 
-        <Button type="submit" className="w-full">
-          Registra Rapporto
-        </Button>
+        <div className="pt-4 flex gap-4">
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+            INVIA EMAIL
+          </Button>
+          <Button type="submit" className="w-full">
+            Registra Rapporto
+          </Button>
+        </div>
       </form>
     </Form>
   );
