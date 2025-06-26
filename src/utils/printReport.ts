@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { format, isValid, parseISO } from 'date-fns'; // Import parseISO and isValid
+import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,8 @@ import { servicePointsData } from "@/lib/centrale-data";
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
   id: string;
-  created_at: string | null; // Can be null
-  report_date: string; // ISO date string, but let's treat it carefully
+  created_at: string;
+  report_date: string; // ISO date string
   report_time: string; // HH:MM:SS string
   service_point_code: string;
   request_type: string;
@@ -49,17 +49,12 @@ export const printSingleServiceReport = async (reportId: string) => {
   y += 10;
 
   doc.setFontSize(10);
-
-  // Handle created_at - it can be null
-  const createdAtDate = report.created_at ? parseISO(report.created_at) : null;
-  doc.text(`Data Creazione: ${createdAtDate && isValid(createdAtDate) ? format(createdAtDate, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
+  doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
-
-  // Handle report_date - it should not be null based on schema, but still good to validate
-  const reportDateDate = parseISO(report.report_date);
-  doc.text(`Data Intervento: ${isValid(reportDateDate) ? format(reportDateDate, "PPP", { locale: it }) : 'N/A'}`, 14, y);
+  doc.text(`Data Creazione: ${format(new Date(report.created_at), "PPP HH:mm", { locale: it })}`, 14, y);
   y += 7;
-
+  doc.text(`Data Intervento: ${format(new Date(report.report_date), "PPP", { locale: it })}`, 14, y);
+  y += 7;
   doc.text(`Ora Intervento: ${report.report_time}`, 14, y);
   y += 7;
 

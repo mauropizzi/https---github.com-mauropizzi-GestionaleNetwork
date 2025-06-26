@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, isValid } from "date-fns"; // Import isValid
+import { format } from "date-fns";
 import { it } from 'date-fns/locale';
 import { Mail, Printer, RotateCcw, Search } from "lucide-react";
 import { showInfo } from "@/utils/toast";
@@ -77,10 +77,7 @@ const columns: ColumnDef<CantiereReport>[] = [
   {
     accessorKey: "reportDate",
     header: "Data Rapporto",
-    cell: ({ row }) => {
-      const date = row.original.reportDate;
-      return isValid(date) ? format(date, "PPP", { locale: it }) : "N/A";
-    },
+    cell: ({ row }) => format(row.original.reportDate, "PPP", { locale: it }),
   },
   {
     accessorKey: "cliente",
@@ -143,7 +140,7 @@ export function CantiereHistoryTable() {
       report.descrizioneLavori.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesDate = filterDate === "" ||
-      (isValid(report.reportDate) && format(report.reportDate, "yyyy-MM-dd") === filterDate); // Added isValid check
+      format(report.reportDate, "yyyy-MM-dd") === filterDate;
 
     return matchesSearch && matchesDate;
   });

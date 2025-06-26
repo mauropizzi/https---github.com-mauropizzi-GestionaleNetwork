@@ -1,7 +1,9 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -10,7 +12,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { showSuccess, showError, showInfo } from "@/utils/toast";
+import jsPDF from "jspdf";
 import {
   Select,
   SelectContent,
@@ -18,228 +27,94 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
-import {
-  serviceLocationOptions,
-  serviceTypeOptions,
-  vehicleMakeModelOptions,
-  vehiclePlateOptions,
-  vehicleInitialStateOptions,
-  bodyworkDamageOptions,
-  employeeNameOptions,
-} from "@/lib/dotazioni-data";
-import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
-import { RECIPIENT_EMAIL } from "@/lib/config"; // Import RECIPIENT_EMAIL
-import { showSuccess, showError, showInfo } from "@/utils/toast"; // Import toast utilities
-import jsPDF from 'jspdf'; // Import jsPDF
-import 'jspdf-autotable'; // Import jspdf-autotable
-import { format } from "date-fns"; // Import format for date formatting
 
-// Definizione dello schema
-const formSchema = z.object({
-  serviceDate: z.string().min(1, "La data è obbligatoria"),
-  employeeId: z.string().min(1, "L'addetto è obbligatorio"),
-  serviceLocation: z.string().min(1, "La località è obbligatoria"),
-  serviceType: z.string().min(1, "Il tipo di servizio è obbligatorio"),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
-  startKm: z.coerce.number().min(0, "I km iniziali sono obbligatori e non negativi."),
-  endKm: z.coerce.number().min(0, "I km finali sono obbligatori e non negativi."),
-  vehicleMakeModel: z.string().min(1, "Il modello è obbligatorio"),
-  vehiclePlate: z.string().min(1, "La targa è obbligatoria"),
-  vehicleInitialState: z.string().min(1, "Lo stato iniziale è obbligatorio"),
-  bodyworkDamage: z.string().optional(),
-  vehicleAnomalies: z.string().optional(),
-  gpsSi: z.boolean().default(false),
-  gpsNo: z.boolean().default(false),
-  radioVehicleSi: z.boolean().default(false),
-  radioVehicleNo: z.boolean().default(false),
-  swivelingLampSi: z.boolean().default(false),
-  swivelingLampNo: z.boolean().default(false),
-  radioPortableSi: z.boolean().default(false),
-  radioPortableNo: z.boolean().default(false),
-  flashlightSi: z.boolean().default(false),
-  flashlightNo: z.boolean().default(false),
-  extinguisherSi: z.boolean().default(false),
-  extinguisherNo: z.boolean().default(false),
-  spareTireSi: z.boolean().default(false),
-  spareTireNo: z.boolean().default(false),
-  highVisibilityVestSi: z.boolean().default(false),
-  highVisibilityVestNo: z.boolean().default(false),
-}).refine(data => data.endKm >= data.startKm, {
-  message: "I km finali non possono essere inferiori ai km iniziali.",
-  path: ["endKm"],
-}).refine(data => data.gpsSi !== data.gpsNo, {
-  message: "Selezionare SI o NO per GPS.",
-  path: ["gpsSi"],
-}).refine(data => data.radioVehicleSi !== data.radioVehicleNo, {
-  message: "Selezionare SI o NO per Radio Veicolare.",
-  path: ["radioVehicleSi"],
-}).refine(data => data.swivelingLampSi !== data.swivelingLampNo, {
-  message: "Selezionare SI o NO per Lampada Girevole.",
-  path: ["swivelingLampSi"],
-}).refine(data => data.radioPortableSi !== data.radioPortableNo, {
-  message: "Selezionare SI o NO per Radio Portatile.",
-  path: ["radioPortableSi"],
-}).refine(data => data.flashlightSi !== data.flashlightNo, {
-  message: "Selezionare SI o NO per Torcia.",
-  path: ["flashlightSi"],
-}).refine(data => data.extinguisherSi !== data.extinguisherNo, {
-  message: "Selezionare SI o NO per Estintore.",
-  path: ["extinguisherSi"],
-}).refine(data => data.spareTireSi !== data.spareTireNo, {
-  message: "Selezionare SI o NO per Ruota di Scorta.",
-  path: ["spareTireSi"],
-}).refine(data => data.highVisibilityVestSi !== data.highVisibilityVestNo, {
-  message: "Selezionare SI o NO per Giubbotto Alta Visibilità.",
-  path: ["highVisibilityVestSi"],
-});
+interface ServiceReportFormValues {
+  serviceDate: Date;
+  name: string;
+  serviceLocation: string;
+  serviceType: string;
+  startTime: string;
+  endTime: string;
+  vehicleMakeModel: string;
+  vehiclePlate: string;
+  startKm: number;
+  endKm: number;
+  vehicleInitialState: string;
+  bodyworkDamage: string;
+  vehicleAnomalies: string;
+  gps: boolean;
+  radioVehicle: boolean;
+  swivelingLamp: boolean;
+  radioPortable: boolean;
+  flashlight: boolean;
+  extinguisher: boolean;
+  spareTire: boolean;
+  highVisibilityVest: boolean;
+  startLatitude?: number;
+  startLongitude?: number;
+  endLatitude?: number;
+  endLongitude?: number;
+}
 
-// Definizione del componente
-export const ServiceReportForm = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+export function ServiceReportForm() {
+  const form = useForm<ServiceReportFormValues>({
     defaultValues: {
-      serviceDate: "",
-      employeeId: "",
+      serviceDate: new Date(),
+      name: "",
       serviceLocation: "",
-      serviceType: "",
+      serviceType: "G.P.G.",
       startTime: "",
       endTime: "",
-      startKm: 0,
-      endKm: 0,
       vehicleMakeModel: "",
       vehiclePlate: "",
+      startKm: 0,
+      endKm: 0,
       vehicleInitialState: "",
       bodyworkDamage: "",
       vehicleAnomalies: "",
-      gpsSi: false,
-      gpsNo: false,
-      radioVehicleSi: false,
-      radioVehicleNo: false,
-      swivelingLampSi: false,
-      swivelingLampNo: false,
-      radioPortableSi: false,
-      radioPortableNo: false,
-      flashlightSi: false,
-      flashlightNo: false,
-      extinguisherSi: false,
-      extinguisherNo: false,
-      spareTireSi: false,
-      spareTireNo: false,
-      highVisibilityVestSi: false,
-      highVisibilityVestNo: false,
+      gps: true,
+      radioVehicle: true,
+      swivelingLamp: true,
+      radioPortable: true,
+      flashlight: true,
+      extinguisher: true,
+      spareTire: true,
+      highVisibilityVest: true,
+      startLatitude: undefined,
+      startLongitude: undefined,
+      endLatitude: undefined,
+      endLongitude: undefined,
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    showSuccess("Rapporto di servizio inviato con successo!");
-    // Qui potresti inviare i dati a un backend
-    form.reset(); // Reset form after submission
+  const handleSetCurrentTime = (field: "startTime" | "endTime") => {
+    form.setValue(field, format(new Date(), "HH:mm"));
   };
 
-  // Helper per i campi SI/NO con checkbox separate
-  const renderBooleanCheckboxes = (
-    label: string,
-    siFieldName: keyof z.infer<typeof formSchema>,
-    noFieldName: keyof z.infer<typeof formSchema>
-  ) => (
-    <div className="space-y-2">
-      <FormLabel>{label}</FormLabel>
-      <div className="flex space-x-4">
-        <FormField
-          control={form.control}
-          name={siFieldName}
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked);
-                    if (checked) {
-                      form.setValue(noFieldName, false);
-                    }
-                  }}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>SI</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name={noFieldName}
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked);
-                    if (checked) {
-                      form.setValue(siFieldName, false);
-                    }
-                  }}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>NO</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
-      </div>
-      {(form.formState.errors as any)[siFieldName] && (
-        <FormMessage>{(form.formState.errors as any)[siFieldName]?.message}</FormMessage>
-      )}
-    </div>
-  );
-
-  const handleEmail = () => {
-    const values = form.getValues();
-    const subject = `Rapporto Dotazioni di Servizio - ${values.employeeId} - ${values.serviceLocation} - ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`;
-    
-    let body = `Dettagli Rapporto Dotazioni di Servizio:\n\n`;
-    body += `Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}\n`;
-    body += `Addetto: ${values.employeeId}\n`;
-    body += `Località Servizio: ${values.serviceLocation}\n`;
-    body += `Tipo Servizio: ${values.serviceType}\n`;
-    body += `Ora Inizio: ${values.startTime}\n`;
-    body += `Ora Fine: ${values.endTime}\n`;
-    body += `Km Iniziali: ${values.startKm}\n`;
-    body += `Km Finali: ${values.endKm}\n`;
-    body += `\nDettagli Veicolo:\n`;
-    body += `Marca e Modello: ${values.vehicleMakeModel}\n`;
-    body += `Targa: ${values.vehiclePlate}\n`;
-    body += `Stato Iniziale: ${values.vehicleInitialState}\n`;
-    body += `Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}\n`;
-    if (values.vehicleAnomalies) {
-      body += `Anomalie Veicolo: ${values.vehicleAnomalies}\n`;
+  const handleGpsTracking = (fieldPrefix: "start" | "end") => {
+    if (navigator.geolocation) {
+      showInfo(`Acquisizione posizione GPS ${fieldPrefix === 'start' ? 'di inizio' : 'di fine'} servizio...`);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          form.setValue(`${fieldPrefix}Latitude`, latitude);
+          form.setValue(`${fieldPrefix}Longitude`, longitude);
+          showSuccess(`Posizione GPS ${fieldPrefix === 'start' ? 'di inizio' : 'di fine'} acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS: ${error.message}`);
+          console.error("Error getting GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
     }
-
-    body += `\nControllo Accessori:\n`;
-    body += `GPS: ${values.gpsSi ? 'SI' : 'NO'}\n`;
-    body += `Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}\n`;
-    body += `Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}\n`;
-    body += `Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}\n`;
-    body += `Torcia: ${values.flashlightSi ? 'SI' : 'NO'}\n`;
-    body += `Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}\n`;
-    body += `Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}\n`;
-    body += `Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}\n`;
-
-    sendEmail(subject, body);
   };
 
   const handlePrintPdf = () => {
-    showInfo("Generazione PDF per il rapporto dotazioni di servizio...");
     const values = form.getValues();
-
+    
     const doc = new jsPDF();
     let y = 20;
 
@@ -248,165 +123,187 @@ export const ServiceReportForm = () => {
     y += 10;
 
     doc.setFontSize(10);
-    doc.text(`Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`, 14, y);
+    doc.text(`Data Servizio: ${format(values.serviceDate, 'dd/MM/yyyy')}`, 14, y);
     y += 7;
-    doc.text(`Addetto: ${values.employeeId}`, 14, y);
+    doc.text(`Nominativo Dipendente: ${values.name}`, 14, y);
     y += 7;
-    doc.text(`Località Servizio: ${values.serviceLocation}`, 14, y);
+    doc.text(`Provincia SEGMENTO: ${values.serviceLocation}`, 14, y);
     y += 7;
-    doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
+    doc.text(`Tipologia di Servizio: ${values.serviceType === "G.P.G." ? "Guardia Particolare Giurata" : "Addetto Servizi Fiduciari"}`, 14, y);
     y += 7;
-    doc.text(`Ora Inizio: ${values.startTime}`, 14, y);
+    doc.text(`Inizio Servizio: ${values.startTime}`, 14, y);
     y += 7;
-    doc.text(`Ora Fine: ${values.endTime}`, 14, y);
-    y += 7;
-    doc.text(`Km Iniziali: ${values.startKm}`, 14, y);
-    y += 7;
-    doc.text(`Km Finali: ${values.endKm}`, 14, y);
+    doc.text(`Fine Servizio: ${values.endTime}`, 14, y);
     y += 10;
 
     doc.setFontSize(12);
     doc.text("Dettagli Veicolo:", 14, y);
-    y += 5;
+    y += 7;
     doc.setFontSize(10);
-    doc.text(`Marca e Modello: ${values.vehicleMakeModel}`, 14, y);
+    doc.text(`Marca/Modello Veicolo: ${values.vehicleMakeModel}`, 14, y);
     y += 7;
     doc.text(`Targa: ${values.vehiclePlate}`, 14, y);
     y += 7;
-    doc.text(`Stato Iniziale: ${values.vehicleInitialState}`, 14, y);
+    doc.text(`KM Inizio Servizio: ${values.startKm}`, 14, y);
     y += 7;
-    doc.text(`Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}`, 14, y);
+    doc.text(`KM Fine Servizio: ${values.endKm}`, 14, y);
     y += 7;
-    if (values.vehicleAnomalies) {
-      const splitAnomalies = doc.splitTextToSize(`Anomalie Veicolo: ${values.vehicleAnomalies}`, 180);
-      doc.text(splitAnomalies, 14, y);
-      y += (splitAnomalies.length * 5);
-    }
+    doc.text(`Stato del Veicolo ad Avvio Servizio: ${values.vehicleInitialState}`, 14, y);
+    y += 7;
+    doc.text(`Eventuali Danni: ${values.bodyworkDamage || 'Nessuno'}`, 14, y);
+    y += 7;
+    doc.text(`Dettaglio Anomalie Automezzo: ${values.vehicleAnomalies || 'Nessuna'}`, 14, y);
     y += 10;
 
     doc.setFontSize(12);
     doc.text("Controllo Accessori:", 14, y);
-    y += 5;
-    doc.setFontSize(10);
-    doc.text(`GPS: ${values.gpsSi ? 'SI' : 'NO'}`, 14, y);
     y += 7;
-    doc.text(`Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Torcia: ${values.flashlightSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}`, 14, y);
-    y += 7;
-    doc.text(`Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}`, 14, y);
-    y += 10;
+    
+    const accessories = [
+      { name: "GPS", value: values.gps ? "Presente" : "Assente" },
+      { name: "Apparato Radio Veicolare", value: values.radioVehicle ? "Presente" : "Assente" },
+      { name: "Faro Brandeggiante", value: values.swivelingLamp ? "Presente" : "Assente" },
+      { name: "Apparato Radio Portatile", value: values.radioPortable ? "Presente" : "Assente" },
+      { name: "Torcia Portatile", value: values.flashlight ? "Presente" : "Assente" },
+      { name: "Estintore", value: values.extinguisher ? "Presente" : "Assente" },
+      { name: "Ruota di Scorta", value: values.spareTire ? "Presente" : "Assente" },
+      { name: "Gilet Alta Visibilità", value: values.highVisibilityVest ? "Presente" : "Assente" }
+    ];
 
-    doc.output('dataurlnewwindow'); // Open in new tab
-    showSuccess("PDF del rapporto dotazioni di servizio generato con successo!");
+    accessories.forEach(accessory => {
+      doc.text(`${accessory.name}: ${accessory.value}`, 14, y);
+      y += 7;
+    });
+
+    if (values.startLatitude && values.startLongitude) {
+      y += 5;
+      doc.text(`Posizione GPS Inizio Servizio: Lat ${values.startLatitude.toFixed(6)}, Lon ${values.startLongitude.toFixed(6)}`, 14, y);
+      y += 7;
+    }
+
+    if (values.endLatitude && values.endLongitude) {
+      doc.text(`Posizione GPS Fine Servizio: Lat ${values.endLatitude.toFixed(6)}, Lon ${values.endLongitude.toFixed(6)}`, 14, y);
+      y += 7;
+    }
+
+    y += 10;
+    doc.setFontSize(8);
+    doc.text(`Generato il: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, y);
+    doc.text("Security App - Sistema di Gestione Servizi", 14, doc.internal.pageSize.height - 10);
+
+    doc.output('dataurlnewwindow');
+    showSuccess("PDF del rapporto di servizio generato con successo!");
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(() => {})} className="space-y-6 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="serviceDate"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Data Servizio</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nominativo Dipendente</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input placeholder="Nome e cognome" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="employeeId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Addetto</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona addetto" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {employeeNameOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="serviceLocation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Località Servizio</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona località" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {serviceLocationOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="serviceType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo Servizio</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona tipo servizio" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {serviceTypeOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="serviceLocation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Provincia SEGMENTO</FormLabel>
+              <FormControl>
+                <Input placeholder="Es: Palermo, Catania" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="serviceType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipologia di Servizio</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona tipologia" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="G.P.G.">Guardia Particolare Giurata</SelectItem>
+                  <SelectItem value="Addetto Servizi Fiduciari">Addetto Servizi Fiduciari</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="startTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ora Inizio</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
+                <FormLabel>Inizio Servizio (HH:MM)</FormLabel>
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Input type="time" placeholder="09:00" {...field} />
+                  </FormControl>
+                  <Button type="button" variant="outline" onClick={() => handleSetCurrentTime('startTime')}>
+                    Ora Attuale
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -416,22 +313,57 @@ export const ServiceReportForm = () => {
             name="endTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ora Fine</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
+                <FormLabel>Fine Servizio (HH:MM)</FormLabel>
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Input type="time" placeholder="17:00" {...field} />
+                  </FormControl>
+                  <Button type="button" variant="outline" onClick={() => handleSetCurrentTime('endTime')}>
+                    Ora Attuale
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </div>
+
+        <h3 className="text-lg font-semibold mt-6 mb-4">Dettagli Veicolo</h3>
+        <FormField
+          control={form.control}
+          name="vehicleMakeModel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Marca/Modello Veicolo</FormLabel>
+              <FormControl>
+                <Input placeholder="Es: Fiat Panda, Ford Transit" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="vehiclePlate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Targa</FormLabel>
+              <FormControl>
+                <Input placeholder="Es: AB123CD" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="startKm"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Km Iniziali</FormLabel>
+                <FormLabel>KM Inizio Servizio</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -442,153 +374,209 @@ export const ServiceReportForm = () => {
             name="endKm"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Km Finali</FormLabel>
+                <FormLabel>KM Fine Servizio</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-
-        <h3 className="text-lg font-semibold mt-6 mb-4">Dettagli Veicolo</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="vehicleMakeModel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Marca e Modello Veicolo</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona marca/modello" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {vehicleMakeModelOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="vehiclePlate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Targa Veicolo</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona targa" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {vehiclePlateOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="vehicleInitialState"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Stato Iniziale Veicolo</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona stato" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {vehicleInitialStateOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bodyworkDamage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Danni Carrozzeria</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona danni" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {bodyworkDamageOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="vehicleAnomalies"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Anomalie Veicolo (se "ALTRO" nei danni carrozzeria)</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Descrivi eventuali anomalie..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="vehicleInitialState"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Stato del Veicolo ad Avvio Servizio</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Descrivi lo stato iniziale del veicolo..." rows={3} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bodyworkDamage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Eventuali Danni alla Carrozzeria</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Descrivi eventuali danni..." rows={2} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="vehicleAnomalies"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Dettaglio Anomalie Automezzo</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Descrivi eventuali anomalie riscontrate..." rows={2} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <h3 className="text-lg font-semibold mt-6 mb-4">Controllo Accessori</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {renderBooleanCheckboxes("GPS", "gpsSi", "gpsNo")}
-          {renderBooleanCheckboxes("Radio Veicolare", "radioVehicleSi", "radioVehicleNo")}
-          {renderBooleanCheckboxes("Lampada Girevole", "swivelingLampSi", "swivelingLampNo")}
-          {renderBooleanCheckboxes("Radio Portatile", "radioPortableSi", "radioPortableNo")}
-          {renderBooleanCheckboxes("Torcia", "flashlightSi", "flashlightNo")}
-          {renderBooleanCheckboxes("Estintore", "extinguisherSi", "extinguisherNo")}
-          {renderBooleanCheckboxes("Ruota di Scorta", "spareTireSi", "spareTireNo")}
-          {renderBooleanCheckboxes("Giubbotto Alta Visibilità", "highVisibilityVestSi", "highVisibilityVestNo")}
+          <FormField
+            control={form.control}
+            name="gps"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>GPS</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="radioVehicle"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Apparato Radio Veicolare</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="swivelingLamp"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Faro Brandeggiante</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="radioPortable"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Apparato Radio Portatile</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="flashlight"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Torcia Portatile</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="extinguisher"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Estintore</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="spareTire"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Ruota di Scorta</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="highVisibilityVest"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4" />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Gilet Alta Visibilità</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
-            INVIA EMAIL
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Button 
+              type="button" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
+              onClick={() => handleGpsTracking('start')}
+            >
+              ACQUISIZIONE GPS INIZIO SERVIZIO
+            </Button>
+            {form.watch("startLatitude") !== undefined && form.watch("startLongitude") !== undefined && (
+              <p className="text-sm text-gray-500 mt-1 text-center">
+                Latitudine: {form.watch("startLatitude")?.toFixed(6)}, Longitudine: {form.watch("startLongitude")?.toFixed(6)}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Button 
+              type="button" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
+              onClick={() => handleGpsTracking('end')}
+            >
+              ACQUISIZIONE GPS FINE SERVIZIO
+            </Button>
+            {form.watch("endLatitude") !== undefined && form.watch("endLongitude") !== undefined && (
+              <p className="text-sm text-gray-500 mt-1 text-center">
+                Latitudine: {form.watch("endLatitude")?.toFixed(6)}, Longitudine: {form.watch("endLongitude")?.toFixed(6)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-4">
+          <Button type="button" onClick={handlePrintPdf}>
+            Stampa PDF
           </Button>
-          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
-            STAMPA PDF
-          </Button>
-          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-            INVIA RAPPORTO
-          </Button>
+          <Button type="submit">Salva Rapporto</Button>
         </div>
       </form>
     </Form>
   );
-};
+}

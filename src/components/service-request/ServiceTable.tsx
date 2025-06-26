@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button"; // Import Button component
 import { showInfo, showSuccess, showError } from "@/utils/toast"; // Import toast utilities
-import { format, isValid } from "date-fns"; // Import isValid
+import { format } from "date-fns";
 import { it } from 'date-fns/locale';
 import { Eye, Edit, Trash2 } from "lucide-react"; // Import icons
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog"; // Import new dialog
@@ -134,18 +134,12 @@ export function ServiceTable() {
     {
       accessorKey: "startDate",
       header: "Data Inizio",
-      cell: ({ row }) => {
-        const date = row.original.startDate;
-        return isValid(date) ? format(date, "PPP", { locale: it }) : "N/A";
-      },
+      cell: ({ row }) => format(row.original.startDate, "PPP", { locale: it }),
     },
     {
       accessorKey: "endDate",
       header: "Data Fine",
-      cell: ({ row }) => {
-        const date = row.original.endDate;
-        return isValid(date) ? format(date, "PPP", { locale: it }) : "N/A";
-      },
+      cell: ({ row }) => format(row.original.endDate, "PPP", { locale: it }),
     },
     {
       accessorKey: "status",

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, isValid, parseISO } from "date-fns"; // Import isValid and parseISO
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,24 +141,15 @@ export function CantiereForm() {
     }
   };
 
-  const handleEmail = async () => {
-    const isValidForm = await form.trigger(); // Trigger validation
-    if (!isValidForm) {
-      showError("Compila tutti i campi obbligatori prima di inviare l'email.");
-      return;
-    }
-
+  const handleEmail = () => {
     const values = form.getValues();
-    const reportDateObj = parseISO(values.reportDate); // Use parseISO
-    const formattedReportDate = isValid(reportDateObj) ? format(reportDateObj, 'dd/MM/yyyy') : 'N/A';
-
     const selectedClient = clienti.find(c => c.id === values.cliente);
     const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
 
-    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${formattedReportDate}`;
+    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`;
     
     let body = `Dettagli Rapporto di Cantiere:\n\n`;
-    body += `Data Rapporto: ${formattedReportDate}\n`;
+    body += `Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}\n`;
     body += `Ora Rapporto: ${values.reportTime}\n`;
     if (values.latitude !== undefined && values.longitude !== undefined) {
       body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
@@ -199,18 +190,9 @@ export function CantiereForm() {
     sendEmail(subject, body);
   };
 
-  const handlePrintPdf = async () => {
-    const isValidForm = await form.trigger(); // Trigger validation
-    if (!isValidForm) {
-      showError("Compila tutti i campi obbligatori prima di stampare il PDF.");
-      return;
-    }
-
+  const handlePrintPdf = () => {
     showInfo("Generazione PDF per il rapporto di cantiere...");
     const values = form.getValues();
-    const reportDateObj = parseISO(values.reportDate); // Use parseISO
-    const formattedReportDate = isValid(reportDateObj) ? format(reportDateObj, 'dd/MM/yyyy') : 'N/A';
-
     const selectedClient = clienti.find(c => c.id === values.cliente);
     const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
 
@@ -222,7 +204,7 @@ export function CantiereForm() {
     y += 10;
 
     doc.setFontSize(10);
-    doc.text(`Data Rapporto: ${formattedReportDate}`, 14, y);
+    doc.text(`Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`, 14, y);
     y += 7;
     doc.text(`Ora Rapporto: ${values.reportTime}`, 14, y);
     y += 7;
