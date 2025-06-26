@@ -23,8 +23,8 @@ import {
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { sendEmail } from "@/utils/email"; // Import sendEmail utility
-import { RECIPIENT_EMAIL } from "@/lib/config"; // Import recipient email
+import { sendEmail } from "@/utils/email";
+import JsBarcode from 'jsbarcode';
 
 const CentraleOperativa = () => {
   const { toast } = useToast();
@@ -88,37 +88,78 @@ const CentraleOperativa = () => {
     }
   };
 
+  const generateBarcodeImage = (text: string): string | null => {
+    if (!text) return null;
+    try {
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, text, {
+        format: "CODE128", // You can choose other formats like "EAN13", "UPC", "QRCODE" etc.
+        displayValue: true,
+        height: 50,
+        width: 2,
+        margin: 10,
+      });
+      return canvas.toDataURL("image/png"); // Returns a data URL (base64 encoded image)
+    } catch (error: any) {
+      showError(`Errore nella generazione del codice a barre: ${error.message}`);
+      console.error("Barcode generation error:", error);
+      return null;
+    }
+  };
+
   const handleEmail = () => {
     const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
     
-    let body = `Dettagli Rapporto Intervento:\n\n`;
-    body += `Punto Servizio: ${servicePointName}\n`;
-    body += `Intervento da effettuarsi ENTRO: ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti\n`;
-    body += `Tipologia Servizio Richiesto: ${formData.requestType}\n`;
-    body += `Operatore C.O. Security Service: ${formData.coOperator}\n`;
-    body += `Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+    let htmlBody = `
+      <p><strong>Dettagli Rapporto Intervento:</strong></p>
+      <ul>
+        <li><strong>Punto Servizio:</strong> ${servicePointName}</li>
+        <li><strong>Intervento da effettuarsi ENTRO:</strong> ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti</li>
+        <li><strong>Tipologia Servizio Richiesto:</strong> ${formData.requestType}</li>
+        <li><strong>Operatore C.O. Security Service:</strong> ${formData.coOperator}</li>
+        <li><strong>Orario Richiesta C.O. Security Service:</strong> ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
+    `;
     if (formData.latitude !== undefined && formData.longitude !== undefined) {
-      body += `Posizione GPS: Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}\n`;
+      htmlBody += `<li><strong>Posizione GPS:</strong> Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}</li>`;
     }
-    body += `Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
-    body += `Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
-    body += `Accesso Completo: ${formData.fullAccess.toUpperCase()}\n`;
-    body += `Accesso Caveau: ${formData.vaultAccess.toUpperCase()}\n`;
-    body += `Operatore Cliente: ${formData.operatorClient || 'N/A'}\n`;
-    body += `G.P.G. Intervento: ${formData.gpgIntervention || 'N/A'}\n`;
-    body += `Anomalie Riscontrate: ${formData.anomalies.toUpperCase()}\n`;
+    htmlBody += `
+        <li><strong>Orario Inizio Intervento:</strong> ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
+        <li><strong>Orario Fine Intervento:</strong> ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
+        <li><strong>Accesso Completo:</strong> ${formData.fullAccess.toUpperCase()}</li>
+        <li><strong>Accesso Caveau:</strong> ${formData.vaultAccess.toUpperCase()}</li>
+        <li><strong>Operatore Cliente:</strong> ${formData.operatorClient || 'N/A'}</li>
+        <li><strong>G.P.G. Intervento:</strong> ${formData.gpgIntervention || 'N/A'}</li>
+        <li><strong>Anomalie Riscontrate:</strong> ${formData.anomalies.toUpperCase()}</li>
+    `;
     if (formData.anomalies === 'si') {
-      body += `Descrizione Anomalie: ${formData.anomalyDescription || 'N/A'}\n`;
+      htmlBody += `<li><strong>Descrizione Anomalie:</strong> ${formData.anomalyDescription || 'N/A'}</li>`;
     }
-    body += `Ritardo: ${formData.delay.toUpperCase()}\n`;
+    htmlBody += `
+        <li><strong>Ritardo:</strong> ${formData.delay.toUpperCase()}</li>
+    `;
     if (formData.delay === 'si') {
-      body += `Motivo Ritardo: ${formData.delayNotes || 'N/A'}\n`;
+      htmlBody += `<li><strong>Motivo Ritardo:</strong> ${formData.delayNotes || 'N/A'}</li>`;
     }
-    body += `Esito Servizio: ${formData.serviceOutcome || 'N/A'}\n`;
-    body += `Barcode: ${formData.barcode || 'N/A'}\n`;
+    htmlBody += `
+        <li><strong>Esito Servizio:</strong> ${formData.serviceOutcome || 'N/A'}</li>
+    `;
 
-    sendEmail(subject, body);
+    if (formData.barcode) {
+      const barcodeDataURL = generateBarcodeImage(formData.barcode);
+      if (barcodeDataURL) {
+        htmlBody += `<li><strong>Barcode:</strong> ${formData.barcode}</li>`;
+        htmlBody += `<p><img src="${barcodeDataURL}" alt="Barcode: ${formData.barcode}" style="max-width: 300px; height: auto;"/></p>`;
+      } else {
+        htmlBody += `<li><strong>Barcode:</strong> ${formData.barcode} (Impossibile generare immagine)</li>`;
+      }
+    } else {
+      htmlBody += `<li><strong>Barcode:</strong> N/A</li>`;
+    }
+
+    htmlBody += `</ul>`;
+
+    sendEmail(subject, htmlBody, true); // Send as HTML
   };
 
   const handleSubmit = (e: React.FormEvent) => {

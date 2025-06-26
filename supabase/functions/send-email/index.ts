@@ -12,20 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, body } = await req.json();
+    const { to, subject, textBody, htmlBody } = await req.json();
 
-    if (!to || !subject || !body) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: to, subject, body' }), {
+    if (!to || !subject || (!textBody && !htmlBody)) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: to, subject, and either textBody or htmlBody' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Retrieve Mailjet API keys from Supabase secrets
     const MAILJET_API_KEY = Deno.env.get('MAILJET_API_KEY');
     const MAILJET_SECRET_KEY = Deno.env.get('MAILJET_SECRET_KEY');
-    // Set the sender email address. ENSURE THIS ADDRESS IS VERIFIED IN MAILJET!
-    const SENDER_EMAIL = 'mauro.pizzi@lumafinsrl.com'; // <-- UPDATED SENDER EMAIL
+    const SENDER_EMAIL = 'mauro.pizzi@lumafinsrl.com';
 
     if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY) {
       return new Response(JSON.stringify({ error: 'Mailjet API Key or Secret Key not configured in Supabase secrets.' }), {
@@ -36,30 +34,37 @@ serve(async (req) => {
 
     const auth = btoa(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`);
 
+    const mailjetBody: any = {
+      Messages: [
+        {
+          From: {
+            Email: SENDER_EMAIL,
+            Name: "Security App",
+          },
+          To: [
+            {
+              Email: to,
+            },
+          ],
+          Subject: subject,
+        },
+      ],
+    };
+
+    if (htmlBody) {
+      mailjetBody.Messages[0].HTMLPart = htmlBody;
+    } else {
+      mailjetBody.Messages[0].TextPart = textBody;
+    }
+
     const mailjetResponse = await fetch('https://api.mailjet.com/v3.1/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Basic ${auth}`,
-        ...corsHeaders, // Include CORS headers for the response
+        ...corsHeaders,
       },
-      body: JSON.stringify({
-        Messages: [
-          {
-            From: {
-              Email: SENDER_EMAIL,
-              Name: "Security App",
-            },
-            To: [
-              {
-                Email: to,
-              },
-            ],
-            Subject: subject,
-            TextPart: body, // Use TextPart for plain text email body
-          },
-        ],
-      }),
+      body: JSON.stringify(mailjetBody),
     });
 
     if (!mailjetResponse.ok) {
