@@ -109,11 +109,6 @@ export const servicePointsData = [
 export const requestTypeOptions = [
   "Intervento",
   "Ispezione",
-  "Bonifica",
-  "Apertura",
-  "Chiusura",
-  "Verifica Chiavi",
-  "Ritiro Chiavi",
 ];
 
 export const coOperatorOptions = [
