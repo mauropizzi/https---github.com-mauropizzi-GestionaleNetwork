@@ -37,13 +37,13 @@ const CentraleOperativa = () => {
     requestTime: '',
     startTime: '',
     endTime: '',
-    fullAccess: 'no',
-    vaultAccess: 'no',
+    fullAccess: undefined as 'si' | 'no' | undefined, // Changed default to undefined
+    vaultAccess: undefined as 'si' | 'no' | undefined, // Changed default to undefined
     operatorClient: '',
     gpgIntervention: '',
-    anomalies: 'no',
+    anomalies: undefined as 'si' | 'no' | undefined, // Changed default to undefined
     anomalyDescription: '',
-    delay: 'no',
+    delay: undefined as 'si' | 'no' | undefined, // Changed default to undefined
     delayNotes: '',
     serviceOutcome: '',
     barcode: '',
@@ -60,7 +60,7 @@ const CentraleOperativa = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRadioChange = (name: string, value: string) => {
+  const handleRadioChange = (name: string, value: 'si' | 'no') => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -138,15 +138,15 @@ const CentraleOperativa = () => {
       y += 7;
       doc.text(`Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Accesso Completo: ${formData.fullAccess.toUpperCase()}`, 14, y);
+      doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Accesso Caveau: ${formData.vaultAccess.toUpperCase()}`, 14, y);
+      doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Operatore Cliente: ${formData.operatorClient || 'N/A'}`, 14, y);
       y += 7;
       doc.text(`G.P.G. Intervento: ${formData.gpgIntervention || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Anomalie Riscontrate: ${formData.anomalies.toUpperCase()}`, 14, y);
+      doc.text(`Anomalie Riscontrate: ${formData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
       if (formData.anomalies === 'si' && formData.anomalyDescription) {
         y += 5;
         doc.setFontSize(9);
@@ -156,7 +156,7 @@ const CentraleOperativa = () => {
         doc.setFontSize(10); // Reset font size
       }
       y += 7;
-      doc.text(`Ritardo: ${formData.delay.toUpperCase()}`, 14, y);
+      doc.text(`Ritardo: ${formData.delay?.toUpperCase() || 'N/A'}`, 14, y);
       if (formData.delay === 'si' && formData.delayNotes) {
         y += 5;
         doc.setFontSize(9);
@@ -235,6 +235,25 @@ const CentraleOperativa = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Manual validation for required radio groups
+    if (formData.fullAccess === undefined) {
+      showError("Seleziona 'SI' o 'NO' per 'Accesso Completo'.");
+      return;
+    }
+    if (formData.vaultAccess === undefined) {
+      showError("Seleziona 'SI' o 'NO' per 'Accesso Caveau'.");
+      return;
+    }
+    if (formData.anomalies === undefined) {
+      showError("Seleziona 'SI' o 'NO' per 'Anomalie Riscontrate'.");
+      return;
+    }
+    if (formData.delay === undefined) {
+      showError("Seleziona 'SI' o 'NO' per 'Ritardo'.");
+      return;
+    }
+
     toast({
       title: "Intervento registrato",
       description: "L'intervento è stato registrato con successo.",
@@ -398,7 +417,7 @@ const CentraleOperativa = () => {
           <Label>Accesso Completo</Label>
           <RadioGroup
             value={formData.fullAccess}
-            onValueChange={(value) => handleRadioChange('fullAccess', value)}
+            onValueChange={(value: 'si' | 'no') => handleRadioChange('fullAccess', value)}
             className="flex space-x-4"
           >
             <div className="flex items-center space-x-2">
@@ -416,7 +435,7 @@ const CentraleOperativa = () => {
           <Label>Accesso Caveau</Label>
           <RadioGroup
             value={formData.vaultAccess}
-            onValueChange={(value) => handleRadioChange('vaultAccess', value)}
+            onValueChange={(value: 'si' | 'no') => handleRadioChange('vaultAccess', value)}
             className="flex space-x-4"
           >
             <div className="flex items-center space-x-2">
@@ -472,7 +491,7 @@ const CentraleOperativa = () => {
           <Label>Anomalie Riscontrate</Label>
           <RadioGroup
             value={formData.anomalies}
-            onValueChange={(value) => handleRadioChange('anomalies', value)}
+            onValueChange={(value: 'si' | 'no') => handleRadioChange('anomalies', value)}
             className="flex space-x-4"
           >
             <div className="flex items-center space-x-2">
@@ -500,7 +519,7 @@ const CentraleOperativa = () => {
           <Label>Ritardo</Label>
           <RadioGroup
             value={formData.delay}
-            onValueChange={(value) => handleRadioChange('delay', value)}
+            onValueChange={(value: 'si' | 'no') => handleRadioChange('delay', value)}
             className="flex space-x-4"
           >
             <div className="flex items-center space-x-2">
