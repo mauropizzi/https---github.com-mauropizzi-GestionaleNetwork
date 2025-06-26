@@ -1,6 +1,6 @@
 import React from "react";
-import { Outlet, useLocation } from "react-router-dom"; // Corretto: rimosso '=>'
-import Sidebar from "@/components/layout/Sidebar";
+import { Outlet, useLocation } from "react-router-dom";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";

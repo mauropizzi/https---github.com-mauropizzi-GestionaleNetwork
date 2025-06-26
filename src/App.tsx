@@ -1,18 +1,18 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "sonner";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import DashboardOverview from "@/pages/DashboardOverview";
-import ServiceRequest from "@/pages/ServiceRequest";
-import Anagrafiche from "@/pages/Anagrafiche";
-import ServiceList from "@/pages/ServiceList";
-import RegistroDiCantiere from "@/pages/RegistroDiCantiere";
-import CentraleOperativa from "@/pages/CentraleOperativa";
-import ServiziCanone from "@/pages/ServiziCanone";
-import NotFound from "@/pages/NotFound";
-import DotazioniDiServizio from "@/pages/DotazioniDiServizio"; // Corretto: importazione predefinita
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import DashboardLayout from "./components/layout/DashboardLayout";
+import DashboardOverview from "./pages/DashboardOverview";
+import NotFound from "./pages/NotFound";
+import ServiceRequest from "./pages/ServiceRequest";
+import Anagrafiche from "./pages/Anagrafiche";
+import DotazioniDiServizio from "./pages/DotazioniDiServizio";
+import ServiceList from "./pages/ServiceList";
+import RegistroDiCantiere from "./pages/RegistroDiCantiere";
+import CentraleOperativa from "./pages/CentraleOperativa";
+import ServiziCanone from "./pages/ServiziCanone";
 
 const queryClient = new QueryClient();
 
@@ -24,14 +24,15 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<DashboardOverview />} />
+            <Route index element={<CentraleOperativa />} />
             <Route path="service-request" element={<ServiceRequest />} />
             <Route path="anagrafiche" element={<Anagrafiche />} />
+            <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
             <Route path="centrale-operativa" element={<CentraleOperativa />} />
-            <Route path="servizi-canone" element={<ServiziCanone />} />
-            <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
+            <Route path="servizi-a-canone" element={<ServiziCanone />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
