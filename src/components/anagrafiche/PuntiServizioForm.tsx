@@ -265,7 +265,7 @@ export function PuntiServizioForm() {
             <FormItem>
               <FormLabel>Tempo di Intervento (minuti)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="30" {...field} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -348,7 +348,7 @@ export function PuntiServizioForm() {
               <FormItem>
                 <FormLabel>Latitudine</FormLabel>
                 <FormControl>
-                  <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -361,7 +361,7 @@ export function PuntiServizioForm() {
               <FormItem>
                 <FormLabel>Longitudine</FormLabel>
                 <FormControl>
-                  <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
