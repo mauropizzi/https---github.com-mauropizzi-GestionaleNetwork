@@ -14,8 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button"; // Import Button component
+import { showInfo, showSuccess, showError } from "@/utils/toast"; // Import toast utilities
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
+import { Eye, Edit, Trash2 } from "lucide-react"; // Import icons
 
 // Define the structure of a service request
 interface ServiceRequest {
@@ -133,6 +136,38 @@ const columns: ColumnDef<ServiceRequest>[] = [
     accessorKey: "cost",
     header: "Costo Stimato (€)",
     cell: ({ row }) => (row.original.cost !== undefined ? `${row.original.cost.toFixed(2)} €` : "N/A"),
+  },
+  {
+    id: "actions",
+    header: "Azioni",
+    cell: ({ row }) => (
+      <div className="flex space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => showInfo(`Visualizza dettagli per il servizio ID: ${row.original.id}`)}
+          title="Visualizza"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => showInfo(`Modifica il servizio ID: ${row.original.id}`)}
+          title="Modifica"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => showError(`Elimina il servizio ID: ${row.original.id}`)}
+          title="Elimina"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
   },
 ];
 
