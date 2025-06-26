@@ -264,7 +264,7 @@ const CentraleOperativa = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">REGISTRAZIONE INTERVENTI E ISPEZIONI</h1>
+      <h1 className="text-2xl font-bold mb-6">Registrazione Interventi e Ispezioni</h1>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
