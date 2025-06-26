@@ -1,5 +1,5 @@
 import React from "react";
-import { ServiceReportForm } from "@/components/dotazioni-di-servizio/ServiceReportForm";
+import ServiceReportForm from "@/components/dotazioni-di-servizio/ServiceReportForm"; // Changed to default import
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const DotazioniDiServizio = () => {
