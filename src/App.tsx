@@ -12,7 +12,7 @@ import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
 import CentraleOperativa from "./pages/CentraleOperativa";
-import ServiziCanone from "./pages/ServiziCanone"; // Import the new page
+import ServiziCanone from "./pages/ServiziCanone";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +21,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<CentraleOperativa />} />
@@ -31,7 +31,7 @@ const App = () => (
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
             <Route path="centrale-operativa" element={<CentraleOperativa />} />
-            <Route path="servizi-a-canone" element={<ServiziCanone />} /> {/* New route */}
+            <Route path="servizi-a-canone" element={<ServiziCanone />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Route>
