@@ -61,14 +61,14 @@ const formSchema = z.object({
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo richiesto."),
   bodyworkDamage: z.string().optional(),
   vehicleAnomalies: z.string().optional(),
-  gps: z.boolean().default(false),
-  radioVehicle: z.boolean().default(false),
-  swivelingLamp: z.boolean().default(false),
-  radioPortable: z.boolean().default(false),
-  flashlight: z.boolean().default(false),
-  extinguisher: z.boolean().default(false),
-  spareTire: z.boolean().default(false),
-  highVisibilityVest: z.boolean().default(false),
+  gps: z.enum(["si", "no"]).optional(),
+  radioVehicle: z.enum(["si", "no"]).optional(),
+  swivelingLamp: z.enum(["si", "no"]).optional(),
+  radioPortable: z.enum(["si", "no"]).optional(),
+  flashlight: z.enum(["si", "no"]).optional(),
+  extinguisher: z.enum(["si", "no"]).optional(),
+  spareTire: z.enum(["si", "no"]).optional(),
+  highVisibilityVest: z.enum(["si", "no"]).optional(),
   startLatitude: z.coerce.number().optional(),
   startLongitude: z.coerce.number().optional(),
   endLatitude: z.coerce.number().optional(),
@@ -105,14 +105,14 @@ const ServiceReportForm = () => {
       vehicleInitialState: "",
       bodyworkDamage: "",
       vehicleAnomalies: "",
-      gps: false,
-      radioVehicle: false,
-      swivelingLamp: false,
-      radioPortable: false,
-      flashlight: false,
-      extinguisher: false,
-      spareTire: false,
-      highVisibilityVest: false,
+      gps: undefined, // Default to undefined for empty state
+      radioVehicle: undefined,
+      swivelingLamp: undefined,
+      radioPortable: undefined,
+      flashlight: undefined,
+      extinguisher: undefined,
+      spareTire: undefined,
+      highVisibilityVest: undefined,
       startLatitude: undefined,
       startLongitude: undefined,
       endLatitude: undefined,
@@ -165,7 +165,7 @@ const ServiceReportForm = () => {
     }
     body += `Orario Fine Servizio: ${values.endTime}\n`;
     if (values.endLatitude !== undefined && values.endLongitude !== undefined) {
-      body += `  GPS Fine: Lat ${values.endLatitude.toFixed(6)}, Lon ${values.endLongitude.toFixed(6)}\n`;
+      body += `  GPS Fine: Lat ${values.endLongitude.toFixed(6)}, Lon ${values.endLongitude.toFixed(6)}\n`;
     }
     body += `\nDettagli Veicolo:\n`;
     body += `  Marca/Modello: ${values.vehicleMakeModel}\n`;
@@ -177,14 +177,14 @@ const ServiceReportForm = () => {
     body += `  Anomalie Veicolo: ${values.vehicleAnomalies || 'Nessuna'}\n`;
 
     body += `\nDotazioni:\n`;
-    body += `  GPS: ${values.gps ? 'Sì' : 'No'}\n`;
-    body += `  Radio Veicolare: ${values.radioVehicle ? 'Sì' : 'No'}\n`;
-    body += `  Faro Girevole: ${values.swivelingLamp ? 'Sì' : 'No'}\n`;
-    body += `  Radio Portatile: ${values.radioPortable ? 'Sì' : 'No'}\n`;
-    body += `  Torcia: ${values.flashlight ? 'Sì' : 'No'}\n`;
-    body += `  Estintore: ${values.extinguisher ? 'Sì' : 'No'}\n`;
-    body += `  Ruota di Scorta: ${values.spareTire ? 'Sì' : 'No'}\n`;
-    body += `  Giubbotto Alta Visibilità: ${values.highVisibilityVest ? 'Sì' : 'No'}\n`;
+    body += `  GPS: ${values.gps ? (values.gps === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Radio Veicolare: ${values.radioVehicle ? (values.radioVehicle === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Faro Girevole: ${values.swivelingLamp ? (values.swivelingLamp === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Radio Portatile: ${values.radioPortable ? (values.radioPortable === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Torcia: ${values.flashlight ? (values.flashlight === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Estintore: ${values.extinguisher ? (values.extinguisher === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Ruota di Scorta: ${values.spareTire ? (values.spareTire === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
+    body += `  Giubbotto Alta Visibilità: ${values.highVisibilityVest ? (values.highVisibilityVest === 'si' ? 'Sì' : 'No') : 'N/A'}\n`;
 
     sendEmail(subject, body);
   };
@@ -550,13 +550,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="gps"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>GPS</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="gps-si" />
+                        <Label htmlFor="gps-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="gps-no" />
+                        <Label htmlFor="gps-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>GPS</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -564,13 +576,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="radioVehicle"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Radio Veicolare</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="radioVehicle-si" />
+                        <Label htmlFor="radioVehicle-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="radioVehicle-no" />
+                        <Label htmlFor="radioVehicle-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Radio Veicolare</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -578,13 +602,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="swivelingLamp"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Faro Girevole</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="swivelingLamp-si" />
+                        <Label htmlFor="swivelingLamp-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="swivelingLamp-no" />
+                        <Label htmlFor="swivelingLamp-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Faro Girevole</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -592,13 +628,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="radioPortable"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Radio Portatile</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="radioPortable-si" />
+                        <Label htmlFor="radioPortable-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="radioPortable-no" />
+                        <Label htmlFor="radioPortable-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Radio Portatile</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -606,13 +654,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="flashlight"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Torcia</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="flashlight-si" />
+                        <Label htmlFor="flashlight-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="flashlight-no" />
+                        <Label htmlFor="flashlight-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Torcia</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -620,13 +680,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="extinguisher"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Estintore</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="extinguisher-si" />
+                        <Label htmlFor="extinguisher-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="extinguisher-no" />
+                        <Label htmlFor="extinguisher-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Estintore</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -634,13 +706,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="spareTire"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Ruota di Scorta</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="spareTire-si" />
+                        <Label htmlFor="spareTire-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="spareTire-no" />
+                        <Label htmlFor="spareTire-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Ruota di Scorta</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -648,13 +732,25 @@ const ServiceReportForm = () => {
               control={form.control}
               name="highVisibilityVest"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                  <FormLabel>Giubbotto Alta Visibilità</FormLabel>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="highVisibilityVest-si" />
+                        <Label htmlFor="highVisibilityVest-si">Sì</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="highVisibilityVest-no" />
+                        <Label htmlFor="highVisibilityVest-no">No</Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Giubbotto Alta Visibilità</FormLabel>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
