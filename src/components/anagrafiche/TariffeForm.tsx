@@ -157,7 +157,7 @@ export function TariffeForm() {
               <FormItem>
                 <FormLabel>Importo Cliente (€)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -170,7 +170,7 @@ export function TariffeForm() {
               <FormItem>
                 <FormLabel>Importo Fornitore (€)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
