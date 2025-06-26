@@ -70,16 +70,16 @@ export function PuntiServizioForm() {
       provincia: "",
       referente: "",
       telefonoReferente: "",
-      telefono: "", // Default per nuovo campo
-      email: "", // Default per nuovo campo
-      note: "", // Default per nuovo campo
-      tempoIntervento: "", // Modificato da undefined a ""
-      fornitoreId: "", // Default per nuovo campo
-      codiceCliente: "", // Default per nuovo campo
-      codiceSicep: "", // Default per nuovo campo
-      codiceFatturazione: "", // Default per nuovo campo
-      latitude: "", // Modificato da undefined a ""
-      longitude: "", // Modificato da undefined a ""
+      telefono: "",
+      email: "",
+      note: "",
+      tempoIntervento: undefined, // Impostato a undefined per i campi opzionali numerici
+      fornitoreId: "",
+      codiceCliente: "",
+      codiceSicep: "",
+      codiceFatturazione: "",
+      latitude: undefined, // Impostato a undefined per i campi opzionali numerici
+      longitude: undefined, // Impostato a undefined per i campi opzionali numerici
     },
   });
 
