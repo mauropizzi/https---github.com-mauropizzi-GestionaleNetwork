@@ -106,7 +106,7 @@ export function AutomezzoItem({ index, onRemove }: AutomezzoItemProps) {
           <FormItem>
             <FormLabel>Ore di Lavoro</FormLabel>
             <FormControl>
-              <Input type="number" placeholder="0" {...field} onChange={field.onChange} />
+              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
             </FormControl>
             <FormMessage />
           </FormItem>

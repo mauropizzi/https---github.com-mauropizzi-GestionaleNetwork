@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { it } from 'date-fns/locale';
-import { CalendarIcon, Mail, Printer, Save } from "lucide-react"; // Assicurati che queste icone siano importate
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -19,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,11 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { showSuccess, showError, showInfo } from "@/utils/toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import {
   serviceLocationOptions,
   serviceTypeOptions,
@@ -40,218 +30,298 @@ import {
   bodyworkDamageOptions,
   employeeNameOptions,
 } from "@/lib/dotazioni-data";
-import { RECIPIENT_EMAIL } from "@/lib/config";
-import { sendEmail } from "@/utils/email";
+import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
+import { RECIPIENT_EMAIL } from "@/lib/config"; // Import RECIPIENT_EMAIL
+import { showSuccess, showError, showInfo } from "@/utils/toast"; // Import toast utilities
+import jsPDF from 'jspdf'; // Import jsPDF
+import 'jspdf-autotable'; // Import jspdf-autotable
+import { format } from "date-fns"; // Import format for date formatting
 
+// Definizione dello schema
 const formSchema = z.object({
-  serviceDate: z.date({
-    required_error: "La data del servizio è richiesta.",
-  }),
-  employeeId: z.string().min(1, "L'addetto è richiesto."),
-  serviceLocation: z.string().min(1, "La località è richiesta."),
-  serviceType: z.string().min(1, "Il tipo di servizio è richiesto."),
+  serviceDate: z.string().min(1, "La data è obbligatoria"),
+  employeeId: z.string().min(1, "L'addetto è obbligatorio"),
+  serviceLocation: z.string().min(1, "La località è obbligatoria"),
+  serviceType: z.string().min(1, "Il tipo di servizio è obbligatorio"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
-  vehicleMakeModel: z.string().min(1, "Il modello del veicolo è richiesto."),
-  vehiclePlate: z.string().min(1, "La targa del veicolo è richiesta."),
-  startKm: z.coerce.number().min(0, "I KM iniziali sono richiesti."),
-  endKm: z.coerce.number().min(0, "I KM finali sono richiesti."),
-  vehicleInitialState: z.string().min(1, "Lo stato iniziale del veicolo è richiesto."),
+  startKm: z.coerce.number().min(0, "I km iniziali sono obbligatori e non negativi."),
+  endKm: z.coerce.number().min(0, "I km finali sono obbligatori e non negativi."),
+  vehicleMakeModel: z.string().min(1, "Il modello è obbligatorio"),
+  vehiclePlate: z.string().min(1, "La targa è obbligatoria"),
+  vehicleInitialState: z.string().min(1, "Lo stato iniziale è obbligatorio"),
   bodyworkDamage: z.string().optional(),
   vehicleAnomalies: z.string().optional(),
-  gps: z.boolean().default(false),
-  radioVehicle: z.boolean().default(false),
-  swivelingLamp: z.boolean().default(false),
-  radioPortable: z.boolean().default(false),
-  flashlight: z.boolean().default(false),
-  extinguisher: z.boolean().default(false),
-  spareTire: z.boolean().default(false),
-  highVisibilityVest: z.boolean().default(false),
+  gpsSi: z.boolean().default(false),
+  gpsNo: z.boolean().default(false),
+  radioVehicleSi: z.boolean().default(false),
+  radioVehicleNo: z.boolean().default(false),
+  swivelingLampSi: z.boolean().default(false),
+  swivelingLampNo: z.boolean().default(false),
+  radioPortableSi: z.boolean().default(false),
+  radioPortableNo: z.boolean().default(false),
+  flashlightSi: z.boolean().default(false),
+  flashlightNo: z.boolean().default(false),
+  extinguisherSi: z.boolean().default(false),
+  extinguisherNo: z.boolean().default(false),
+  spareTireSi: z.boolean().default(false),
+  spareTireNo: z.boolean().default(false),
+  highVisibilityVestSi: z.boolean().default(false),
+  highVisibilityVestNo: z.boolean().default(false),
 }).refine(data => data.endKm >= data.startKm, {
-  message: "I KM finali non possono essere inferiori ai KM iniziali.",
+  message: "I km finali non possono essere inferiori ai km iniziali.",
   path: ["endKm"],
+}).refine(data => data.gpsSi !== data.gpsNo, {
+  message: "Selezionare SI o NO per GPS.",
+  path: ["gpsSi"],
+}).refine(data => data.radioVehicleSi !== data.radioVehicleNo, {
+  message: "Selezionare SI o NO per Radio Veicolare.",
+  path: ["radioVehicleSi"],
+}).refine(data => data.swivelingLampSi !== data.swivelingLampNo, {
+  message: "Selezionare SI o NO per Lampada Girevole.",
+  path: ["swivelingLampSi"],
+}).refine(data => data.radioPortableSi !== data.radioPortableNo, {
+  message: "Selezionare SI o NO per Radio Portatile.",
+  path: ["radioPortableSi"],
+}).refine(data => data.flashlightSi !== data.flashlightNo, {
+  message: "Selezionare SI o NO per Torcia.",
+  path: ["flashlightSi"],
+}).refine(data => data.extinguisherSi !== data.extinguisherNo, {
+  message: "Selezionare SI o NO per Estintore.",
+  path: ["extinguisherSi"],
+}).refine(data => data.spareTireSi !== data.spareTireNo, {
+  message: "Selezionare SI o NO per Ruota di Scorta.",
+  path: ["spareTireSi"],
+}).refine(data => data.highVisibilityVestSi !== data.highVisibilityVestNo, {
+  message: "Selezionare SI o NO per Giubbotto Alta Visibilità.",
+  path: ["highVisibilityVestSi"],
 });
 
-const ServiceReportForm = () => {
+// Definizione del componente
+export const ServiceReportForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      serviceDate: new Date(),
+      serviceDate: "",
       employeeId: "",
       serviceLocation: "",
       serviceType: "",
-      startTime: "08:00",
-      endTime: "17:00",
-      vehicleMakeModel: "",
-      vehiclePlate: "",
+      startTime: "",
+      endTime: "",
       startKm: 0,
       endKm: 0,
+      vehicleMakeModel: "",
+      vehiclePlate: "",
       vehicleInitialState: "",
       bodyworkDamage: "",
       vehicleAnomalies: "",
-      gps: false,
-      radioVehicle: false,
-      swivelingLamp: false,
-      radioPortable: false,
-      flashlight: false,
-      extinguisher: false,
-      spareTire: false,
-      highVisibilityVest: false,
+      gpsSi: false,
+      gpsNo: false,
+      radioVehicleSi: false,
+      radioVehicleNo: false,
+      swivelingLampSi: false,
+      swivelingLampNo: false,
+      radioPortableSi: false,
+      radioPortableNo: false,
+      flashlightSi: false,
+      flashlightNo: false,
+      extinguisherSi: false,
+      extinguisherNo: false,
+      spareTireSi: false,
+      spareTireNo: false,
+      highVisibilityVestSi: false,
+      highVisibilityVestNo: false,
     },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Rapporto Dotazioni di Servizio:", values);
-    showSuccess("Rapporto salvato con successo!");
+    console.log(values);
+    showSuccess("Rapporto di servizio inviato con successo!");
     // Qui potresti inviare i dati a un backend
     form.reset(); // Reset form after submission
   };
 
+  // Helper per i campi SI/NO con checkbox separate
+  const renderBooleanCheckboxes = (
+    label: string,
+    siFieldName: keyof z.infer<typeof formSchema>,
+    noFieldName: keyof z.infer<typeof formSchema>
+  ) => (
+    <div className="space-y-2">
+      <FormLabel>{label}</FormLabel>
+      <div className="flex space-x-4">
+        <FormField
+          control={form.control}
+          name={siFieldName}
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    if (checked) {
+                      form.setValue(noFieldName, false);
+                    }
+                  }}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>SI</FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name={noFieldName}
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    if (checked) {
+                      form.setValue(siFieldName, false);
+                    }
+                  }}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>NO</FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+      </div>
+      {(form.formState.errors as any)[siFieldName] && (
+        <FormMessage>{(form.formState.errors as any)[siFieldName]?.message}</FormMessage>
+      )}
+    </div>
+  );
+
   const handleEmail = () => {
     const values = form.getValues();
-    const subject = `Rapporto Dotazioni di Servizio - ${values.employeeId} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
+    const subject = `Rapporto Dotazioni di Servizio - ${values.employeeId} - ${values.serviceLocation} - ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`;
     
     let body = `Dettagli Rapporto Dotazioni di Servizio:\n\n`;
-    body += `Data: ${format(values.serviceDate, 'dd/MM/yyyy', { locale: it })}\n`;
+    body += `Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}\n`;
     body += `Addetto: ${values.employeeId}\n`;
-    body += `Località: ${values.serviceLocation}\n`;
+    body += `Località Servizio: ${values.serviceLocation}\n`;
     body += `Tipo Servizio: ${values.serviceType}\n`;
-    body += `Orario: ${values.startTime} - ${values.endTime}\n\n`;
-    
-    body += `Dettagli Veicolo:\n`;
-    body += `Modello: ${values.vehicleMakeModel}\n`;
+    body += `Ora Inizio: ${values.startTime}\n`;
+    body += `Ora Fine: ${values.endTime}\n`;
+    body += `Km Iniziali: ${values.startKm}\n`;
+    body += `Km Finali: ${values.endKm}\n`;
+    body += `\nDettagli Veicolo:\n`;
+    body += `Marca e Modello: ${values.vehicleMakeModel}\n`;
     body += `Targa: ${values.vehiclePlate}\n`;
-    body += `KM: ${values.startKm} - ${values.endKm}\n`;
-    body += `Stato Iniziale Veicolo: ${values.vehicleInitialState}\n`;
+    body += `Stato Iniziale: ${values.vehicleInitialState}\n`;
     body += `Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}\n`;
-    body += `Anomalie Veicolo: ${values.vehicleAnomalies || 'Nessuna'}\n\n`;
+    if (values.vehicleAnomalies) {
+      body += `Anomalie Veicolo: ${values.vehicleAnomalies}\n`;
+    }
 
-    body += `Dotazioni:\n`;
-    body += `GPS: ${values.gps ? 'Sì' : 'No'}\n`;
-    body += `Radio Veicolare: ${values.radioVehicle ? 'Sì' : 'No'}\n`;
-    body += `Faro Girevole: ${values.swivelingLamp ? 'Sì' : 'No'}\n`;
-    body += `Radio Portatile: ${values.radioPortable ? 'Sì' : 'No'}\n`;
-    body += `Torcia: ${values.flashlight ? 'Sì' : 'No'}\n`;
-    body += `Estintore: ${values.extinguisher ? 'Sì' : 'No'}\n`;
-    body += `Ruota di Scorta: ${values.spareTire ? 'Sì' : 'No'}\n`;
-    body += `Giubbotto Alta Visibilità: ${values.highVisibilityVest ? 'Sì' : 'No'}\n`;
+    body += `\nControllo Accessori:\n`;
+    body += `GPS: ${values.gpsSi ? 'SI' : 'NO'}\n`;
+    body += `Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}\n`;
+    body += `Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}\n`;
+    body += `Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}\n`;
+    body += `Torcia: ${values.flashlightSi ? 'SI' : 'NO'}\n`;
+    body += `Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}\n`;
+    body += `Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}\n`;
+    body += `Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}\n`;
 
     sendEmail(subject, body);
   };
 
   const handlePrintPdf = () => {
-    try {
-      const values = form.getValues();
-      const doc = new jsPDF();
-      
-      // Intestazione
-      doc.setFontSize(18);
-      doc.text("RAPPORTO DOTAZIONI DI SERVIZIO", 105, 15, { align: 'center' });
-      
-      // Contenuto
-      let y = 30;
-      doc.setFontSize(12);
-      
-      // Sezione Dettagli
-      doc.text(`• Data: ${format(values.serviceDate, 'dd/MM/yyyy', { locale: it })}`, 14, y);
-      y += 7;
-      doc.text(`• Addetto: ${values.employeeId}`, 14, y);
-      y += 7;
-      doc.text(`• Località: ${values.serviceLocation}`, 14, y);
-      y += 7;
-      doc.text(`• Tipo servizio: ${values.serviceType}`, 14, y);
-      y += 7;
-      doc.text(`• Orario: ${values.startTime} - ${values.endTime}`, 14, y);
-      y += 10;
+    showInfo("Generazione PDF per il rapporto dotazioni di servizio...");
+    const values = form.getValues();
 
-      // Sezione Veicolo
-      doc.setFontSize(14);
-      doc.text("VEICOLO", 14, y);
-      y += 7;
-      doc.setFontSize(12);
-      doc.text(`- Modello: ${values.vehicleMakeModel}`, 20, y);
-      y += 7;
-      doc.text(`- Targa: ${values.vehiclePlate}`, 20, y);
-      y += 7;
-      doc.text(`- KM: ${values.startKm} → ${values.endKm}`, 20, y);
-      y += 7;
-      doc.text(`- Stato iniziale: ${values.vehicleInitialState}`, 20, y);
-      y += 7;
-      doc.text(`- Danni carrozzeria: ${values.bodyworkDamage || 'Nessuno'}`, 20, y);
-      y += 7;
-      doc.text(`- Anomalie veicolo: ${values.vehicleAnomalies || 'Nessuna'}`, 20, y);
-      y += 10;
+    const doc = new jsPDF();
+    let y = 20;
 
-      // Tabella Dotazioni
-      const dotazioniData = [
-        ['GPS', values.gps ? 'Sì' : 'No'],
-        ['Radio veicolare', values.radioVehicle ? 'Sì' : 'No'],
-        ['Faro girevole', values.swivelingLamp ? 'Sì' : 'No'],
-        ['Radio portatile', values.radioPortable ? 'Sì' : 'No'],
-        ['Torcia', values.flashlight ? 'Sì' : 'No'],
-        ['Estintore', values.extinguisher ? 'Sì' : 'No'],
-        ['Ruota di scorta', values.spareTire ? 'Sì' : 'No'],
-        ['Giubbotto alta visibilità', values.highVisibilityVest ? 'Sì' : 'No']
-      ];
+    doc.setFontSize(18);
+    doc.text("Rapporto Dotazioni di Servizio", 14, y);
+    y += 10;
 
-      (doc as any).autoTable({
-        startY: y,
-        head: [['Dotazione', 'Presente']],
-        body: dotazioniData,
-        theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255] },
-        styles: { fontSize: 10, cellPadding: 2 },
-        margin: { left: 14, right: 14 },
-      });
+    doc.setFontSize(10);
+    doc.text(`Data Servizio: ${format(new Date(values.serviceDate), 'dd/MM/yyyy')}`, 14, y);
+    y += 7;
+    doc.text(`Addetto: ${values.employeeId}`, 14, y);
+    y += 7;
+    doc.text(`Località Servizio: ${values.serviceLocation}`, 14, y);
+    y += 7;
+    doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
+    y += 7;
+    doc.text(`Ora Inizio: ${values.startTime}`, 14, y);
+    y += 7;
+    doc.text(`Ora Fine: ${values.endTime}`, 14, y);
+    y += 7;
+    doc.text(`Km Iniziali: ${values.startKm}`, 14, y);
+    y += 7;
+    doc.text(`Km Finali: ${values.endKm}`, 14, y);
+    y += 10;
 
-      doc.output('dataurlnewwindow');
-      showSuccess("PDF generato correttamente!");
-    } catch (error) {
-      showError("Errore nella generazione del PDF");
-      console.error(error);
+    doc.setFontSize(12);
+    doc.text("Dettagli Veicolo:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`Marca e Modello: ${values.vehicleMakeModel}`, 14, y);
+    y += 7;
+    doc.text(`Targa: ${values.vehiclePlate}`, 14, y);
+    y += 7;
+    doc.text(`Stato Iniziale: ${values.vehicleInitialState}`, 14, y);
+    y += 7;
+    doc.text(`Danni Carrozzeria: ${values.bodyworkDamage || 'Nessuno'}`, 14, y);
+    y += 7;
+    if (values.vehicleAnomalies) {
+      const splitAnomalies = doc.splitTextToSize(`Anomalie Veicolo: ${values.vehicleAnomalies}`, 180);
+      doc.text(splitAnomalies, 14, y);
+      y += (splitAnomalies.length * 5);
     }
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text("Controllo Accessori:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`GPS: ${values.gpsSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Radio Veicolare: ${values.radioVehicleSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Lampada Girevole: ${values.swivelingLampSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Radio Portatile: ${values.radioPortableSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Torcia: ${values.flashlightSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Estintore: ${values.extinguisherSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Ruota di Scorta: ${values.spareTireSi ? 'SI' : 'NO'}`, 14, y);
+    y += 7;
+    doc.text(`Giubbotto Alta Visibilità: ${values.highVisibilityVestSi ? 'SI' : 'NO'}`, 14, y);
+    y += 10;
+
+    doc.output('dataurlnewwindow'); // Open in new tab
+    showSuccess("PDF del rapporto dotazioni di servizio generato con successo!");
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4">
-        <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Dettagli Servizio</h2>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="serviceDate"
             render={({ field }) => (
-              <FormItem className="flex flex-col mb-4">
+              <FormItem>
                 <FormLabel>Data Servizio</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP", { locale: it })
-                        ) : (
-                          <span>Seleziona una data</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                      locale={it}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -260,12 +330,12 @@ const ServiceReportForm = () => {
             control={form.control}
             name="employeeId"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Addetto</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un addetto" />
+                      <SelectValue placeholder="Seleziona addetto" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -284,12 +354,12 @@ const ServiceReportForm = () => {
             control={form.control}
             name="serviceLocation"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Località Servizio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona una località" />
+                      <SelectValue placeholder="Seleziona località" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -308,12 +378,12 @@ const ServiceReportForm = () => {
             control={form.control}
             name="serviceType"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Tipo Servizio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un tipo di servizio" />
+                      <SelectValue placeholder="Seleziona tipo servizio" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -328,48 +398,72 @@ const ServiceReportForm = () => {
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="startTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ora Inizio</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="endTime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ora Fine</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </section>
+          <FormField
+            control={form.control}
+            name="startTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ora Inizio</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ora Fine</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="startKm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Km Iniziali</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endKm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Km Finali</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Dettagli Veicolo</h2>
+        <h3 className="text-lg font-semibold mt-6 mb-4">Dettagli Veicolo</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="vehicleMakeModel"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Marca e Modello Veicolo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona marca e modello" />
+                      <SelectValue placeholder="Seleziona marca/modello" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -388,7 +482,7 @@ const ServiceReportForm = () => {
             control={form.control}
             name="vehiclePlate"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Targa Veicolo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
@@ -408,39 +502,11 @@ const ServiceReportForm = () => {
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <FormField
-              control={form.control}
-              name="startKm"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>KM Iniziali</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="endKm"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>KM Finali</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
           <FormField
             control={form.control}
             name="vehicleInitialState"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Stato Iniziale Veicolo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
@@ -464,7 +530,7 @@ const ServiceReportForm = () => {
             control={form.control}
             name="bodyworkDamage"
             render={({ field }) => (
-              <FormItem className="mb-4">
+              <FormItem>
                 <FormLabel>Danni Carrozzeria</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
@@ -488,159 +554,41 @@ const ServiceReportForm = () => {
             control={form.control}
             name="vehicleAnomalies"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Anomalie Veicolo</FormLabel>
+              <FormItem className="md:col-span-2">
+                <FormLabel>Anomalie Veicolo (se "ALTRO" nei danni carrozzeria)</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Descrivi eventuali anomalie..." rows={3} {...field} />
+                  <Textarea placeholder="Descrivi eventuali anomalie..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </section>
+        </div>
 
-        <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Dotazioni</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="gps"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>GPS</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="radioVehicle"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Radio Veicolare</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="swivelingLamp"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Faro Girevole</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="radioPortable"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Radio Portatile</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="flashlight"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Torcia</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="extinguisher"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Estintore</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="spareTire"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Ruota di Scorta</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="highVisibilityVest"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Giubbotto Alta Visibilità</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={handleEmail}
-          >
-            <Mail className="mr-2 h-4 w-4" /> Invia Email
+        <h3 className="text-lg font-semibold mt-6 mb-4">Controllo Accessori</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderBooleanCheckboxes("GPS", "gpsSi", "gpsNo")}
+          {renderBooleanCheckboxes("Radio Veicolare", "radioVehicleSi", "radioVehicleNo")}
+          {renderBooleanCheckboxes("Lampada Girevole", "swivelingLampSi", "swivelingLampNo")}
+          {renderBooleanCheckboxes("Radio Portatile", "radioPortableSi", "radioPortableNo")}
+          {renderBooleanCheckboxes("Torcia", "flashlightSi", "flashlightNo")}
+          {renderBooleanCheckboxes("Estintore", "extinguisherSi", "extinguisherNo")}
+          {renderBooleanCheckboxes("Ruota di Scorta", "spareTireSi", "spareTireNo")}
+          {renderBooleanCheckboxes("Giubbotto Alta Visibilità", "highVisibilityVestSi", "highVisibilityVestNo")}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+            INVIA EMAIL
           </Button>
-          
-          <Button 
-            type="button"
-            variant="outline" 
-            onClick={handlePrintPdf}
-          >
-            <Printer className="mr-2 h-4 w-4" /> Stampa PDF
+          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
+            STAMPA PDF
           </Button>
-          
-          <Button type="submit">
-            <Save className="mr-2 h-4 w-4" /> Salva
+          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+            INVIA RAPPORTO
           </Button>
         </div>
       </form>
     </Form>
   );
 };
-
-export default ServiceReportForm;
