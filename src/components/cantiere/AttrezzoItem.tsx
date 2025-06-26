@@ -93,7 +93,7 @@ export function AttrezzoItem({ index, onRemove }: AttrezzoItemProps) {
           <FormItem>
             <FormLabel>Quantità</FormLabel>
             <FormControl>
-              <Input type="number" placeholder="1" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+              <Input type="number" placeholder="1" {...field} onChange={field.onChange} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -106,7 +106,7 @@ export function AttrezzoItem({ index, onRemove }: AttrezzoItemProps) {
           <FormItem>
             <FormLabel>Ore di Utilizzo</FormLabel>
             <FormControl>
-              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+              <Input type="number" placeholder="0" {...field} onChange={field.onChange} />
             </FormControl>
             <FormMessage />
           </FormItem>
