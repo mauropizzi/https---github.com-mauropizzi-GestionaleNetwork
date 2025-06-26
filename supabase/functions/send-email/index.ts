@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, textBody, htmlBody } = await req.json();
+    const { to, subject, textBody, htmlBody, attachment } = await req.json();
 
     if (!to || !subject || (!textBody && !htmlBody)) {
       return new Response(JSON.stringify({ error: 'Missing required fields: to, subject, and either textBody or htmlBody' }), {
@@ -55,6 +55,16 @@ serve(async (req) => {
       mailjetBody.Messages[0].HTMLPart = htmlBody;
     } else {
       mailjetBody.Messages[0].TextPart = textBody;
+    }
+
+    if (attachment) {
+      mailjetBody.Messages[0].Attachments = [
+        {
+          ContentType: attachment.contentType,
+          Filename: attachment.filename,
+          Base64Content: attachment.content,
+        },
+      ];
     }
 
     const mailjetResponse = await fetch('https://api.mailjet.com/v3.1/send', {

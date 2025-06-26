@@ -2,11 +2,17 @@ import { showInfo, showSuccess, showError } from "@/utils/toast";
 import { RECIPIENT_EMAIL } from "@/lib/config";
 import { supabase } from "@/integrations/supabase/client";
 
-export const sendEmail = async (subject: string, body: string, isHtml: boolean = false) => {
+interface EmailAttachment {
+  filename: string;
+  content: string; // Base64 encoded content
+  contentType: string;
+}
+
+export const sendEmail = async (subject: string, body: string, isHtml: boolean = false, attachment?: EmailAttachment) => {
   try {
     showInfo("Invio email in corso...");
 
-    const payload: { to: string; subject: string; textBody?: string; htmlBody?: string } = {
+    const payload: { to: string; subject: string; textBody?: string; htmlBody?: string; attachment?: EmailAttachment } = {
       to: RECIPIENT_EMAIL,
       subject: subject,
     };
@@ -15,6 +21,10 @@ export const sendEmail = async (subject: string, body: string, isHtml: boolean =
       payload.htmlBody = body;
     } else {
       payload.textBody = body;
+    }
+
+    if (attachment) {
+      payload.attachment = attachment;
     }
 
     const { data, error } = await supabase.functions.invoke('send-email', {

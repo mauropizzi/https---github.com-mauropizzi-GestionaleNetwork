@@ -25,6 +25,8 @@ import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const CentraleOperativa = () => {
   const { toast } = useToast();
@@ -93,13 +95,13 @@ const CentraleOperativa = () => {
     try {
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, text, {
-        format: "CODE128", // You can choose other formats like "EAN13", "UPC", "QRCODE" etc.
+        format: "CODE128",
         displayValue: true,
         height: 50,
         width: 2,
         margin: 10,
       });
-      return canvas.toDataURL("image/png"); // Returns a data URL (base64 encoded image)
+      return canvas.toDataURL("image/png");
     } catch (error: any) {
       showError(`Errore nella generazione del codice a barre: ${error.message}`);
       console.error("Barcode generation error:", error);
@@ -107,59 +109,128 @@ const CentraleOperativa = () => {
     }
   };
 
-  const handleEmail = () => {
+  const generatePdfBlob = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const doc = new jsPDF();
+      let y = 20;
+
+      doc.setFontSize(18);
+      doc.text("Rapporto Intervento Centrale Operativa", 14, y);
+      y += 10;
+
+      doc.setFontSize(10);
+      const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
+      doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
+      y += 7;
+      doc.text(`Intervento da effettuarsi ENTRO: ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti`, 14, y);
+      y += 7;
+      doc.text(`Tipologia Servizio Richiesto: ${formData.requestType}`, 14, y);
+      y += 7;
+      doc.text(`Operatore C.O. Security Service: ${formData.coOperator}`, 14, y);
+      y += 7;
+      doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      y += 7;
+      if (formData.latitude !== undefined && formData.longitude !== undefined) {
+        doc.text(`Posizione GPS: Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}`, 14, y);
+        y += 7;
+      }
+      doc.text(`Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Accesso Completo: ${formData.fullAccess.toUpperCase()}`, 14, y);
+      y += 7;
+      doc.text(`Accesso Caveau: ${formData.vaultAccess.toUpperCase()}`, 14, y);
+      y += 7;
+      doc.text(`Operatore Cliente: ${formData.operatorClient || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`G.P.G. Intervento: ${formData.gpgIntervention || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Anomalie Riscontrate: ${formData.anomalies.toUpperCase()}`, 14, y);
+      if (formData.anomalies === 'si' && formData.anomalyDescription) {
+        y += 5;
+        doc.setFontSize(9);
+        const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${formData.anomalyDescription}`, 180);
+        doc.text(splitAnomalyDesc, 18, y);
+        y += (splitAnomalyDesc.length * 4);
+        doc.setFontSize(10); // Reset font size
+      }
+      y += 7;
+      doc.text(`Ritardo: ${formData.delay.toUpperCase()}`, 14, y);
+      if (formData.delay === 'si' && formData.delayNotes) {
+        y += 5;
+        doc.setFontSize(9);
+        const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${formData.delayNotes}`, 180);
+        doc.text(splitDelayNotes, 18, y);
+        y += (splitDelayNotes.length * 4);
+        doc.setFontSize(10); // Reset font size
+      }
+      y += 7;
+      doc.text(`Esito Servizio: ${formData.serviceOutcome || 'N/A'}`, 14, y);
+      y += 7;
+
+      if (formData.barcode) {
+        const barcodeDataURL = generateBarcodeImage(formData.barcode);
+        if (barcodeDataURL) {
+          doc.text(`Barcode: ${formData.barcode}`, 14, y);
+          y += 5;
+          doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20); // x, y, width, height
+          y += 25; // Adjust y for image height
+        } else {
+          doc.text(`Barcode: ${formData.barcode} (Impossibile generare immagine)`, 14, y);
+          y += 7;
+        }
+      } else {
+        doc.text(`Barcode: N/A`, 14, y);
+        y += 7;
+      }
+
+      const pdfBlob = doc.output('blob');
+      resolve(pdfBlob);
+    });
+  };
+
+  const handleEmail = async () => {
     const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+    const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
     
-    let htmlBody = `
-      <p><strong>Dettagli Rapporto Intervento:</strong></p>
-      <ul>
-        <li><strong>Punto Servizio:</strong> ${servicePointName}</li>
-        <li><strong>Intervento da effettuarsi ENTRO:</strong> ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti</li>
-        <li><strong>Tipologia Servizio Richiesto:</strong> ${formData.requestType}</li>
-        <li><strong>Operatore C.O. Security Service:</strong> ${formData.coOperator}</li>
-        <li><strong>Orario Richiesta C.O. Security Service:</strong> ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
-    `;
-    if (formData.latitude !== undefined && formData.longitude !== undefined) {
-      htmlBody += `<li><strong>Posizione GPS:</strong> Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}</li>`;
-    }
-    htmlBody += `
-        <li><strong>Orario Inizio Intervento:</strong> ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
-        <li><strong>Orario Fine Intervento:</strong> ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}</li>
-        <li><strong>Accesso Completo:</strong> ${formData.fullAccess.toUpperCase()}</li>
-        <li><strong>Accesso Caveau:</strong> ${formData.vaultAccess.toUpperCase()}</li>
-        <li><strong>Operatore Cliente:</strong> ${formData.operatorClient || 'N/A'}</li>
-        <li><strong>G.P.G. Intervento:</strong> ${formData.gpgIntervention || 'N/A'}</li>
-        <li><strong>Anomalie Riscontrate:</strong> ${formData.anomalies.toUpperCase()}</li>
-    `;
-    if (formData.anomalies === 'si') {
-      htmlBody += `<li><strong>Descrizione Anomalie:</strong> ${formData.anomalyDescription || 'N/A'}</li>`;
-    }
-    htmlBody += `
-        <li><strong>Ritardo:</strong> ${formData.delay.toUpperCase()}</li>
-    `;
-    if (formData.delay === 'si') {
-      htmlBody += `<li><strong>Motivo Ritardo:</strong> ${formData.delayNotes || 'N/A'}</li>`;
-    }
-    htmlBody += `
-        <li><strong>Esito Servizio:</strong> ${formData.serviceOutcome || 'N/A'}</li>
-    `;
+    showInfo("Generazione PDF per l'allegato email...");
+    const pdfBlob = await generatePdfBlob();
 
-    if (formData.barcode) {
-      const barcodeDataURL = generateBarcodeImage(formData.barcode);
-      if (barcodeDataURL) {
-        htmlBody += `<li><strong>Barcode:</strong> ${formData.barcode}</li>`;
-        htmlBody += `<p><img src="${barcodeDataURL}" alt="Barcode: ${formData.barcode}" style="max-width: 300px; height: auto;"/></p>`;
-      } else {
-        htmlBody += `<li><strong>Barcode:</strong> ${formData.barcode} (Impossibile generare immagine)</li>`;
-      }
+    if (pdfBlob) {
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString().split(',')[1]; // Get base64 part
+        if (base64data) {
+          sendEmail(subject, textBody, false, {
+            filename: `Rapporto_Intervento_Centrale_Operativa_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
+            content: base64data,
+            contentType: 'application/pdf'
+          });
+        } else {
+          showError("Errore nella conversione del PDF in Base64.");
+        }
+      };
+      reader.onerror = () => {
+        showError("Errore nella lettura del file PDF.");
+      };
     } else {
-      htmlBody += `<li><strong>Barcode:</strong> N/A</li>`;
+      showError("Impossibile generare il PDF per l'allegato.");
     }
+  };
 
-    htmlBody += `</ul>`;
-
-    sendEmail(subject, htmlBody, true); // Send as HTML
+  const handlePrintPdf = async () => {
+    showInfo("Generazione PDF per la stampa...");
+    const pdfBlob = await generatePdfBlob();
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      showSuccess("PDF del rapporto di intervento generato con successo!");
+    } else {
+      showError("Impossibile generare il PDF per la stampa.");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -487,6 +558,9 @@ const CentraleOperativa = () => {
         <div className="pt-4 flex gap-4">
           <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
             INVIA EMAIL
+          </Button>
+          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
+            STAMPA PDF
           </Button>
           <Button type="submit" className="w-full">
             Chiudi Evento
