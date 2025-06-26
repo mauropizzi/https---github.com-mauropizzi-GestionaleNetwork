@@ -23,6 +23,8 @@ import {
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
+import { sendEmail } from "@/utils/email"; // Import sendEmail utility
+import { RECIPIENT_EMAIL } from "@/lib/config"; // Import recipient email
 
 const CentraleOperativa = () => {
   const { toast } = useToast();
@@ -43,8 +45,8 @@ const CentraleOperativa = () => {
     delayNotes: '',
     serviceOutcome: '',
     barcode: '',
-    latitude: undefined as number | undefined, // New field for latitude
-    longitude: undefined as number | undefined, // New field for longitude
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -86,6 +88,39 @@ const CentraleOperativa = () => {
     }
   };
 
+  const handleEmail = () => {
+    const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
+    const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+    
+    let body = `Dettagli Rapporto Intervento:\n\n`;
+    body += `Punto Servizio: ${servicePointName}\n`;
+    body += `Intervento da effettuarsi ENTRO: ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti\n`;
+    body += `Tipologia Servizio Richiesto: ${formData.requestType}\n`;
+    body += `Operatore C.O. Security Service: ${formData.coOperator}\n`;
+    body += `Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+    if (formData.latitude !== undefined && formData.longitude !== undefined) {
+      body += `Posizione GPS: Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}\n`;
+    }
+    body += `Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+    body += `Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+    body += `Accesso Completo: ${formData.fullAccess.toUpperCase()}\n`;
+    body += `Accesso Caveau: ${formData.vaultAccess.toUpperCase()}\n`;
+    body += `Operatore Cliente: ${formData.operatorClient || 'N/A'}\n`;
+    body += `G.P.G. Intervento: ${formData.gpgIntervention || 'N/A'}\n`;
+    body += `Anomalie Riscontrate: ${formData.anomalies.toUpperCase()}\n`;
+    if (formData.anomalies === 'si') {
+      body += `Descrizione Anomalie: ${formData.anomalyDescription || 'N/A'}\n`;
+    }
+    body += `Ritardo: ${formData.delay.toUpperCase()}\n`;
+    if (formData.delay === 'si') {
+      body += `Motivo Ritardo: ${formData.delayNotes || 'N/A'}\n`;
+    }
+    body += `Esito Servizio: ${formData.serviceOutcome || 'N/A'}\n`;
+    body += `Barcode: ${formData.barcode || 'N/A'}\n`;
+
+    sendEmail(subject, body);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
@@ -93,13 +128,11 @@ const CentraleOperativa = () => {
       description: "L'intervento è stato registrato con successo.",
     });
     console.log("Form data:", formData);
-    // Qui potresti inviare i dati a Supabase o a un altro backend
+    // Here you would typically send the data to Supabase or another backend
   };
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      {/* Il logo è stato rimosso da qui */}
-
       <h1 className="text-2xl font-bold mb-6">Registrazione Servizi</h1>
       
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -410,7 +443,10 @@ const CentraleOperativa = () => {
           />
         </div>
 
-        <div className="pt-4">
+        <div className="pt-4 flex gap-4">
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+            INVIA EMAIL
+          </Button>
           <Button type="submit" className="w-full">
             Chiudi Evento
           </Button>
