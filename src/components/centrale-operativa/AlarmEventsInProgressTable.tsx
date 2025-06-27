@@ -70,15 +70,19 @@ export function AlarmEventsInProgressTable() {
 
   // Memoize the selected event object to ensure stable reference
   const selectedEvent = useMemo(() => {
-    return data.find(event => event.id === selectedEventId) || null;
+    const event = data.find(event => event.id === selectedEventId) || null;
+    console.log("AlarmEventsInProgressTable: selectedEvent updated:", event);
+    return event;
   }, [selectedEventId, data]); // Re-evaluate only if ID or data array changes
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
+    console.log("AlarmEventsInProgressTable: handleEdit called for event ID:", event.id);
     setSelectedEventId(event.id); // Set only the ID
     setIsEditDialogOpen(true);
   }, []);
 
   const handleSaveEdit = useCallback((updatedEvent: AllarmeIntervento) => {
+    console.log("AlarmEventsInProgressTable: handleSaveEdit called for event ID:", updatedEvent.id);
     setData(prevData =>
       prevData.map(event =>
         event.id === updatedEvent.id ? updatedEvent : event
@@ -88,6 +92,7 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const handleCloseDialog = useCallback(() => {
+    console.log("AlarmEventsInProgressTable: handleCloseDialog called");
     setIsEditDialogOpen(false);
     setSelectedEventId(null); // Clear the selected ID
   }, []);
@@ -158,8 +163,10 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(), // Corrected typo here
+    getCoreRowModel: getCoreRowModel(),
   });
+
+  console.log("AlarmEventsInProgressTable: render. isEditDialogOpen:", isEditDialogOpen, "selectedEventId:", selectedEventId);
 
   return (
     <div className="space-y-4">
