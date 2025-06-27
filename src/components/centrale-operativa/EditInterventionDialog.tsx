@@ -57,7 +57,8 @@ interface EditInterventionDialogProps {
 const formSchema = z.object({
   id: z.string().uuid(), // ID is required for update
   report_date: z.string().min(1, "La data del rapporto è richiesta."),
-  report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Formato ora non valido (HH:MM:SS)."), // Supabase stores HH:MM:SS
+  // Updated regex to allow optional timezone offset (e.g., "10:00:00+00")
+  report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(Z|[+-]\d{2}(:\d{2})?)?$/, "Formato ora non valido (HH:MM:SS con opzionale fuso orario)."),
   service_point_code: z.string().min(1, "Il punto servizio è richiesto."),
   request_type: z.string().min(1, "Il tipo di richiesta è richiesto."),
   co_operator: z.string().optional().or(z.literal("")),
