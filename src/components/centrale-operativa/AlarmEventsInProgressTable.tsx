@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -17,12 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Eye, Printer, RefreshCcw, Edit } from 'lucide-react'; // Import Edit icon
+import { Eye, Printer, RefreshCcw, Edit } from 'lucide-react';
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
-import { EditInterventionDialog } from './EditInterventionDialog'; // Import the new dialog
+import { EditInterventionDialog } from './EditInterventionDialog';
 
 interface AllarmeIntervento {
   id: string;
@@ -45,9 +45,9 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<AllarmeIntervento | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null); // Store only the ID
 
-  const fetchInProgressEvents = useCallback(async () => { // Memoize fetchInProgressEvents
+  const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('allarme_interventi')
@@ -62,15 +62,20 @@ export function AlarmEventsInProgressTable() {
       setData(data || []);
     }
     setLoading(false);
-  }, []); // Empty dependency array means this function is created once
+  }, []);
 
   useEffect(() => {
     fetchInProgressEvents();
-  }, [fetchInProgressEvents]); // Now depends on the stable fetchInProgressEvents
+  }, [fetchInProgressEvents]);
+
+  // Memoize the selected event object to ensure stable reference
+  const selectedEvent = useMemo(() => {
+    return data.find(event => event.id === selectedEventId) || null;
+  }, [selectedEventId, data]); // Re-evaluate only if ID or data array changes
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
     console.log("AlarmEventsInProgressTable: handleEdit called with event:", event);
-    setSelectedEvent({ ...event }); 
+    setSelectedEventId(event.id); // Set only the ID
     setIsEditDialogOpen(true);
   }, []);
 
@@ -86,7 +91,7 @@ export function AlarmEventsInProgressTable() {
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
-    setSelectedEvent(null);
+    setSelectedEventId(null); // Clear the selected ID
   }, []);
 
   const filteredData = data.filter(report => {
@@ -155,7 +160,7 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
