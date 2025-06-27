@@ -57,8 +57,7 @@ interface EditInterventionDialogProps {
 const formSchema = z.object({
   id: z.string().uuid(), // ID is required for update
   report_date: z.string().min(1, "La data del rapporto è richiesta."),
-  // Updated regex to make seconds optional (HH:MM or HH:MM:SS)
-  report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?(Z|[+-]\d{2}(:\d{2})?)?$/, "Formato ora non valido (HH:MM o HH:MM:SS con opzionale fuso orario)."),
+  report_time: z.string().min(1, "L'ora del rapporto è richiesta."), // Simplified validation
   service_point_code: z.string().min(1, "Il punto servizio è richiesto."),
   request_type: z.string().min(1, "Il tipo di richiesta è richiesto."),
   co_operator: z.string().optional().or(z.literal("")),
@@ -71,6 +70,8 @@ const formSchema = z.object({
 });
 
 export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) {
+  console.log("EditInterventionDialog rendered. isOpen:", isOpen, "event:", event);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,7 +83,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       co_operator: event?.co_operator || "",
       operator_client: event?.operator_client || "",
       gpg_intervention: event?.gpg_intervention || "",
-      service_outcome: event?.service_outcome || null, // Set default to null
+      service_outcome: event?.service_outcome || null,
       notes: event?.notes || "",
       latitude: event?.latitude || undefined,
       longitude: event?.longitude || undefined,
@@ -91,25 +92,34 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
 
   useEffect(() => {
     if (event) {
-      console.log("Loading event into form:", event); // Log the event data
-      form.reset({
-        id: event.id,
-        report_date: event.report_date,
-        report_time: event.report_time,
-        service_point_code: event.service_point_code,
-        request_type: event.request_type,
-        co_operator: event.co_operator || "",
-        operator_client: event.operator_client || "",
-        gpg_intervention: event.gpg_intervention || "",
-        service_outcome: event.service_outcome || null, // Reset to null
-        notes: event.notes || "",
-        latitude: event.latitude || undefined,
-        longitude: event.longitude || undefined,
-      });
+      console.log("useEffect: event changed. Event data received:", event);
+      try {
+        form.reset({
+          id: event.id,
+          report_date: event.report_date,
+          report_time: event.report_time,
+          service_point_code: event.service_point_code,
+          request_type: event.request_type,
+          co_operator: event.co_operator ?? "", // Use nullish coalescing for safety
+          operator_client: event.operator_client ?? "",
+          gpg_intervention: event.gpg_intervention ?? "",
+          service_outcome: event.service_outcome ?? null, // Ensure null for empty
+          notes: event.notes ?? "",
+          latitude: event.latitude ?? undefined,
+          longitude: event.longitude ?? undefined,
+        });
+        console.log("useEffect: form reset successfully. Current form values:", form.getValues());
+      } catch (e) {
+        console.error("Error during form reset in useEffect:", e);
+        showError("Errore durante il caricamento dei dati nel modulo di modifica. Controlla la console per i dettagli.");
+      }
+    } else {
+      console.log("useEffect: event is null or undefined, not resetting form.");
     }
   }, [event, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("onSubmit: Form values before submission:", values);
     if (!event) {
       showError("Nessun evento selezionato per la modifica.");
       return;
@@ -123,17 +133,19 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       co_operator: values.co_operator || null,
       operator_client: values.operator_client || null,
       gpg_intervention: values.gpg_intervention || null,
-      service_outcome: values.service_outcome || null, // Ensure null is sent for empty
+      service_outcome: values.service_outcome || null,
       notes: values.notes || null,
       latitude: values.latitude || null,
       longitude: values.longitude || null,
     };
 
+    console.log("onSubmit: Payload for Supabase update:", payload);
+
     const { data, error } = await supabase
       .from('allarme_interventi')
       .update(payload)
       .eq('id', values.id)
-      .select(); // Select the updated row to return it
+      .select();
 
     if (error) {
       showError(`Errore durante l'aggiornamento dell'evento: ${error.message}`);
@@ -142,13 +154,16 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       showSuccess(`Evento ${values.id} aggiornato con successo!`);
       console.log("Event updated successfully:", data);
       if (data && data.length > 0) {
-        onSave(data[0] as AllarmeIntervento); // Pass the updated event back
+        onSave(data[0] as AllarmeIntervento);
       }
       onClose();
     }
   };
 
-  if (!event) return null;
+  if (!event) {
+    console.log("EditInterventionDialog: event is null, returning null.");
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
