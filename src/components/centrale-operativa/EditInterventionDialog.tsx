@@ -57,7 +57,8 @@ interface EditInterventionDialogProps {
 const formSchema = z.object({
   id: z.string().uuid(), // ID is required for update
   report_date: z.string().min(1, "La data del rapporto è richiesta."),
-  report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(Z|[+-]\d{2}(:\d{2})?)?$/, "Formato ora non valido (HH:MM:SS con opzionale fuso orario)."),
+  // Updated regex to make seconds optional (HH:MM or HH:MM:SS)
+  report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?(Z|[+-]\d{2}(:\d{2})?)?$/, "Formato ora non valido (HH:MM o HH:MM:SS con opzionale fuso orario)."),
   service_point_code: z.string().min(1, "Il punto servizio è richiesto."),
   request_type: z.string().min(1, "Il tipo di richiesta è richiesto."),
   co_operator: z.string().optional().or(z.literal("")),
@@ -90,6 +91,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
 
   useEffect(() => {
     if (event) {
+      console.log("Loading event into form:", event); // Log the event data
       form.reset({
         id: event.id,
         report_date: event.report_date,
@@ -249,7 +251,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
+                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
                       {coOperatorOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -277,7 +279,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
+                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
                       {operatorClientOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -305,7 +307,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
+                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
                       {gpgInterventionOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
