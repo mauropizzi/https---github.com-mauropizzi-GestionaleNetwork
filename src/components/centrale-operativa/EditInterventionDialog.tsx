@@ -57,7 +57,6 @@ interface EditInterventionDialogProps {
 const formSchema = z.object({
   id: z.string().uuid(), // ID is required for update
   report_date: z.string().min(1, "La data del rapporto è richiesta."),
-  // Updated regex to allow optional timezone offset (e.g., "10:00:00+00")
   report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(Z|[+-]\d{2}(:\d{2})?)?$/, "Formato ora non valido (HH:MM:SS con opzionale fuso orario)."),
   service_point_code: z.string().min(1, "Il punto servizio è richiesto."),
   request_type: z.string().min(1, "Il tipo di richiesta è richiesto."),
@@ -240,13 +239,17 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Operatore C.O.</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                    value={field.value || "DYAD_EMPTY_VALUE"}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona operatore..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
                       {coOperatorOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -264,13 +267,17 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Operatore Cliente</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                    value={field.value || "DYAD_EMPTY_VALUE"}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona operatore cliente..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
                       {operatorClientOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -288,13 +295,17 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>G.P.G. Intervento</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                    value={field.value || "DYAD_EMPTY_VALUE"}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona G.P.G. intervento..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuno</SelectItem>
                       {gpgInterventionOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
