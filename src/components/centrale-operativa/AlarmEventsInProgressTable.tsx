@@ -230,6 +230,7 @@ export function AlarmEventsInProgressTable() {
 
       {selectedEvent && (
         <EditInterventionDialog
+          key={selectedEvent.id} // Added key prop here
           isOpen={isEditDialogOpen}
           onClose={() => {
             setIsEditDialogOpen(false);
