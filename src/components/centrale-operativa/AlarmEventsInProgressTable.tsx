@@ -17,11 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Eye, Printer, RefreshCcw } from 'lucide-react';
+import { Eye, Printer, RefreshCcw, Edit } from 'lucide-react'; // Import Edit icon
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
+import { EditInterventionDialog } from './EditInterventionDialog'; // Import the new dialog
 
 interface AllarmeIntervento {
   id: string;
@@ -34,6 +35,8 @@ interface AllarmeIntervento {
   gpg_intervention?: string;
   service_outcome?: string; // This should be null for "in progress"
   notes?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export function AlarmEventsInProgressTable() {
@@ -41,6 +44,8 @@ export function AlarmEventsInProgressTable() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<AllarmeIntervento | null>(null);
 
   const fetchInProgressEvents = async () => {
     setLoading(true);
@@ -62,6 +67,23 @@ export function AlarmEventsInProgressTable() {
   useEffect(() => {
     fetchInProgressEvents();
   }, []);
+
+  const handleEdit = (event: AllarmeIntervento) => {
+    setSelectedEvent(event);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = (updatedEvent: AllarmeIntervento) => {
+    setData(prevData =>
+      prevData.map(event =>
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+    );
+    console.log("Evento aggiornato (simulato):", updatedEvent);
+    setIsEditDialogOpen(false);
+    setSelectedEvent(null);
+    fetchInProgressEvents(); // Re-fetch to ensure data consistency and filter out completed events
+  };
 
   const filteredData = data.filter(report => {
     const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
@@ -115,6 +137,9 @@ export function AlarmEventsInProgressTable() {
       header: 'Azioni',
       cell: ({ row }) => (
         <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
+            <Edit className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
@@ -200,6 +225,15 @@ export function AlarmEventsInProgressTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedEvent && (
+        <EditInterventionDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          event={selectedEvent}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
