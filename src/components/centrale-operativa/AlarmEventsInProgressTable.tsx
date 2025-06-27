@@ -81,7 +81,7 @@ export function AlarmEventsInProgressTable() {
       )
     );
     console.log("Evento aggiornato (simulato):", updatedEvent);
-    // Removed fetchInProgressEvents() call here to prevent re-render loops
+    handleCloseDialog(); // Close the dialog after saving
   }, []);
 
   const handleCloseDialog = useCallback(() => {
