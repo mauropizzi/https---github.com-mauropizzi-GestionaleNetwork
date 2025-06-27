@@ -242,8 +242,8 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                 <FormItem>
                   <FormLabel>Operatore C.O.</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
-                    value={field.value || "DYAD_EMPTY_VALUE"}
+                    onValueChange={(value) => field.onChange(value === "__EMPTY_SELECTION__" ? "" : value)}
+                    value={field.value === "" ? "__EMPTY_SELECTION__" : field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -251,7 +251,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
+                      <SelectItem value="__EMPTY_SELECTION__">Nessuno</SelectItem>
                       {coOperatorOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -270,8 +270,8 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                 <FormItem>
                   <FormLabel>Operatore Cliente</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
-                    value={field.value || "DYAD_EMPTY_VALUE"}
+                    onValueChange={(value) => field.onChange(value === "__EMPTY_SELECTION__" ? "" : value)}
+                    value={field.value === "" ? "__EMPTY_SELECTION__" : field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -279,7 +279,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
+                      <SelectItem value="__EMPTY_SELECTION__">Nessuno</SelectItem>
                       {operatorClientOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -298,8 +298,8 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                 <FormItem>
                   <FormLabel>G.P.G. Intervento</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
-                    value={field.value || "DYAD_EMPTY_VALUE"}
+                    onValueChange={(value) => field.onChange(value === "__EMPTY_SELECTION__" ? "" : value)}
+                    value={field.value === "" ? "__EMPTY_SELECTION__" : field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -307,7 +307,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem> {/* Changed value to "" */}
+                      <SelectItem value="__EMPTY_SELECTION__">Nessuno</SelectItem>
                       {gpgInterventionOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
