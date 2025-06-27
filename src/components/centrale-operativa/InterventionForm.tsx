@@ -166,7 +166,7 @@ export function InterventionForm() {
         doc.setFontSize(10); // Reset font size
       }
       y += 7;
-      doc.text(`Esito Servizio: ${formData.serviceOutcome || 'N/A'}`, 14, y);
+      doc.text(`Esito Evento: ${formData.serviceOutcome || 'N/A'}`, 14, y);
       y += 7;
 
       if (formData.barcode) {
@@ -541,7 +541,7 @@ export function InterventionForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-outcome">Esito Servizio</Label>
+        <Label htmlFor="service-outcome">Esito Evento</Label>
         <Select
           onValueChange={(value) => handleSelectChange('serviceOutcome', value)}
           value={formData.serviceOutcome}
