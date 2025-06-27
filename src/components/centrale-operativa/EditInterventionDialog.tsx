@@ -63,7 +63,7 @@ const formSchema = z.object({
   co_operator: z.string().optional().or(z.literal("")),
   operator_client: z.string().optional().or(z.literal("")),
   gpg_intervention: z.string().optional().or(z.literal("")),
-  service_outcome: z.string().optional().or(z.literal("")), // Can be null for in-progress
+  service_outcome: z.string().nullish(), // Allows string, null, or undefined
   notes: z.string().optional().or(z.literal("")),
   latitude: z.coerce.number().optional().nullable(),
   longitude: z.coerce.number().optional().nullable(),
@@ -81,7 +81,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       co_operator: event?.co_operator || "",
       operator_client: event?.operator_client || "",
       gpg_intervention: event?.gpg_intervention || "",
-      service_outcome: event?.service_outcome || "",
+      service_outcome: event?.service_outcome || null, // Set default to null
       notes: event?.notes || "",
       latitude: event?.latitude || undefined,
       longitude: event?.longitude || undefined,
@@ -99,7 +99,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
         co_operator: event.co_operator || "",
         operator_client: event.operator_client || "",
         gpg_intervention: event.gpg_intervention || "",
-        service_outcome: event.service_outcome || "",
+        service_outcome: event.service_outcome || null, // Reset to null
         notes: event.notes || "",
         latitude: event.latitude || undefined,
         longitude: event.longitude || undefined,
@@ -121,7 +121,7 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       co_operator: values.co_operator || null,
       operator_client: values.operator_client || null,
       gpg_intervention: values.gpg_intervention || null,
-      service_outcome: values.service_outcome || null,
+      service_outcome: values.service_outcome || null, // Ensure null is sent for empty
       notes: values.notes || null,
       latitude: values.latitude || null,
       longitude: values.longitude || null,
@@ -311,14 +311,17 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Esito Servizio</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "NULL_OUTCOME" ? null : value)}
+                    value={field.value === null ? "NULL_OUTCOME" : field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona esito..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessun Esito (In Gestione)</SelectItem>
+                      <SelectItem value="NULL_OUTCOME">Nessun Esito (In Gestione)</SelectItem>
                       {serviceOutcomeOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
