@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -74,49 +74,46 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      id: event?.id || "",
-      report_date: event?.report_date || "",
-      report_time: event?.report_time || "",
-      service_point_code: event?.service_point_code || "",
-      request_type: event?.request_type || "",
-      co_operator: event?.co_operator || "",
-      operator_client: event?.operator_client || "",
-      gpg_intervention: event?.gpg_intervention || "",
-      service_outcome: event?.service_outcome || null,
-      notes: event?.notes || "",
-      latitude: event?.latitude || undefined,
-      longitude: event?.longitude || undefined,
-    },
+    // defaultValues will be set by reset in useEffect
   });
 
+  const loadedEventIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (event) {
-      console.log("useEffect: event changed. Event data received:", event);
-      try {
-        form.reset({
-          id: event.id,
-          report_date: event.report_date,
-          report_time: event.report_time,
-          service_point_code: event.service_point_code,
-          request_type: event.request_type,
-          co_operator: event.co_operator ?? "", // Use nullish coalescing for safety
-          operator_client: event.operator_client ?? "",
-          gpg_intervention: event.gpg_intervention ?? "",
-          service_outcome: event.service_outcome ?? null, // Ensure null for empty
-          notes: event.notes ?? "",
-          latitude: event.latitude ?? undefined,
-          longitude: event.longitude ?? undefined,
-        });
-        console.log("useEffect: form reset successfully. Current form values:", form.getValues());
-      } catch (e) {
-        console.error("Error during form reset in useEffect:", e);
-        showError("Errore durante il caricamento dei dati nel modulo di modifica. Controlla la console per i dettagli.");
+    if (isOpen && event) {
+      // Only reset if the dialog is opening or a different event is selected
+      if (event.id !== loadedEventIdRef.current) {
+        console.log("useEffect: Event ID changed or dialog opened. Resetting form.");
+        try {
+          form.reset({
+            id: event.id,
+            report_date: event.report_date,
+            report_time: event.report_time,
+            service_point_code: event.service_point_code,
+            request_type: event.request_type,
+            co_operator: event.co_operator ?? "",
+            operator_client: event.operator_client ?? "",
+            gpg_intervention: event.gpg_intervention ?? "",
+            service_outcome: event.service_outcome ?? null,
+            notes: event.notes ?? "",
+            latitude: event.latitude ?? undefined,
+            longitude: event.longitude ?? undefined,
+          });
+          loadedEventIdRef.current = event.id; // Update the ref
+          console.log("useEffect: form reset successfully. Current form values:", form.getValues());
+        } catch (e) {
+          console.error("Error during form reset in useEffect:", e);
+          showError("Errore durante il caricamento dei dati nel modulo di modifica. Controlla la console per i dettagli.");
+        }
+      } else {
+        console.log("useEffect: Same event ID, no form reset needed.");
       }
-    } else {
-      console.log("useEffect: event is null or undefined, not resetting form.");
+    } else if (!isOpen) {
+      console.log("useEffect: Dialog is closed. Clearing loaded event ID and resetting form.");
+      loadedEventIdRef.current = null; // Clear ref when dialog closes
+      form.reset(); // Optionally reset form to empty when closed
     }
-  }, [event, form]);
+  }, [isOpen, event, form]); // Dependencies: isOpen, event (reference), form (stable)
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log("onSubmit: Form values before submission:", values);
