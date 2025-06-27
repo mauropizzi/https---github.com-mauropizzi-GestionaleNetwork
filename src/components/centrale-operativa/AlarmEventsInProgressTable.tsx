@@ -74,7 +74,6 @@ export function AlarmEventsInProgressTable() {
   }, [selectedEventId, data]); // Re-evaluate only if ID or data array changes
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleEdit called with event:", event);
     setSelectedEventId(event.id); // Set only the ID
     setIsEditDialogOpen(true);
   }, []);
@@ -85,7 +84,6 @@ export function AlarmEventsInProgressTable() {
         event.id === updatedEvent.id ? updatedEvent : event
       )
     );
-    console.log("Evento aggiornato (simulato):", updatedEvent);
     handleCloseDialog(); // Close the dialog after saving
   }, []);
 

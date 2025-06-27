@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,7 +41,7 @@ interface AllarmeIntervento {
   co_operator?: string;
   operator_client?: string;
   gpg_intervention?: string;
-  service_outcome?: string;
+  service_outcome?: string; // This should be null for "in progress"
   notes?: string;
   latitude?: number;
   longitude?: number;
@@ -69,54 +69,38 @@ const formSchema = z.object({
   longitude: z.coerce.number().optional().nullable(),
 });
 
-export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) {
-  console.log("EditInterventionDialog rendered. isOpen:", isOpen, "event:", event);
+export const EditInterventionDialog = React.memo(({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) => {
+  const defaultValues = useMemo(() => ({
+    id: event?.id || '',
+    report_date: event?.report_date || '',
+    report_time: event?.report_time || '',
+    service_point_code: event?.service_point_code || '',
+    request_type: event?.request_type || '',
+    co_operator: event?.co_operator ?? "",
+    operator_client: event?.operator_client ?? "",
+    gpg_intervention: event?.gpg_intervention ?? "",
+    service_outcome: event?.service_outcome ?? null,
+    notes: event?.notes ?? "",
+    latitude: event?.latitude ?? undefined,
+    longitude: event?.longitude ?? undefined,
+  }), [event]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    // defaultValues will be set by reset in useEffect
+    defaultValues: defaultValues,
   });
 
-  const loadedEventIdRef = useRef<string | null>(null);
-
+  // Reset form values when the dialog opens with a new event or closes
   useEffect(() => {
     if (isOpen && event) {
-      // Only reset if the dialog is opening or a different event is selected
-      if (event.id !== loadedEventIdRef.current) {
-        console.log("useEffect: Event ID changed or dialog opened. Resetting form.");
-        try {
-          form.reset({
-            id: event.id,
-            report_date: event.report_date,
-            report_time: event.report_time,
-            service_point_code: event.service_point_code,
-            request_type: event.request_type,
-            co_operator: event.co_operator ?? "",
-            operator_client: event.operator_client ?? "",
-            gpg_intervention: event.gpg_intervention ?? "",
-            service_outcome: event.service_outcome ?? null,
-            notes: event.notes ?? "",
-            latitude: event.latitude ?? undefined,
-            longitude: event.longitude ?? undefined,
-          });
-          loadedEventIdRef.current = event.id; // Update the ref
-          console.log("useEffect: form reset successfully. Current form values:", form.getValues());
-        } catch (e) {
-          console.error("Error during form reset in useEffect:", e);
-          showError("Errore durante il caricamento dei dati nel modulo di modifica. Controlla la console per i dettagli.");
-        }
-      } else {
-        console.log("useEffect: Same event ID, no form reset needed.");
-      }
+      form.reset(defaultValues);
     } else if (!isOpen) {
-      console.log("useEffect: Dialog is closed. Clearing loaded event ID and resetting form.");
-      loadedEventIdRef.current = null; // Clear ref when dialog closes
-      form.reset(); // Optionally reset form to empty when closed
+      form.reset(); // Reset to empty when dialog closes
     }
-  }, [isOpen, event, form]); // Dependencies: isOpen, event (reference), form (stable)
+  }, [isOpen, event, form, defaultValues]);
+
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log("onSubmit: Form values before submission:", values);
     if (!event) {
       showError("Nessun evento selezionato per la modifica.");
       return;
@@ -136,8 +120,6 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       longitude: values.longitude || null,
     };
 
-    console.log("onSubmit: Payload for Supabase update:", payload);
-
     const { data, error } = await supabase
       .from('allarme_interventi')
       .update(payload)
@@ -149,7 +131,6 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       console.error("Error updating alarm event:", error);
     } else {
       showSuccess(`Evento ${values.id} aggiornato con successo!`);
-      console.log("Event updated successfully:", data);
       if (data && data.length > 0) {
         onSave(data[0] as AllarmeIntervento);
       }
@@ -158,7 +139,6 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
   };
 
   if (!event) {
-    console.log("EditInterventionDialog: event is null, returning null.");
     return null;
   }
 
@@ -408,4 +388,6 @@ export function EditInterventionDialog({ isOpen, onClose, event, onSave }: EditI
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+EditInterventionDialog.displayName = 'EditInterventionDialog';
