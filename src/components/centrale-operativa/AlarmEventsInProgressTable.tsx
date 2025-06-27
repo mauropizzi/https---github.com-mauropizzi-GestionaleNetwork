@@ -69,8 +69,9 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const handleEdit = (event: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleEdit called with event:", event); // NEW LOG
-    setSelectedEvent(event);
+    console.log("AlarmEventsInProgressTable: handleEdit called with event:", event);
+    // Create a shallow copy to ensure the reference is stable until a new edit is triggered
+    setSelectedEvent({ ...event }); 
     setIsEditDialogOpen(true);
   };
 
@@ -82,7 +83,7 @@ export function AlarmEventsInProgressTable() {
     );
     console.log("Evento aggiornato (simulato):", updatedEvent);
     setIsEditDialogOpen(false);
-    setSelectedEvent(null);
+    setSelectedEvent(null); // Ensure selectedEvent is cleared after saving
     fetchInProgressEvents(); // Re-fetch to ensure data consistency and filter out completed events
   };
 
@@ -230,7 +231,10 @@ export function AlarmEventsInProgressTable() {
       {selectedEvent && (
         <EditInterventionDialog
           isOpen={isEditDialogOpen}
-          onClose={() => setIsEditDialogOpen(false)}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setSelectedEvent(null); // Clear selected event on dialog close
+          }}
           event={selectedEvent}
           onSave={handleSaveEdit}
         />
