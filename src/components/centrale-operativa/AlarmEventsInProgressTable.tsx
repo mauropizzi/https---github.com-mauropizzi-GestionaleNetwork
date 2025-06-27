@@ -69,6 +69,7 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const handleEdit = (event: AllarmeIntervento) => {
+    console.log("AlarmEventsInProgressTable: handleEdit called with event:", event); // NEW LOG
     setSelectedEvent(event);
     setIsEditDialogOpen(true);
   };
