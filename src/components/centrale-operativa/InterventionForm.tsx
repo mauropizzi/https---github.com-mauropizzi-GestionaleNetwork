@@ -27,6 +27,7 @@ import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
 export function InterventionForm() {
   const { toast } = useToast();
@@ -221,49 +222,122 @@ export function InterventionForm() {
     }
   };
 
-  const handlePrintPdf = async () => {
-    showInfo("Generazione PDF per la stampa...");
-    const pdfBlob = await generatePdfBlob();
-    if (pdfBlob) {
-      const url = URL.createObjectURL(pdfBlob);
-      window.open(url, '_blank');
-      showSuccess("PDF del rapporto di intervento generato con successo!");
+  const saveIntervention = async (isFinal: boolean) => {
+    const {
+      servicePoint,
+      requestType,
+      coOperator,
+      requestTime,
+      startTime,
+      endTime,
+      fullAccess,
+      vaultAccess,
+      operatorClient,
+      gpgIntervention,
+      anomalies,
+      anomalyDescription,
+      delay,
+      delayNotes,
+      serviceOutcome,
+      barcode,
+      latitude,
+      longitude,
+    } = formData;
+
+    // Basic validation for both save types
+    if (!servicePoint || !requestType || !requestTime) {
+      showError("Punto Servizio, Tipologia Servizio Richiesto e Orario Richiesta sono obbligatori.");
+      return;
+    }
+
+    // Additional validation for final submission
+    if (isFinal) {
+      if (!startTime || !endTime) {
+        showError("Orario Inizio Intervento e Orario Fine Intervento sono obbligatori per la chiusura.");
+        return;
+      }
+      if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
+        showError("Tutti i campi 'SI/NO' sono obbligatori per la chiusura.");
+        return;
+      }
+      if (!serviceOutcome) {
+        showError("L'Esito Evento è obbligatorio per la chiusura.");
+        return;
+      }
+    }
+
+    const notesCombined = [];
+    if (anomalies === 'si' && anomalyDescription) {
+      notesCombined.push(`Anomalie: ${anomalyDescription}`);
+    }
+    if (delay === 'si' && delayNotes) {
+      notesCombined.push(`Ritardo: ${delayNotes}`);
+    }
+    if (latitude !== undefined && longitude !== undefined) {
+      notesCombined.push(`GPS: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+    }
+
+    const payload = {
+      report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
+      report_time: format(new Date(requestTime), 'HH:mm:ss'),
+      service_point_code: servicePoint,
+      request_type: requestType,
+      co_operator: coOperator || null,
+      operator_client: operatorClient || null,
+      gpg_intervention: gpgIntervention || null,
+      service_outcome: isFinal ? (serviceOutcome || null) : null, // Set to null if not final
+      notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      // Other fields like fullAccess, vaultAccess, anomalies, delay, barcode are not directly in schema
+      // and would need to be added to notes or new columns if required.
+    };
+
+    const { data, error } = await supabase
+      .from('allarme_interventi')
+      .insert([payload]);
+
+    if (error) {
+      showError(`Errore durante la registrazione dell'evento: ${error.message}`);
+      console.error("Error inserting alarm event:", error);
     } else {
-      showError("Impossibile generare il PDF per la stampa.");
+      showSuccess(`Evento ${isFinal ? 'chiuso' : 'registrato'} con successo!`);
+      console.log("Event saved successfully:", data);
+      setFormData({ // Reset form
+        servicePoint: '',
+        requestType: '',
+        coOperator: '',
+        requestTime: '',
+        startTime: '',
+        endTime: '',
+        fullAccess: undefined,
+        vaultAccess: undefined,
+        operatorClient: '',
+        gpgIntervention: '',
+        anomalies: undefined,
+        anomalyDescription: '',
+        delay: undefined,
+        delayNotes: '',
+        serviceOutcome: '',
+        barcode: '',
+        latitude: undefined,
+        longitude: undefined,
+      });
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCloseEvent = (e: React.FormEvent) => {
     e.preventDefault();
+    saveIntervention(true); // Final save
+  };
 
-    // Manual validation for required radio groups
-    if (formData.fullAccess === undefined) {
-      showError("Seleziona 'SI' o 'NO' per 'Accesso Completo'.");
-      return;
-    }
-    if (formData.vaultAccess === undefined) {
-      showError("Seleziona 'SI' o 'NO' per 'Accesso Caveau'.");
-      return;
-    }
-    if (formData.anomalies === undefined) {
-      showError("Seleziona 'SI' o 'NO' per 'Anomalie Riscontrate'.");
-      return;
-    }
-    if (formData.delay === undefined) {
-      showError("Seleziona 'SI' o 'NO' per 'Ritardo'.");
-      return;
-    }
-
-    toast({
-      title: "Intervento registrato",
-      description: "L'intervento è stato registrato con successo.",
-    });
-    console.log("Form data:", formData);
-    // Here you would typically send the data to Supabase or another backend
+  const handleRegisterEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveIntervention(false); // In-progress save
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleCloseEvent} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="service-point">Punto Servizio</Label>
         <Select 
@@ -577,6 +651,9 @@ export function InterventionForm() {
         </Button>
         <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
           STAMPA PDF
+        </Button>
+        <Button type="button" className="w-full bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
+          REGISTRA EVENTO
         </Button>
         <Button type="submit" className="w-full">
           Chiudi Evento
