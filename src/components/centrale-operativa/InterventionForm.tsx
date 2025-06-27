@@ -191,6 +191,18 @@ export function InterventionForm() {
     });
   };
 
+  const handlePrintPdf = async () => {
+    showInfo("Generazione PDF per la stampa...");
+    const pdfBlob = await generatePdfBlob();
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      showSuccess("PDF generato con successo!");
+    } else {
+      showError("Impossibile generare il PDF.");
+    }
+  };
+
   const handleEmail = async () => {
     const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
