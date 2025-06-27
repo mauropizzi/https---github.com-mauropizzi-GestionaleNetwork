@@ -44,7 +44,6 @@ export function AlarmEventsInProgressTable() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
-  // Ora memorizziamo direttamente l'oggetto evento selezionato per la modifica
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<AllarmeIntervento | null>(null);
 
   const fetchInProgressEvents = useCallback(async () => {
@@ -69,10 +68,12 @@ export function AlarmEventsInProgressTable() {
   }, [fetchInProgressEvents]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
-    setSelectedEventForEdit(event); // Imposta l'intero oggetto evento
+    console.log("AlarmEventsInProgressTable: handleEdit called for event:", event.id);
+    setSelectedEventForEdit(event);
   }, []);
 
   const handleSaveEdit = useCallback((updatedEvent: AllarmeIntervento) => {
+    console.log("AlarmEventsInProgressTable: handleSaveEdit called for event:", updatedEvent.id);
     setData(prevData =>
       prevData.map(event =>
         event.id === updatedEvent.id ? updatedEvent : event
@@ -82,6 +83,7 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const handleCloseDialog = useCallback(() => {
+    console.log("AlarmEventsInProgressTable: handleCloseDialog called");
     setSelectedEventForEdit(null); // Chiudi il dialog impostando l'evento a null
   }, []);
 
@@ -153,6 +155,8 @@ export function AlarmEventsInProgressTable() {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+
+  console.log("AlarmEventsInProgressTable: render. selectedEventForEdit:", selectedEventForEdit?.id || "null");
 
   return (
     <div className="space-y-4">
@@ -226,10 +230,10 @@ export function AlarmEventsInProgressTable() {
         </Table>
       </div>
 
-      {selectedEventForEdit && ( // Il dialog si renderizza solo se c'è un evento selezionato
+      {selectedEventForEdit && (
         <EditInterventionDialog
-          key={selectedEventForEdit.id} // La key assicura che il componente si resetta quando l'evento cambia
-          isOpen={!!selectedEventForEdit} // isOpen è true se selectedEventForEdit non è null
+          key={selectedEventForEdit.id}
+          isOpen={!!selectedEventForEdit}
           onClose={handleCloseDialog}
           event={selectedEventForEdit}
           onSave={handleSaveEdit}
