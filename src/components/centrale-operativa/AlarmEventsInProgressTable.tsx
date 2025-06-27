@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -47,7 +47,7 @@ export function AlarmEventsInProgressTable() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<AllarmeIntervento | null>(null);
 
-  const fetchInProgressEvents = async () => {
+  const fetchInProgressEvents = useCallback(async () => { // Memoize fetchInProgressEvents
     setLoading(true);
     const { data, error } = await supabase
       .from('allarme_interventi')
@@ -62,30 +62,34 @@ export function AlarmEventsInProgressTable() {
       setData(data || []);
     }
     setLoading(false);
-  };
+  }, []); // Empty dependency array means this function is created once
 
   useEffect(() => {
     fetchInProgressEvents();
-  }, []);
+  }, [fetchInProgressEvents]); // Now depends on the stable fetchInProgressEvents
 
-  const handleEdit = (event: AllarmeIntervento) => {
+  const handleEdit = useCallback((event: AllarmeIntervento) => {
     console.log("AlarmEventsInProgressTable: handleEdit called with event:", event);
-    // Create a shallow copy to ensure the reference is stable until a new edit is triggered
     setSelectedEvent({ ...event }); 
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleSaveEdit = (updatedEvent: AllarmeIntervento) => {
+  const handleSaveEdit = useCallback((updatedEvent: AllarmeIntervento) => {
     setData(prevData =>
       prevData.map(event =>
         event.id === updatedEvent.id ? updatedEvent : event
       )
     );
     console.log("Evento aggiornato (simulato):", updatedEvent);
-    setIsEditDialogOpen(false);
-    setSelectedEvent(null); // Ensure selectedEvent is cleared after saving
+    // setIsEditDialogOpen(false); // This will be handled by onClose
+    // setSelectedEvent(null); // This will be handled by onClose
     fetchInProgressEvents(); // Re-fetch to ensure data consistency and filter out completed events
-  };
+  }, [fetchInProgressEvents]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedEvent(null);
+  }, []);
 
   const filteredData = data.filter(report => {
     const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
@@ -230,12 +234,9 @@ export function AlarmEventsInProgressTable() {
 
       {selectedEvent && (
         <EditInterventionDialog
-          key={selectedEvent.id} // Added key prop here
+          key={selectedEvent.id}
           isOpen={isEditDialogOpen}
-          onClose={() => {
-            setIsEditDialogOpen(false);
-            setSelectedEvent(null); // Clear selected event on dialog close
-          }}
+          onClose={handleCloseDialog}
           event={selectedEvent}
           onSave={handleSaveEdit}
         />
