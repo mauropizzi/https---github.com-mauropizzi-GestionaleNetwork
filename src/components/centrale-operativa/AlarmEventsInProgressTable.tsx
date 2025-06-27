@@ -81,10 +81,8 @@ export function AlarmEventsInProgressTable() {
       )
     );
     console.log("Evento aggiornato (simulato):", updatedEvent);
-    // setIsEditDialogOpen(false); // This will be handled by onClose
-    // setSelectedEvent(null); // This will be handled by onClose
-    fetchInProgressEvents(); // Re-fetch to ensure data consistency and filter out completed events
-  }, [fetchInProgressEvents]);
+    // Removed fetchInProgressEvents() call here to prevent re-render loops
+  }, []);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
