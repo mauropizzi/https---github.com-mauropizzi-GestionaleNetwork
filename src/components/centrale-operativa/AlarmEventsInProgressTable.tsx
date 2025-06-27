@@ -44,8 +44,8 @@ export function AlarmEventsInProgressTable() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null); // Store only the ID
+  // Ora memorizziamo direttamente l'oggetto evento selezionato per la modifica
+  const [selectedEventForEdit, setSelectedEventForEdit] = useState<AllarmeIntervento | null>(null);
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
@@ -68,33 +68,21 @@ export function AlarmEventsInProgressTable() {
     fetchInProgressEvents();
   }, [fetchInProgressEvents]);
 
-  // Memoize the selected event object to ensure stable reference
-  const selectedEvent = useMemo(() => {
-    const event = data.find(event => event.id === selectedEventId) || null;
-    console.log("AlarmEventsInProgressTable: selectedEvent updated:", event);
-    return event;
-  }, [selectedEventId, data]); // Re-evaluate only if ID or data array changes
-
   const handleEdit = useCallback((event: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleEdit called for event ID:", event.id);
-    setSelectedEventId(event.id); // Set only the ID
-    setIsEditDialogOpen(true);
+    setSelectedEventForEdit(event); // Imposta l'intero oggetto evento
   }, []);
 
   const handleSaveEdit = useCallback((updatedEvent: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleSaveEdit called for event ID:", updatedEvent.id);
     setData(prevData =>
       prevData.map(event =>
         event.id === updatedEvent.id ? updatedEvent : event
       )
     );
-    handleCloseDialog(); // Close the dialog after saving
+    setSelectedEventForEdit(null); // Chiudi il dialog dopo il salvataggio
   }, []);
 
   const handleCloseDialog = useCallback(() => {
-    console.log("AlarmEventsInProgressTable: handleCloseDialog called");
-    setIsEditDialogOpen(false);
-    setSelectedEventId(null); // Clear the selected ID
+    setSelectedEventForEdit(null); // Chiudi il dialog impostando l'evento a null
   }, []);
 
   const filteredData = data.filter(report => {
@@ -165,8 +153,6 @@ export function AlarmEventsInProgressTable() {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  console.log("AlarmEventsInProgressTable: render. isEditDialogOpen:", isEditDialogOpen, "selectedEventId:", selectedEventId);
 
   return (
     <div className="space-y-4">
@@ -240,12 +226,12 @@ export function AlarmEventsInProgressTable() {
         </Table>
       </div>
 
-      {selectedEvent && (
+      {selectedEventForEdit && ( // Il dialog si renderizza solo se c'è un evento selezionato
         <EditInterventionDialog
-          key={selectedEvent.id}
-          isOpen={isEditDialogOpen}
+          key={selectedEventForEdit.id} // La key assicura che il componente si resetta quando l'evento cambia
+          isOpen={!!selectedEventForEdit} // isOpen è true se selectedEventForEdit non è null
           onClose={handleCloseDialog}
-          event={selectedEvent}
+          event={selectedEventForEdit}
           onSave={handleSaveEdit}
         />
       )}

@@ -70,20 +70,22 @@ const formSchema = z.object({
 });
 
 export const EditInterventionDialog = React.memo(({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) => {
-  const defaultValues = useMemo(() => ({
-    id: event?.id || '',
-    report_date: event?.report_date || '',
-    report_time: event?.report_time || '',
-    service_point_code: event?.service_point_code || '',
-    request_type: event?.request_type || '',
-    co_operator: event?.co_operator ?? "",
-    operator_client: event?.operator_client ?? "",
-    gpg_intervention: event?.gpg_intervention ?? "",
-    service_outcome: event?.service_outcome ?? null,
-    notes: event?.notes ?? "",
-    latitude: event?.latitude ?? undefined,
-    longitude: event?.longitude ?? undefined,
-  }), [event]);
+  const defaultValues = useMemo(() => {
+    return {
+      id: event?.id || '',
+      report_date: event?.report_date || '',
+      report_time: event?.report_time || '',
+      service_point_code: event?.service_point_code || '',
+      request_type: event?.request_type || '',
+      co_operator: event?.co_operator ?? "",
+      operator_client: event?.operator_client ?? "",
+      gpg_intervention: event?.gpg_intervention ?? "",
+      service_outcome: event?.service_outcome ?? null,
+      notes: event?.notes ?? "",
+      latitude: event?.latitude ?? undefined,
+      longitude: event?.longitude ?? undefined,
+    };
+  }, [event]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
