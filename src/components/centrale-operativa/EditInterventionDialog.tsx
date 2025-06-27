@@ -76,13 +76,6 @@ const formSchema = z.object({
   notes: z.string().optional().nullable(),
   latitude: z.coerce.number().optional().nullable(),
   longitude: z.coerce.number().optional().nullable(),
-  // These fields are not directly in the DB schema but might be derived or stored in notes
-  // fullAccess: z.enum(["si", "no"]).optional(),
-  // vaultAccess: z.enum(["si", "no"]).optional(),
-  // anomalies: z.enum(["si", "no"]).optional(),
-  // anomalyDescription: z.string().optional(),
-  // delay: z.enum(["si", "no"]).optional(),
-  // delayNotes: z.string().optional(),
 });
 
 export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) => {
@@ -93,11 +86,11 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
       report_time: event?.report_time || format(new Date(), 'HH:mm'),
       service_point_code: event?.service_point_code || '',
       request_type: event?.request_type || '',
-      co_operator: event?.co_operator || '',
-      operator_client: event?.operator_client || '',
-      gpg_intervention: event?.gpg_intervention || '',
-      service_outcome: event?.service_outcome || '',
-      notes: event?.notes || '',
+      co_operator: event?.co_operator || null, // Ensure null for optional fields
+      operator_client: event?.operator_client || null,
+      gpg_intervention: event?.gpg_intervention || null,
+      service_outcome: event?.service_outcome || null,
+      notes: event?.notes || null,
       latitude: event?.latitude || undefined,
       longitude: event?.longitude || undefined,
     },
@@ -110,11 +103,11 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
         report_time: event.report_time || format(new Date(), 'HH:mm'),
         service_point_code: event.service_point_code || '',
         request_type: event.request_type || '',
-        co_operator: event.co_operator || '',
-        operator_client: event.operator_client || '',
-        gpg_intervention: event.gpg_intervention || '',
-        service_outcome: event.service_outcome || '',
-        notes: event.notes || '',
+        co_operator: event.co_operator || null,
+        operator_client: event.operator_client || null,
+        gpg_intervention: event.gpg_intervention || null,
+        service_outcome: event.service_outcome || null,
+        notes: event.notes || null,
         latitude: event.latitude || undefined,
         longitude: event.longitude || undefined,
       });
@@ -319,7 +312,6 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem>
                       {coOperatorOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -344,7 +336,6 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem>
                       {operatorClientOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -369,7 +360,6 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem>
                       {gpgInterventionOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
@@ -394,7 +384,6 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nessuno</SelectItem>
                       {serviceOutcomeOptions.map(option => (
                         <SelectItem key={option} value={option}>
                           {option}
