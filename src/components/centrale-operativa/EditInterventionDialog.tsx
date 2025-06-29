@@ -79,6 +79,9 @@ const formSchema = z.object({
 });
 
 export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) => {
+  console.count("EditInterventionDialog render");
+  console.log("EditInterventionDialog: rendering. isOpen:", isOpen, "event ID:", event?.id);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -140,6 +143,7 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("EditInterventionDialog: onSubmit started.");
     if (!event) {
       showError("Nessun evento selezionato per la modifica.");
       onClose(); // Ensure dialog closes even if no event is selected
@@ -160,6 +164,8 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
       longitude: values.longitude,
     };
 
+    console.log("EditInterventionDialog: Attempting to update Supabase with data:", updatedData);
+
     try {
       const { data, error } = await supabase
         .from('allarme_interventi')
@@ -172,6 +178,7 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
         console.error("Supabase update error:", error);
       } else {
         showSuccess(`Evento ${event.id} aggiornato con successo!`);
+        console.log("Supabase update successful. Response:", data);
         onSave({ ...event, ...updatedData }); // Update local state in parent
       }
     } catch (err: any) {
@@ -179,6 +186,7 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
       showError(`Si è verificato un errore di rete durante l'aggiornamento: ${err.message}`);
       console.error("Network or unexpected error during update:", err);
     } finally {
+      console.log("EditInterventionDialog: onSubmit finally block. Calling onClose().");
       onClose(); // Ensure the dialog closes regardless of success or failure
     }
   };
