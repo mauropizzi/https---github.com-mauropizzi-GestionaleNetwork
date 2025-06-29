@@ -41,10 +41,16 @@ export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
   return data || [];
 }
 
-export async function fetchPersonale(): Promise<Personale[]> {
-  const { data, error } = await supabase
+export async function fetchPersonale(role?: string): Promise<Personale[]> {
+  let query = supabase
     .from('personale')
     .select('id, nome, cognome, ruolo');
+
+  if (role) {
+    query = query.eq('ruolo', role);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     showError(`Errore nel recupero del personale: ${error.message}`);
