@@ -84,16 +84,15 @@ export function AlarmEventsInProgressTable() {
     navigate(`/centrale-operativa/edit/${event.id}`); // Navigate to the new edit page
   }, [navigate]);
 
-  const handleWhatsAppMessage = useCallback((gpgInterventionId?: string | null) => {
+  const handleWhatsAppMessage = useCallback((event: AllarmeIntervento) => {
+    const gpgInterventionId = event.gpg_intervention;
     if (gpgInterventionId) {
       const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
       if (personnel && personnel.telefono) {
-        // Clean the phone number: remove all non-digit characters
         const cleanedPhoneNumber = personnel.telefono.replace(/\D/g, '');
-        // Ensure country code is present. For Italian numbers, it's usually +39.
-        // If your numbers in DB don't have it, you might need to prepend it.
-        // For now, assuming they are either already complete or just need non-digits removed.
-        const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}`;
+        const publicEditUrl = `${window.location.origin}/public/alarm-event/edit/${event.id}`;
+        const message = encodeURIComponent(`Ciao ${personnel.nome}, per favore compila il rapporto di intervento per l'evento ${event.id} al seguente link: ${publicEditUrl}`);
+        const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}?text=${message}`;
         window.open(whatsappUrl, '_blank');
         showInfo(`Apertura chat WhatsApp per ${personnel.nome} ${personnel.cognome}`);
       } else {
@@ -169,7 +168,7 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original.gpg_intervention)} title="Invia WhatsApp">
+          <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
         </div>
@@ -180,7 +179,7 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (

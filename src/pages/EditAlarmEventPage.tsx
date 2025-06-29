@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,6 +75,9 @@ const formSchema = z.object({
 const EditAlarmEventPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation(); // Get current location
+  const isPublicMode = location.pathname.startsWith('/public/'); // Check if in public mode
+
   const [eventData, setEventData] = useState<AllarmeIntervento | null>(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
@@ -112,7 +115,9 @@ const EditAlarmEventPage = () => {
         if (error) {
           showError(`Errore nel recupero dell'evento: ${error.message}`);
           console.error("Error fetching alarm event:", error);
-          navigate('/centrale-operativa?tab=eventi-in-gestione'); // Redirect if event not found
+          if (!isPublicMode) { // Only redirect if not in public mode
+            navigate('/centrale-operativa?tab=eventi-in-gestione');
+          }
         } else if (event) {
           setEventData(event);
           form.reset({
@@ -130,16 +135,20 @@ const EditAlarmEventPage = () => {
           });
         } else {
           showError("Evento non trovato.");
-          navigate('/centrale-operativa?tab=eventi-in-gestione');
+          if (!isPublicMode) { // Only redirect if not in public mode
+            navigate('/centrale-operativa?tab=eventi-in-gestione');
+          }
         }
       } else {
         showError("ID evento non fornito.");
-        navigate('/centrale-operativa?tab=eventi-in-gestione');
+        if (!isPublicMode) { // Only redirect if not in public mode
+          navigate('/centrale-operativa?tab=eventi-in-gestione');
+        }
       }
       setLoadingEvent(false);
     };
     loadPersonnelAndEventData();
-  }, [id, navigate, form]);
+  }, [id, navigate, form, isPublicMode]);
 
   const handleSetCurrentTime = (field: "report_time") => {
     form.setValue(field, format(new Date(), "HH:mm"));
@@ -198,7 +207,11 @@ const EditAlarmEventPage = () => {
         console.error("Supabase update error:", error);
       } else {
         showSuccess(`Evento ${id} aggiornato con successo!`);
-        navigate('/centrale-operativa?tab=eventi-in-gestione'); // Redirect back to the list
+        if (isPublicMode) {
+          navigate('/public/success'); // Redirect to public success page
+        } else {
+          navigate('/centrale-operativa?tab=eventi-in-gestione'); // Redirect back to the list
+        }
       }
     } catch (err: any) {
       showError(`Si è verificato un errore di rete durante l'aggiornamento: ${err.message}`);
@@ -230,9 +243,11 @@ const EditAlarmEventPage = () => {
           </CardHeader>
           <CardContent>
             <p>L'evento di allarme richiesto non è stato trovato o l'ID non è valido.</p>
-            <Button onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')} className="mt-4">
-              Torna agli Eventi in Gestione
-            </Button>
+            {!isPublicMode && ( // Only show button if not in public mode
+              <Button onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')} className="mt-4">
+                Torna agli Eventi in Gestione
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -473,9 +488,11 @@ const EditAlarmEventPage = () => {
               />
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')}>
-                  Annulla
-                </Button>
+                {!isPublicMode && ( // Only show "Annulla" button if not in public mode
+                  <Button type="button" variant="outline" onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')}>
+                    Annulla
+                  </Button>
+                )}
                 <Button type="submit">Salva Modifiche</Button>
               </div>
             </form>
