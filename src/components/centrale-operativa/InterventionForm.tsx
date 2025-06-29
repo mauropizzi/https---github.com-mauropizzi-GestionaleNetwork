@@ -16,9 +16,8 @@ import {
   servicePointsData,
   requestTypeOptions,
   coOperatorOptions,
-  gpgInterventionOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-data';
+} from '@/lib/centrale-data'; // Removed gpgInterventionOptions
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
@@ -26,9 +25,9 @@ import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
-import { fetchPersonale } from '@/lib/data-fetching'; // Import fetchPersonale
-import { Personale } from '@/lib/anagrafiche-data'; // Import Personale interface
+import { supabase } from '@/integrations/supabase/client';
+import { fetchPersonale } from '@/lib/data-fetching';
+import { Personale } from '@/lib/anagrafiche-data';
 
 export function InterventionForm() {
   const { toast } = useToast();
@@ -41,8 +40,8 @@ export function InterventionForm() {
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '', // Will store the full name of the operator
-    gpgIntervention: '',
+    operatorClient: '',
+    gpgIntervention: '', // This will now be a personnel ID
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
     delay: undefined as 'si' | 'no' | undefined,
@@ -53,15 +52,18 @@ export function InterventionForm() {
     longitude: undefined as number | undefined,
   });
   const [operatoriClientiPersonale, setOperatoriClientiPersonale] = useState<Personale[]>([]);
+  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]); // New state for 'Pattuglia' personnel
 
   useEffect(() => {
-    const loadOperatoriClienti = async () => {
-      // Fetch personnel with the role 'Operatore Network' (case-sensitive)
-      const fetchedPersonale = await fetchPersonale('Operatore Network');
-      console.log("Fetched 'Operatore Network' personnel for dropdown:", fetchedPersonale); // Debug log for dropdown data
-      setOperatoriClientiPersonale(fetchedPersonale);
+    const loadPersonnelData = async () => {
+      const fetchedOperatoriClienti = await fetchPersonale('Operatore Network');
+      setOperatoriClientiPersonale(fetchedOperatoriClienti);
+
+      const fetchedPattuglia = await fetchPersonale('Pattuglia'); // Fetch personnel with role 'Pattuglia'
+      console.log("Fetched 'Pattuglia' personnel for G.P.G. Intervention:", fetchedPattuglia);
+      setPattugliaPersonale(fetchedPattuglia);
     };
-    loadOperatoriClienti();
+    loadPersonnelData();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -157,7 +159,8 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Operatore Cliente: ${formData.operatorClient || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`G.P.G. Intervento: ${formData.gpgIntervention || 'N/A'}`, 14, y);
+      const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
+      doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Anomalie Riscontrate: ${formData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
       if (formData.anomalies === 'si' && formData.anomalyDescription) {
@@ -307,14 +310,12 @@ export function InterventionForm() {
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorClient || null, // Use the selected operator's full name
-      gpg_intervention: gpgIntervention || null,
-      service_outcome: isFinal ? (serviceOutcome || null) : null, // Set to null if not final
+      operator_client: operatorClient || null,
+      gpg_intervention: gpgIntervention || null, // Now stores the ID of the selected personnel
+      service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
       latitude: latitude || null,
       longitude: longitude || null,
-      // Other fields like fullAccess, vaultAccess, anomalies, delay, barcode are not directly in schema
-      // and would need to be added to notes or new columns if required.
     };
 
     const { data, error } = await supabase
@@ -573,9 +574,9 @@ export function InterventionForm() {
             <SelectValue placeholder="Seleziona G.P.G. intervento..." />
           </SelectTrigger>
           <SelectContent>
-            {gpgInterventionOptions.map(option => (
-              <SelectItem key={option} value={option}>
-                {option}
+            {pattugliaPersonale.map(personale => (
+              <SelectItem key={personale.id} value={personale.id}>
+                {personale.nome} {personale.cognome}
               </SelectItem>
             ))}
           </SelectContent>

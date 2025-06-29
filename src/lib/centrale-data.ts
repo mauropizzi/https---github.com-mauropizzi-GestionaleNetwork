@@ -55,7 +55,7 @@ export const servicePointsData = [
   { code: "0104903", name: "MISTERBIANCO - VIA GARIBALDI, 429-B", interventionTime: 30 },
   { code: "0151128", name: "MODICA - VIA SACRO CUORE, 72", interventionTime: 60 },
   { code: "0100741", name: "MONFORTE SAN GIORGIO - VIALE REGIONE SICILIANA, 1-L", interventionTime: 60 },
-  { code: "94010", name: "NICOSIA - VIA UMBERTO I, 53", interventionTime: 30 }, // Keeping this one
+  { code: "94010", name: "NICOSIA - VIA UMBERTO I, 53", interventionTime: 30 },
   { code: "98031", name: "NISCEMI - VIA IV NOVEMBRE, 2", interventionTime: 120 },
   { code: "0100876", name: "PACECO - VIA TENENTE S.MONTALTO, 20", interventionTime: 60 },
   { code: "0107245", name: "PACHINO - VIA ANITA, 18", interventionTime: 30 },
@@ -103,7 +103,6 @@ export const servicePointsData = [
   { code: "0100765", name: "VALGUARNERA CAROPEPE - PIAZZA DELLA REPUBBLICA, 30", interventionTime: 60 },
   { code: "0151111", name: "VILLABATE - CORSO VITTORIO EMANUELE, 580", interventionTime: 30 },
   { code: "0105100", name: "VILLAFRANCA TIRRENA - VIA NAZIONALE, 256", interventionTime: 30 },
-  // Removed the duplicate entry for 94010 (VILLAROSA)
 ];
 
 export const requestTypeOptions = [
@@ -138,13 +137,14 @@ export const operatorClientOptions = [
   "VICENZI",
 ];
 
-export const gpgInterventionOptions = [
-  "AGLIECO", "ARTINO", "BALISTRERI", "CACCAVELLI", "CARUSO G", "CASA'",
-  "CASTIGLIONE", "COSTANTINO", "DI GAETANO M", "DI GAETANO S", "FANARA",
-  "GAMBINO", "GRANATA", "GRASSO", "GUASTELLA M", "GUASTELLA S", "GULLOTTA",
-  "GUTTADAURO", "MESSANA", "MESSINA A", "MESSINA D", "MINARDI", "MOTTA",
-  "PALMERI", "PASSARELLO", "RAFFAELE", "SANA", "SCANDURRA", "SENA", "TOSCANO", "VASTA"
-];
+// gpgInterventionOptions removed as it's now dynamically fetched from Supabase
+// export const gpgInterventionOptions = [
+//   "AGLIECO", "ARTINO", "BALISTRERI", "CACCAVELLI", "CARUSO G", "CASA'",
+//   "CASTIGLIONE", "COSTANTINO", "DI GAETANO M", "DI GAETANO S", "FANARA",
+//   "GAMBINO", "GRANATA", "GRASSO", "GUASTELLA M", "GUASTELLA S", "GULLOTTA",
+//   "GUTTADAURO", "MESSANA", "MESSINA A", "MESSINA D", "MINARDI", "MOTTA",
+//   "PALMERI", "PASSARELLO", "RAFFAELE", "SANA", "SCANDURRA", "SENA", "TOSCANO", "VASTA"
+// ];
 
 export const serviceOutcomeOptions = [
   "TUTTO REGOLARE",
