@@ -45,7 +45,7 @@ export async function fetchPersonale(role?: string): Promise<Personale[]> {
   console.log(`Attempting to fetch personnel with role: '${role}'`);
   let query = supabase
     .from('personale')
-    .select('id, nome, cognome, ruolo');
+    .select('id, nome, cognome, ruolo, telefono'); // Added 'telefono' here
 
   if (role) {
     query = query.eq('ruolo', role);
