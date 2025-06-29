@@ -40,6 +40,8 @@ interface AllarmeIntervento {
 }
 
 export function AlarmEventsInProgressTable() {
+  console.count("AlarmEventsInProgressTable render");
+
   const [data, setData] = useState<AllarmeIntervento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,23 +89,25 @@ export function AlarmEventsInProgressTable() {
     setSelectedEventForEdit(null); // Chiudi il dialog impostando l'evento a null
   }, []);
 
-  const filteredData = data.filter(report => {
-    const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
-    const matchesSearch = searchTerm === '' ||
-      servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (report.co_operator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (report.gpg_intervention?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (report.notes?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredData = useMemo(() => {
+    return data.filter(report => {
+      const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
+      const matchesSearch = searchTerm === '' ||
+        servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.co_operator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.gpg_intervention?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.notes?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesDate = filterDate === '' ||
-      format(new Date(report.report_date), "yyyy-MM-dd") === filterDate;
+      const matchesDate = filterDate === '' ||
+        format(new Date(report.report_date), "yyyy-MM-dd") === filterDate;
 
-    return matchesSearch && matchesDate;
-  });
+      return matchesSearch && matchesDate;
+    });
+  }, [data, searchTerm, filterDate]);
 
-  const columns: ColumnDef<AllarmeIntervento>[] = [
+  const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
     {
       accessorKey: 'id',
       header: 'ID',
@@ -148,13 +152,7 @@ export function AlarmEventsInProgressTable() {
         </div>
       ),
     },
-  ];
-
-  const table = useReactTable({
-    data: filteredData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  ], [handleEdit]); // handleEdit è una dipendenza perché usata all'interno del renderer della cella.
 
   console.log("AlarmEventsInProgressTable: render. selectedEventForEdit:", selectedEventForEdit?.id || "null");
 
