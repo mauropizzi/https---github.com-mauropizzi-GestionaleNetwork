@@ -22,7 +22,7 @@ import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
-import { EditInterventionDialog } from './EditInterventionDialog';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { fetchPersonale } from '@/lib/data-fetching'; // Import fetchPersonale
 import { Personale } from '@/lib/anagrafiche-data'; // Import Personale interface
 
@@ -44,11 +44,11 @@ interface AllarmeIntervento {
 export function AlarmEventsInProgressTable() {
   console.count("AlarmEventsInProgressTable render");
 
+  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<AllarmeIntervento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
-  const [selectedEventForEdit, setSelectedEventForEdit] = useState<AllarmeIntervento | null>(null);
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
 
   const fetchInProgressEvents = useCallback(async () => {
@@ -81,24 +81,8 @@ export function AlarmEventsInProgressTable() {
   }, [fetchInProgressEvents, fetchPattugliaPersonnel]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleEdit called for event:", event.id);
-    setSelectedEventForEdit(event);
-  }, []);
-
-  const handleSaveEdit = useCallback((updatedEvent: AllarmeIntervento) => {
-    console.log("AlarmEventsInProgressTable: handleSaveEdit called for event:", updatedEvent.id);
-    setData(prevData =>
-      prevData.map(event =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      )
-    );
-    setSelectedEventForEdit(null); // Chiudi il dialog dopo il salvataggio
-  }, []);
-
-  const handleCloseDialog = useCallback(() => {
-    console.log("AlarmEventsInProgressTable: handleCloseDialog called");
-    setSelectedEventForEdit(null); // Chiudi il dialog impostando l'evento a null
-  }, []);
+    navigate(`/centrale-operativa/edit/${event.id}`); // Navigate to the new edit page
+  }, [navigate]);
 
   const handleWhatsAppMessage = useCallback((gpgInterventionId?: string | null) => {
     if (gpgInterventionId) {
@@ -196,8 +180,6 @@ export function AlarmEventsInProgressTable() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  console.log("AlarmEventsInProgressTable: render. selectedEventForEdit:", selectedEventForEdit?.id || "null");
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
@@ -269,16 +251,6 @@ export function AlarmEventsInProgressTable() {
           </TableBody>
         </Table>
       </div>
-
-      {selectedEventForEdit && (
-        <EditInterventionDialog
-          key={selectedEventForEdit.id}
-          isOpen={!!selectedEventForEdit}
-          onClose={handleCloseDialog}
-          event={selectedEventForEdit}
-          onSave={handleSaveEdit}
-        />
-      )}
     </div>
   );
 }

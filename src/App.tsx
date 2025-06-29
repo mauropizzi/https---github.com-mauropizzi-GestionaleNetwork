@@ -19,6 +19,7 @@ import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
 import CentraleOperativa from "./pages/CentraleOperativa";
 import ServiziCanone from "./pages/ServiziCanone";
+import EditAlarmEventPage from "./pages/EditAlarmEventPage"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
             <Route path="centrale-operativa" element={<CentraleOperativa />} />
+            <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} /> {/* New route for editing */}
             <Route path="servizi-a-canone" element={<ServiziCanone />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
