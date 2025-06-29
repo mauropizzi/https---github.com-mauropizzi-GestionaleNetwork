@@ -17,12 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit } from 'lucide-react';
+import { Printer, RefreshCcw, Edit, MessageSquareText } from 'lucide-react'; // Import MessageSquareText icon
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { EditInterventionDialog } from './EditInterventionDialog';
+import { fetchPersonale } from '@/lib/data-fetching'; // Import fetchPersonale
+import { Personale } from '@/lib/anagrafiche-data'; // Import Personale interface
 
 interface AllarmeIntervento {
   id: string;
@@ -32,7 +34,7 @@ interface AllarmeIntervento {
   request_type: string;
   co_operator?: string;
   operator_client?: string;
-  gpg_intervention?: string;
+  gpg_intervention?: string; // This is the personnel ID
   service_outcome?: string; // This should be null for "in progress"
   notes?: string;
   latitude?: number;
@@ -47,6 +49,7 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedEventForEdit, setSelectedEventForEdit] = useState<AllarmeIntervento | null>(null);
+  const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
@@ -65,9 +68,17 @@ export function AlarmEventsInProgressTable() {
     setLoading(false);
   }, []);
 
+  const fetchPattugliaPersonnel = useCallback(async () => {
+    const personnel = await fetchPersonale('Pattuglia');
+    const map = new Map<string, Personale>();
+    personnel.forEach(p => map.set(p.id, p));
+    setPattugliaPersonnelMap(map);
+  }, []);
+
   useEffect(() => {
     fetchInProgressEvents();
-  }, [fetchInProgressEvents]);
+    fetchPattugliaPersonnel();
+  }, [fetchInProgressEvents, fetchPattugliaPersonnel]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
     console.log("AlarmEventsInProgressTable: handleEdit called for event:", event.id);
@@ -89,6 +100,23 @@ export function AlarmEventsInProgressTable() {
     setSelectedEventForEdit(null); // Chiudi il dialog impostando l'evento a null
   }, []);
 
+  const handleWhatsAppMessage = useCallback((gpgInterventionId?: string | null) => {
+    if (gpgInterventionId) {
+      const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
+      if (personnel && personnel.telefono) {
+        // Assuming the phone number is in a format suitable for WhatsApp (e.g., with country code)
+        // If not, you might need to prepend '+39' or similar based on your data format.
+        const whatsappUrl = `https://wa.me/${personnel.telefono}`;
+        window.open(whatsappUrl, '_blank');
+        showInfo(`Apertura chat WhatsApp per ${personnel.nome} ${personnel.cognome}`);
+      } else {
+        showError("Numero di telefono del G.P.G. non disponibile.");
+      }
+    } else {
+      showError("Nessun G.P.G. associato a questo intervento.");
+    }
+  }, [pattugliaPersonnelMap]);
+
   const filteredData = useMemo(() => {
     return data.filter(report => {
       const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
@@ -97,7 +125,8 @@ export function AlarmEventsInProgressTable() {
         report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (report.co_operator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (report.gpg_intervention?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.cognome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.notes?.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesDate = filterDate === '' ||
@@ -105,7 +134,7 @@ export function AlarmEventsInProgressTable() {
 
       return matchesSearch && matchesDate;
     });
-  }, [data, searchTerm, filterDate]);
+  }, [data, searchTerm, filterDate, pattugliaPersonnelMap]);
 
   const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
     {
@@ -137,6 +166,10 @@ export function AlarmEventsInProgressTable() {
     {
       accessorKey: 'gpg_intervention',
       header: 'G.P.G. Intervento',
+      cell: ({ row }) => {
+        const personnel = pattugliaPersonnelMap.get(row.original.gpg_intervention || '');
+        return personnel ? `${personnel.nome} ${personnel.cognome}` : 'N/A';
+      },
     },
     {
       id: 'actions',
@@ -149,10 +182,13 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original.gpg_intervention)} title="Invia WhatsApp">
+            <MessageSquareText className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
-  ], [handleEdit]);
+  ], [handleEdit, handleWhatsAppMessage, pattugliaPersonnelMap]);
 
   const table = useReactTable({
     data: filteredData,
