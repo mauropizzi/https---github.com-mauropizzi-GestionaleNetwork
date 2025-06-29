@@ -16,7 +16,6 @@ import {
   servicePointsData,
   requestTypeOptions,
   coOperatorOptions,
-  operatorClientOptions,
   gpgInterventionOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-data';
@@ -28,6 +27,8 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+import { fetchPersonale } from '@/lib/data-fetching'; // Import fetchPersonale
+import { Personale } from '@/lib/anagrafiche-data'; // Import Personale interface
 
 export function InterventionForm() {
   const { toast } = useToast();
@@ -40,7 +41,7 @@ export function InterventionForm() {
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '',
+    operatorClient: '', // Will store the full name of the operator
     gpgIntervention: '',
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
@@ -51,6 +52,17 @@ export function InterventionForm() {
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
   });
+  const [operatoriClientiPersonale, setOperatoriClientiPersonale] = useState<Personale[]>([]);
+
+  useEffect(() => {
+    const loadOperatoriClienti = async () => {
+      // Fetch personnel with the role 'operatore_network'
+      const fetchedPersonale = await fetchPersonale('operatore_network');
+      console.log("Fetched operatori_network personnel:", fetchedPersonale); // Debug log
+      setOperatoriClientiPersonale(fetchedPersonale);
+    };
+    loadOperatoriClienti();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -295,7 +307,7 @@ export function InterventionForm() {
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorClient || null,
+      operator_client: operatorClient || null, // Use the selected operator's full name
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null, // Set to null if not final
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
@@ -542,9 +554,9 @@ export function InterventionForm() {
             <SelectValue placeholder="Seleziona operatore cliente..." />
           </SelectTrigger>
           <SelectContent>
-            {operatorClientOptions.map(option => (
-              <SelectItem key={option} value={option}>
-                {option}
+            {operatoriClientiPersonale.map(personale => (
+              <SelectItem key={personale.id} value={`${personale.nome} ${personale.cognome}`}>
+                {personale.nome} {personale.cognome}
               </SelectItem>
             ))}
           </SelectContent>
