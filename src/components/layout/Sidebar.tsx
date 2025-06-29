@@ -37,9 +37,9 @@ const navItems: NavItem[] = [
     icon: ListChecks,
   },
   {
-    title: "Servizi a Canone", // New top-level item
+    title: "Servizi a Canone",
     href: "/servizi-a-canone",
-    icon: Repeat, // Icon for recurring services
+    icon: Repeat,
   },
   {
     title: "Dotazioni di Servizio",
@@ -53,15 +53,15 @@ const navItems: NavItem[] = [
   },
   {
     title: "Anagrafiche",
-    href: "/anagrafiche",
+    href: "/anagrafiche/clienti", // Point to the default Anagrafiche page (Clienti)
     icon: Building2,
     subItems: [
-      { title: "Clienti", href: "/anagrafiche?tab=clienti", icon: Users },
-      { title: "Punti Servizio", href: "/anagrafiche?tab=punti-servizio", icon: Building2 },
-      { title: "Personale", href: "/anagrafiche?tab=personale", icon: Users },
-      { title: "Operatori Network", href: "/anagrafiche?tab=operatori-network", icon: Briefcase },
-      { title: "Fornitori", href: "/anagrafiche?tab=fornitori", icon: Package },
-      { title: "Tariffe", href: "/anagrafiche?tab=tariffe", icon: Euro },
+      { title: "Clienti", href: "/anagrafiche/clienti", icon: Users },
+      { title: "Punti Servizio", href: "/anagrafiche/punti-servizio", icon: Building2 },
+      { title: "Personale", href: "/anagrafiche/personale", icon: Users },
+      { title: "Operatori Network", href: "/anagrafiche/operatori-network", icon: Briefcase },
+      { title: "Fornitori", href: "/anagrafiche/fornitori", icon: Package },
+      { title: "Tariffe", href: "/anagrafiche/tariffe", icon: Euro },
     ],
   },
 ];
@@ -77,6 +77,10 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
     const [path, query] = href.split('?');
     if (query) {
       return location.pathname === path && location.search === `?${query}`;
+    }
+    // For top-level Anagrafiche link, check if current path starts with /anagrafiche
+    if (path === "/anagrafiche/clienti" && location.pathname.startsWith("/anagrafiche")) {
+      return true;
     }
     return location.pathname === path;
   };

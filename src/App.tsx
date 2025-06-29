@@ -7,7 +7,13 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import DashboardOverview from "./pages/DashboardOverview";
 import NotFound from "./pages/NotFound";
 import ServiceRequest from "./pages/ServiceRequest";
-import Anagrafiche from "./pages/Anagrafiche";
+import Anagrafiche from "./pages/Anagrafiche"; // This will now redirect
+import ClientiPage from "./pages/ClientiPage"; // New dedicated page
+import PuntiServizioPage from "./pages/PuntiServizioPage"; // New dedicated page
+import PersonalePage from "./pages/PersonalePage"; // New dedicated page
+import OperatoriNetworkPage from "./pages/OperatoriNetworkPage"; // New dedicated page
+import FornitoriPage from "./pages/FornitoriPage"; // New dedicated page
+import TariffePage from "./pages/TariffePage"; // New dedicated page
 import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
@@ -26,7 +32,16 @@ const App = () => (
           <Route path="/" element={<DashboardLayout />}>
             <Route index element={<CentraleOperativa />} />
             <Route path="service-request" element={<ServiceRequest />} />
-            <Route path="anagrafiche" element={<Anagrafiche />} />
+            {/* Old Anagrafiche route, now redirects */}
+            <Route path="anagrafiche" element={<Anagrafiche />} /> 
+            {/* New dedicated Anagrafiche routes */}
+            <Route path="anagrafiche/clienti" element={<ClientiPage />} />
+            <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
+            <Route path="anagrafiche/personale" element={<PersonalePage />} />
+            <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
+            <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
+            <Route path="anagrafiche/tariffe" element={<TariffePage />} />
+
             <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
             <Route path="service-list" element={<ServiceList />} />
             <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
