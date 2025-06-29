@@ -30,19 +30,19 @@ const CentraleOperativa = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-3"> {/* Changed grid-cols to 3 */}
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="gestione-intervento">Inserisci Evento Allarme</TabsTrigger>
+              <TabsTrigger value="eventi-in-gestione">Eventi Allarme in Gestione</TabsTrigger> {/* Moved this tab */}
               <TabsTrigger value="storico-interventi">Storico Eventi Allarme</TabsTrigger>
-              <TabsTrigger value="eventi-in-gestione">Eventi Allarme in Gestione</TabsTrigger> {/* New tab trigger */}
             </TabsList>
             <TabsContent value="gestione-intervento" className="mt-4">
               <InterventionForm />
             </TabsContent>
-            <TabsContent value="storico-interventi" className="mt-4">
-              <InterventionListTable />
-            </TabsContent>
             <TabsContent value="eventi-in-gestione" className="mt-4"> {/* New tab content */}
               <AlarmEventsInProgressTable />
+            </TabsContent>
+            <TabsContent value="storico-interventi" className="mt-4">
+              <InterventionListTable />
             </TabsContent>
           </Tabs>
         </CardContent>
