@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Eye, Printer, RefreshCcw, Edit } from 'lucide-react';
+import { Printer, RefreshCcw, Edit } from 'lucide-react';
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
@@ -152,7 +152,7 @@ export function AlarmEventsInProgressTable() {
         </div>
       ),
     },
-  ], [handleEdit]); // handleEdit è una dipendenza perché usata all'interno del renderer della cella.
+  ], [handleEdit]);
 
   const table = useReactTable({
     data: filteredData,
@@ -210,7 +210,7 @@ export function AlarmEventsInProgressTable() {
                   Caricamento eventi...
                 </TableCell>
               </TableRow>
-            ) : (table && table.getRowModel().rows?.length) ? ( {/* Aggiunto controllo 'table &&' qui */}
+            ) : (table && table.getRowModel().rows?.length) ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
