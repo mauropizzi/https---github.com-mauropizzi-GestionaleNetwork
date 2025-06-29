@@ -154,6 +154,12 @@ export function AlarmEventsInProgressTable() {
     },
   ], [handleEdit]); // handleEdit è una dipendenza perché usata all'interno del renderer della cella.
 
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   console.log("AlarmEventsInProgressTable: render. selectedEventForEdit:", selectedEventForEdit?.id || "null");
 
   return (
@@ -204,7 +210,7 @@ export function AlarmEventsInProgressTable() {
                   Caricamento eventi...
                 </TableCell>
               </TableRow>
-            ) : table.getRowModel().rows?.length ? (
+            ) : (table && table.getRowModel().rows?.length) ? ( {/* Aggiunto controllo 'table &&' qui */}
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
