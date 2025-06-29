@@ -32,7 +32,8 @@ import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const dailyHoursSchema = z.object({
   day: z.string(),
@@ -72,7 +73,6 @@ const formSchema = z.object({
 });
 
 export function ServiziFiduciariForm() {
-  const [calculatedHours, setCalculatedHours] = useState<number | null>(null);
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
@@ -112,7 +112,7 @@ export function ServiziFiduciariForm() {
     name: "dailyHours",
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const start = values.startDate;
     const end = values.endDate;
     const numAgents = values.numAgents;
@@ -157,10 +157,37 @@ export function ServiziFiduciariForm() {
     }
 
     const finalCalculatedHours = totalHours * numAgents;
-    setCalculatedHours(finalCalculatedHours);
-    console.log("Calculated Fiduciari Hours:", finalCalculatedHours);
-    console.log("Punto Servizio ID:", values.servicePointId);
-    console.log("Fornitore ID:", values.fornitoreId);
+    console.log("Calculated Hours (for saving):", finalCalculatedHours);
+
+    // Prepare data for Supabase insertion
+    const payload = {
+      type: "Servizi Fiduciari", // Fixed type for this form
+      client_id: null, // This form uses servicePointId, not direct client_id
+      service_point_id: values.servicePointId,
+      start_date: format(values.startDate, 'yyyy-MM-dd'),
+      start_time: values.startTime,
+      end_date: format(values.endDate, 'yyyy-MM-dd'),
+      end_time: values.endTime,
+      status: "Pending", // Default status
+      calculated_cost: finalCalculatedHours, // Use calculated hours as cost for now
+      num_agents: values.numAgents,
+      cadence_hours: null, // Not applicable for Servizi Fiduciari
+      inspection_type: null, // Not applicable for Servizi Fiduciari
+      daily_hours_config: dailyHoursConfig, // Save the daily hours configuration
+    };
+
+    const { data, error } = await supabase
+      .from('servizi_richiesti')
+      .insert([payload]);
+
+    if (error) {
+      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
+      console.error("Error inserting service request:", error);
+    } else {
+      showSuccess("Richiesta di servizi fiduciari registrata con successo!");
+      console.log("Service request saved successfully:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -406,16 +433,7 @@ export function ServiziFiduciariForm() {
           ))}
         </div>
 
-        <Button type="submit" className="w-full">Calcola Ore</Button>
-        {calculatedHours !== null && (
-          <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
-            <h3 className="text-lg font-semibold">Ore Totali Calcolate:</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{calculatedHours.toFixed(2)} ore</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              (Questo calcolo somma le ore configurate per ogni giorno nel periodo selezionato, moltiplicate per il numero di operatori. Non considera ancora l'intersezione precisa con gli orari di inizio/fine servizio complessivi o turni notturni complessi.)
-            </p>
-          </div>
-        )}
+        <Button type="submit" className="w-full">Registra Richiesta</Button>
       </form>
     </Form>
   );
