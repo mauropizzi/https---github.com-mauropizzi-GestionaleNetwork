@@ -32,7 +32,7 @@ const formSchema = z.object({
   nome: z.string().min(2, "Il nome è richiesto."),
   cognome: z.string().min(2, "Il cognome è richiesto."),
   codiceFiscale: z.string().optional(),
-  ruolo: z.enum(["guardia_giurata", "operatore_fiduciario", "amministrativo", "altro"], {
+  ruolo: z.enum(["Pattuglia", "Operatore Network", "GPG", "Operatore C.O."], {
     required_error: "Seleziona un ruolo.",
   }),
   telefono: z.string().optional(),
@@ -56,7 +56,7 @@ export function PersonaleForm() {
       nome: "",
       cognome: "",
       codiceFiscale: "",
-      ruolo: "guardia_giurata",
+      ruolo: "Pattuglia", // Default to a new valid role
       telefono: "",
       email: "",
       data_nascita: undefined,
@@ -135,10 +135,10 @@ export function PersonaleForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="guardia_giurata">Guardia Giurata</SelectItem>
-                  <SelectItem value="operatore_fiduciario">Operatore Fiduciario</SelectItem>
-                  <SelectItem value="amministrativo">Amministrativo</SelectItem>
-                  <SelectItem value="altro">Altro</SelectItem>
+                  <SelectItem value="Pattuglia">Pattuglia</SelectItem>
+                  <SelectItem value="Operatore Network">Operatore Network</SelectItem>
+                  <SelectItem value="GPG">GPG</SelectItem>
+                  <SelectItem value="Operatore C.O.">Operatore C.O.</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

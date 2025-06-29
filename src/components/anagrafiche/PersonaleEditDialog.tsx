@@ -44,7 +44,7 @@ const formSchema = z.object({
   nome: z.string().min(2, "Il nome è richiesto."),
   cognome: z.string().min(2, "Il cognome è richiesto."),
   codice_fiscale: z.string().optional().nullable(),
-  ruolo: z.enum(["guardia_giurata", "operatore_fiduciario", "amministrativo", "altro"], {
+  ruolo: z.enum(["Pattuglia", "Operatore Network", "GPG", "Operatore C.O."], {
     required_error: "Seleziona un ruolo.",
   }),
   telefono: z.string().optional().nullable(),
@@ -68,7 +68,7 @@ export function PersonaleEditDialog({ isOpen, onClose, personale, onSave }: Pers
       nome: "",
       cognome: "",
       codice_fiscale: null,
-      ruolo: "guardia_giurata",
+      ruolo: "Pattuglia", // Default to a new valid role
       telefono: null,
       email: null,
       data_nascita: null,
@@ -86,11 +86,29 @@ export function PersonaleEditDialog({ isOpen, onClose, personale, onSave }: Pers
 
   useEffect(() => {
     if (personale) {
+      const mapOldRoleToNew = (oldRole: string | undefined): "Pattuglia" | "Operatore Network" | "GPG" | "Operatore C.O." => {
+        switch (oldRole) {
+          case "guardia_giurata":
+            return "GPG";
+          case "operatore_fiduciario":
+            return "Operatore Network";
+          case "amministrativo":
+            return "Operatore C.O.";
+          case "Pattuglia":
+          case "Operatore Network":
+          case "GPG":
+          case "Operatore C.O.":
+            return oldRole; // If it's already one of the new valid roles
+          default:
+            return "Pattuglia"; // Default to a valid new role if no match
+        }
+      };
+
       form.reset({
         nome: personale.nome,
         cognome: personale.cognome,
         codice_fiscale: personale.codice_fiscale || null,
-        ruolo: personale.ruolo as "guardia_giurata" | "operatore_fiduciario" | "amministrativo" | "altro",
+        ruolo: mapOldRoleToNew(personale.ruolo),
         telefono: personale.telefono || null,
         email: personale.email || null,
         data_nascita: personale.data_nascita ? parseISO(personale.data_nascita) : null,
@@ -214,10 +232,10 @@ export function PersonaleEditDialog({ isOpen, onClose, personale, onSave }: Pers
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="guardia_giurata">Guardia Giurata</SelectItem>
-                      <SelectItem value="operatore_fiduciario">Operatore Fiduciario</SelectItem>
-                      <SelectItem value="amministrativo">Amministrativo</SelectItem>
-                      <SelectItem value="altro">Altro</SelectItem>
+                      <SelectItem value="Pattuglia">Pattuglia</SelectItem>
+                      <SelectItem value="Operatore Network">Operatore Network</SelectItem>
+                      <SelectItem value="GPG">GPG</SelectItem>
+                      <SelectItem value="Operatore C.O.">Operatore C.O.</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
