@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Cliente, Fornitore, PuntoServizio } from "@/lib/anagrafiche-data";
+import { Cliente, Fornitore, PuntoServizio, Personale } from "@/lib/anagrafiche-data";
 import { showError } from "@/utils/toast";
 
 export async function fetchClienti(): Promise<Cliente[]> {
@@ -36,6 +36,19 @@ export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
   if (error) {
     showError(`Errore nel recupero dei punti servizio: ${error.message}`);
     console.error("Error fetching punti_servizio:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function fetchPersonale(): Promise<Personale[]> {
+  const { data, error } = await supabase
+    .from('personale')
+    .select('id, nome, cognome, ruolo');
+
+  if (error) {
+    showError(`Errore nel recupero del personale: ${error.message}`);
+    console.error("Error fetching personale:", error);
     return [];
   }
   return data || [];

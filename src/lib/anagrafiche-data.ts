@@ -14,6 +14,13 @@ export interface Fornitore {
   nome_fornitore: string;
 }
 
+export interface Personale {
+  id: string;
+  nome: string;
+  cognome: string;
+  ruolo: string;
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",
