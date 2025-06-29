@@ -21,11 +21,14 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Personale } from "@/lib/anagrafiche-data";
+import { PersonaleEditDialog } from "./PersonaleEditDialog"; // Import the new dialog
 
 export function PersonaleTable() {
   const [data, setData] = useState<Personale[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPersonaleForEdit, setSelectedPersonaleForEdit] = useState<Personale | null>(null);
 
   const fetchPersonaleData = useCallback(async () => {
     setLoading(true);
@@ -49,10 +52,28 @@ export function PersonaleTable() {
     fetchPersonaleData();
   }, [fetchPersonaleData]);
 
-  const handleEdit = (personale: Personale) => {
-    showInfo(`Modifica personale: ${personale.nome} ${personale.cognome} (ID: ${personale.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((personale: Personale) => {
+    setSelectedPersonaleForEdit(personale);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedPersonale: Personale) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(p =>
+        p.id === updatedPersonale.id ? updatedPersonale : p
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    // fetchPersonaleData();
+    setIsEditDialogOpen(false);
+    setSelectedPersonaleForEdit(null);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedPersonaleForEdit(null);
+  }, []);
 
   const handleDelete = async (personaleId: string, nomeCognome: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il personale "${nomeCognome}"?`)) {
@@ -196,6 +217,15 @@ export function PersonaleTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedPersonaleForEdit && (
+        <PersonaleEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          personale={selectedPersonaleForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
