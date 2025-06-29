@@ -42,7 +42,8 @@ import {
   vehicleInitialStateOptions,
   bodyworkDamageOptions,
 } from "@/lib/dotazioni-data";
-import { fetchPersonale, Personale } from "@/lib/anagrafiche-data";
+import { Personale } from "@/lib/anagrafiche-data";
+import { fetchPersonale } from "@/lib/data-fetching"; // Corretto il percorso di importazione
 
 const formSchema = z.object({
   serviceDate: z.date({
@@ -508,53 +509,53 @@ export default function ServiceReportForm() {
           />
         </div>
         <FormField
-          control={form.control}
-          name="vehicleInitialState"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Stato Iniziale Veicolo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona stato" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {vehicleInitialStateOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            control={form.control}
+            name="vehicleInitialState"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Stato Iniziale Veicolo</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona stato" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {vehicleInitialStateOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <FormField
-          control={form.control}
-          name="bodyworkDamage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Danni Carrozzeria</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona danni" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {bodyworkDamageOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            control={form.control}
+            name="bodyworkDamage"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Danni Carrozzeria</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona danni" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {bodyworkDamageOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         <FormField
           control={form.control}
           name="vehicleAnomalies"
