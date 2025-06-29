@@ -142,6 +142,7 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!event) {
       showError("Nessun evento selezionato per la modifica.");
+      onClose(); // Ensure dialog closes even if no event is selected
       return;
     }
 
@@ -159,19 +160,26 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
       longitude: values.longitude,
     };
 
-    const { data, error } = await supabase
-      .from('allarme_interventi')
-      .update(updatedData)
-      .eq('id', event.id)
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from('allarme_interventi')
+        .update(updatedData)
+        .eq('id', event.id)
+        .select();
 
-    if (error) {
-      showError(`Errore durante l'aggiornamento dell'evento: ${error.message}`);
-      console.error("Error updating alarm event:", error);
-    } else {
-      showSuccess(`Evento ${event.id} aggiornato con successo!`);
-      onSave({ ...event, ...updatedData }); // Update local state in parent
-      onClose(); // Close the dialog
+      if (error) {
+        showError(`Errore durante l'aggiornamento dell'evento: ${error.message}`);
+        console.error("Supabase update error:", error);
+      } else {
+        showSuccess(`Evento ${event.id} aggiornato con successo!`);
+        onSave({ ...event, ...updatedData }); // Update local state in parent
+      }
+    } catch (err: any) {
+      // This catch block will specifically handle network errors like "TypeError: fetch failed"
+      showError(`Si è verificato un errore di rete durante l'aggiornamento: ${err.message}`);
+      console.error("Network or unexpected error during update:", err);
+    } finally {
+      onClose(); // Ensure the dialog closes regardless of success or failure
     }
   };
 
