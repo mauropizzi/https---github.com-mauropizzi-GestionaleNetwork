@@ -15,106 +15,87 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
+import { it } from 'date-fns/locale';
 import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { Personale } from "@/lib/anagrafiche-data";
 
-interface PuntoServizioExtended extends PuntoServizio {
-  nome_cliente?: string;
-  nome_fornitore?: string;
-}
-
-export function PuntiServizioTable() {
-  const [data, setData] = useState<PuntoServizioExtended[]>([]);
+export function PersonaleTable() {
+  const [data, setData] = useState<Personale[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [clientiMap, setClientiMap] = useState<Map<string, string>>(new Map());
-  const [fornitoriMap, setFornitoriMap] = useState<Map<string, string>>(new Map());
 
-  const fetchPuntiServizioData = useCallback(async () => {
+  const fetchPersonaleData = useCallback(async () => {
     setLoading(true);
-    const { data: puntiServizioData, error: puntiServizioError } = await supabase
-      .from('punti_servizio')
-      .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
+    const { data, error } = await supabase
+      .from('personale')
+      .select('id, created_at, nome, cognome, codice_fiscale, ruolo, telefono, email, data_nascita, luogo_nascita, indirizzo, cap, citta, provincia, data_assunzione, data_cessazione, attivo, note');
 
-    if (puntiServizioError) {
-      showError(`Errore nel recupero dei punti servizio: ${puntiServizioError.message}`);
-      console.error("Error fetching punti_servizio:", puntiServizioError);
+    if (error) {
+      showError(`Errore nel recupero del personale: ${error.message}`);
+      console.error("Error fetching personale:", error);
       setData([]);
     } else {
-      const mappedData = puntiServizioData.map(ps => ({
-        ...ps,
-        nome_cliente: ps.clienti?.nome_cliente || 'N/A',
-        nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
-      }));
-      setData(mappedData || []);
+      setData(data || []);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchPuntiServizioData();
-  }, [fetchPuntiServizioData]);
+    fetchPersonaleData();
+  }, [fetchPersonaleData]);
 
-  const handleEdit = (puntoServizio: PuntoServizioExtended) => {
-    showInfo(`Modifica punto servizio: ${puntoServizio.nome_punto_servizio} (ID: ${puntoServizio.id})`);
+  const handleEdit = (personale: Personale) => {
+    showInfo(`Modifica personale: ${personale.nome} ${personale.cognome} (ID: ${personale.id})`);
     // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
   };
 
-  const handleDelete = async (puntoServizioId: string, nomePuntoServizio: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il punto servizio "${nomePuntoServizio}"?`)) {
+  const handleDelete = async (personaleId: string, nomeCognome: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il personale "${nomeCognome}"?`)) {
       const { error } = await supabase
-        .from('punti_servizio')
+        .from('personale')
         .delete()
-        .eq('id', puntoServizioId);
+        .eq('id', personaleId);
 
       if (error) {
-        showError(`Errore durante l'eliminazione del punto servizio: ${error.message}`);
-        console.error("Error deleting punto_servizio:", error);
+        showError(`Errore durante l'eliminazione del personale: ${error.message}`);
+        console.error("Error deleting personale:", error);
       } else {
-        showSuccess(`Punto servizio "${nomePuntoServizio}" eliminato con successo!`);
-        fetchPuntiServizioData(); // Refresh data after deletion
+        showSuccess(`Personale "${nomeCognome}" eliminato con successo!`);
+        fetchPersonaleData(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione del punto servizio "${nomePuntoServizio}" annullata.`);
+      showInfo(`Eliminazione del personale "${nomeCognome}" annullata.`);
     }
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(punto => {
+    return data.filter(personale => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        punto.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (punto.nome_cliente?.toLowerCase().includes(searchLower)) ||
-        (punto.indirizzo?.toLowerCase().includes(searchLower)) ||
-        (punto.citta?.toLowerCase().includes(searchLower)) ||
-        (punto.referente?.toLowerCase().includes(searchLower))
+        personale.nome.toLowerCase().includes(searchLower) ||
+        personale.cognome.toLowerCase().includes(searchLower) ||
+        (personale.codice_fiscale?.toLowerCase().includes(searchLower)) ||
+        personale.ruolo.toLowerCase().includes(searchLower) ||
+        (personale.email?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
 
-  const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
+  const columns: ColumnDef<Personale>[] = useMemo(() => [
     {
-      accessorKey: "nome_punto_servizio",
-      header: "Nome Punto Servizio",
+      accessorKey: "nome",
+      header: "Nome",
     },
     {
-      accessorKey: "nome_cliente",
-      header: "Cliente Associato",
+      accessorKey: "cognome",
+      header: "Cognome",
     },
     {
-      accessorKey: "indirizzo",
-      header: "Indirizzo",
-    },
-    {
-      accessorKey: "citta",
-      header: "Città",
-    },
-    {
-      accessorKey: "referente",
-      header: "Referente",
+      accessorKey: "ruolo",
+      header: "Ruolo",
     },
     {
       accessorKey: "telefono",
@@ -125,12 +106,9 @@ export function PuntiServizioTable() {
       header: "Email",
     },
     {
-      accessorKey: "tempo_intervento",
-      header: "Tempo Intervento (min)",
-    },
-    {
-      accessorKey: "nome_fornitore",
-      header: "Fornitore",
+      accessorKey: "attivo",
+      header: "Attivo",
+      cell: ({ row }) => (row.original.attivo ? "Sì" : "No"),
     },
     {
       id: "actions",
@@ -140,7 +118,7 @@ export function PuntiServizioTable() {
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_punto_servizio)} title="Elimina">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, `${row.original.nome} ${row.original.cognome}`)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -158,12 +136,12 @@ export function PuntiServizioTable() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <Input
-          placeholder="Cerca per nome, indirizzo, città..."
+          placeholder="Cerca per nome, cognome, ruolo..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Button variant="outline" onClick={fetchPuntiServizioData} disabled={loading}>
+        <Button variant="outline" onClick={fetchPersonaleData} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
       </div>
@@ -190,7 +168,7 @@ export function PuntiServizioTable() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento punti servizio...
+                  Caricamento personale...
                 </TableCell>
               </TableRow>
             ) : (table && table.getRowModel().rows?.length) ? (
@@ -209,7 +187,7 @@ export function PuntiServizioTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun punto servizio trovato.
+                  Nessun personale trovato.
                 </TableCell>
               </TableRow>
             )}

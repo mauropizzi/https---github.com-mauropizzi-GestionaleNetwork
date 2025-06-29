@@ -18,99 +18,83 @@ import { Input } from "@/components/ui/input";
 import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
 
-interface PuntoServizioExtended extends PuntoServizio {
-  nome_cliente?: string;
-  nome_fornitore?: string;
+interface OperatoreNetwork {
+  id: string;
+  created_at: string;
+  nome_operatore: string;
+  referente?: string;
+  telefono?: string;
+  email?: string;
+  tipo_servizio?: string;
 }
 
-export function PuntiServizioTable() {
-  const [data, setData] = useState<PuntoServizioExtended[]>([]);
+export function OperatoriNetworkTable() {
+  const [data, setData] = useState<OperatoreNetwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [clientiMap, setClientiMap] = useState<Map<string, string>>(new Map());
-  const [fornitoriMap, setFornitoriMap] = useState<Map<string, string>>(new Map());
 
-  const fetchPuntiServizioData = useCallback(async () => {
+  const fetchOperatoriNetworkData = useCallback(async () => {
     setLoading(true);
-    const { data: puntiServizioData, error: puntiServizioError } = await supabase
-      .from('punti_servizio')
-      .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
+    const { data, error } = await supabase
+      .from('operatori_network')
+      .select('id, created_at, nome_operatore, referente, telefono, email, tipo_servizio');
 
-    if (puntiServizioError) {
-      showError(`Errore nel recupero dei punti servizio: ${puntiServizioError.message}`);
-      console.error("Error fetching punti_servizio:", puntiServizioError);
+    if (error) {
+      showError(`Errore nel recupero degli operatori network: ${error.message}`);
+      console.error("Error fetching operatori_network:", error);
       setData([]);
     } else {
-      const mappedData = puntiServizioData.map(ps => ({
-        ...ps,
-        nome_cliente: ps.clienti?.nome_cliente || 'N/A',
-        nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
-      }));
-      setData(mappedData || []);
+      setData(data || []);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchPuntiServizioData();
-  }, [fetchPuntiServizioData]);
+    fetchOperatoriNetworkData();
+  }, [fetchOperatoriNetworkData]);
 
-  const handleEdit = (puntoServizio: PuntoServizioExtended) => {
-    showInfo(`Modifica punto servizio: ${puntoServizio.nome_punto_servizio} (ID: ${puntoServizio.id})`);
+  const handleEdit = (operatore: OperatoreNetwork) => {
+    showInfo(`Modifica operatore network: ${operatore.nome_operatore} (ID: ${operatore.id})`);
     // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
   };
 
-  const handleDelete = async (puntoServizioId: string, nomePuntoServizio: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il punto servizio "${nomePuntoServizio}"?`)) {
+  const handleDelete = async (operatoreId: string, nomeOperatore: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare l'operatore network "${nomeOperatore}"?`)) {
       const { error } = await supabase
-        .from('punti_servizio')
+        .from('operatori_network')
         .delete()
-        .eq('id', puntoServizioId);
+        .eq('id', operatoreId);
 
       if (error) {
-        showError(`Errore durante l'eliminazione del punto servizio: ${error.message}`);
-        console.error("Error deleting punto_servizio:", error);
+        showError(`Errore durante l'eliminazione dell'operatore network: ${error.message}`);
+        console.error("Error deleting operatore_network:", error);
       } else {
-        showSuccess(`Punto servizio "${nomePuntoServizio}" eliminato con successo!`);
-        fetchPuntiServizioData(); // Refresh data after deletion
+        showSuccess(`Operatore network "${nomeOperatore}" eliminato con successo!`);
+        fetchOperatoriNetworkData(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione del punto servizio "${nomePuntoServizio}" annullata.`);
+      showInfo(`Eliminazione dell'operatore network "${nomeOperatore}" annullata.`);
     }
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(punto => {
+    return data.filter(operatore => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        punto.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (punto.nome_cliente?.toLowerCase().includes(searchLower)) ||
-        (punto.indirizzo?.toLowerCase().includes(searchLower)) ||
-        (punto.citta?.toLowerCase().includes(searchLower)) ||
-        (punto.referente?.toLowerCase().includes(searchLower))
+        operatore.nome_operatore.toLowerCase().includes(searchLower) ||
+        (operatore.referente?.toLowerCase().includes(searchLower)) ||
+        (operatore.telefono?.toLowerCase().includes(searchLower)) ||
+        (operatore.email?.toLowerCase().includes(searchLower)) ||
+        (operatore.tipo_servizio?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
 
-  const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
+  const columns: ColumnDef<OperatoreNetwork>[] = useMemo(() => [
     {
-      accessorKey: "nome_punto_servizio",
-      header: "Nome Punto Servizio",
-    },
-    {
-      accessorKey: "nome_cliente",
-      header: "Cliente Associato",
-    },
-    {
-      accessorKey: "indirizzo",
-      header: "Indirizzo",
-    },
-    {
-      accessorKey: "citta",
-      header: "Città",
+      accessorKey: "nome_operatore",
+      header: "Nome Operatore",
     },
     {
       accessorKey: "referente",
@@ -125,12 +109,8 @@ export function PuntiServizioTable() {
       header: "Email",
     },
     {
-      accessorKey: "tempo_intervento",
-      header: "Tempo Intervento (min)",
-    },
-    {
-      accessorKey: "nome_fornitore",
-      header: "Fornitore",
+      accessorKey: "tipo_servizio",
+      header: "Tipo Servizio",
     },
     {
       id: "actions",
@@ -140,7 +120,7 @@ export function PuntiServizioTable() {
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_punto_servizio)} title="Elimina">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_operatore)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -158,12 +138,12 @@ export function PuntiServizioTable() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <Input
-          placeholder="Cerca per nome, indirizzo, città..."
+          placeholder="Cerca per nome, referente, email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Button variant="outline" onClick={fetchPuntiServizioData} disabled={loading}>
+        <Button variant="outline" onClick={fetchOperatoriNetworkData} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
       </div>
@@ -190,7 +170,7 @@ export function PuntiServizioTable() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento punti servizio...
+                  Caricamento operatori network...
                 </TableCell>
               </TableRow>
             ) : (table && table.getRowModel().rows?.length) ? (
@@ -209,7 +189,7 @@ export function PuntiServizioTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun punto servizio trovato.
+                  Nessun operatore network trovato.
                 </TableCell>
               </TableRow>
             )}
