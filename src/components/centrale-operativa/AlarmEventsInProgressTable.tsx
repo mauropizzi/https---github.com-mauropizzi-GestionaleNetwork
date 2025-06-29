@@ -17,14 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText } from 'lucide-react'; // Import MessageSquareText icon
+import { Printer, RefreshCcw, Edit, MessageSquareText } from 'lucide-react';
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { fetchPersonale } from '@/lib/data-fetching'; // Import fetchPersonale
-import { Personale } from '@/lib/anagrafiche-data'; // Import Personale interface
+import { useNavigate } from 'react-router-dom';
+import { fetchPersonale } from '@/lib/data-fetching';
+import { Personale } from '@/lib/anagrafiche-data';
 
 interface AllarmeIntervento {
   id: string;
@@ -34,8 +34,8 @@ interface AllarmeIntervento {
   request_type: string;
   co_operator?: string;
   operator_client?: string;
-  gpg_intervention?: string; // This is the personnel ID
-  service_outcome?: string; // This should be null for "in progress"
+  gpg_intervention?: string;
+  service_outcome?: string;
   notes?: string;
   latitude?: number;
   longitude?: number;
@@ -44,7 +44,7 @@ interface AllarmeIntervento {
 export function AlarmEventsInProgressTable() {
   console.count("AlarmEventsInProgressTable render");
 
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const [data, setData] = useState<AllarmeIntervento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,7 +56,7 @@ export function AlarmEventsInProgressTable() {
     const { data, error } = await supabase
       .from('allarme_interventi')
       .select('*')
-      .is('service_outcome', null); // Filter for events with no outcome
+      .is('service_outcome', null);
 
     if (error) {
       showError(`Errore nel recupero degli eventi in gestione: ${error.message}`);
@@ -81,7 +81,7 @@ export function AlarmEventsInProgressTable() {
   }, [fetchInProgressEvents, fetchPattugliaPersonnel]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
-    navigate(`/centrale-operativa/edit/${event.id}`); // Navigate to the new edit page
+    navigate(`/centrale-operativa/edit/${event.id}`);
   }, [navigate]);
 
   const handleWhatsAppMessage = useCallback((event: AllarmeIntervento) => {
@@ -90,7 +90,11 @@ export function AlarmEventsInProgressTable() {
       const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
       if (personnel && personnel.telefono) {
         const cleanedPhoneNumber = personnel.telefono.replace(/\D/g, '');
-        const publicEditUrl = `${window.location.origin}/public/alarm-event/edit/${event.id}`;
+        
+        // Use environment variable for the public base URL
+        const publicBaseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+        const publicEditUrl = `${publicBaseUrl}/public/alarm-event/edit/${event.id}`;
+        
         const message = encodeURIComponent(`Ciao ${personnel.nome}, per favore compila il rapporto di intervento per l'evento ${event.id} al seguente link: ${publicEditUrl}`);
         const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}?text=${message}`;
         window.open(whatsappUrl, '_blank');
@@ -179,7 +183,7 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(), // Corrected typo here
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
