@@ -88,9 +88,12 @@ export function AlarmEventsInProgressTable() {
     if (gpgInterventionId) {
       const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
       if (personnel && personnel.telefono) {
-        // Assuming the phone number is in a format suitable for WhatsApp (e.g., with country code)
-        // If not, you might need to prepend '+39' or similar based on your data format.
-        const whatsappUrl = `https://wa.me/${personnel.telefono}`;
+        // Clean the phone number: remove all non-digit characters
+        const cleanedPhoneNumber = personnel.telefono.replace(/\D/g, '');
+        // Ensure country code is present. For Italian numbers, it's usually +39.
+        // If your numbers in DB don't have it, you might need to prepend it.
+        // For now, assuming they are either already complete or just need non-digits removed.
+        const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}`;
         window.open(whatsappUrl, '_blank');
         showInfo(`Apertura chat WhatsApp per ${personnel.nome} ${personnel.cognome}`);
       } else {
