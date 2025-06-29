@@ -32,7 +32,8 @@ import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
 import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const dailyHoursSchema = z.object({
   day: z.string(),
@@ -69,15 +70,14 @@ const formSchema = z.object({
 });
 
 export function IspezioniForm() {
-  const [calculatedInspections, setCalculatedInspections] = useState<number | null>(null);
-  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]); // Changed from clienti
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio(); // Changed from fetchClienti
+      const fetchedPuntiServizio = await fetchPuntiServizio();
       const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio); // Changed from setClienti
+      setPuntiServizio(fetchedPuntiServizio);
       setFornitori(fetchedFornitori);
     };
     loadData();
@@ -86,7 +86,7 @@ export function IspezioniForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      servicePointId: "", // Changed from clienteId
+      servicePointId: "",
       fornitoreId: "",
       cadenceHours: 2,
       inspectionType: "perimetrale",
@@ -108,7 +108,7 @@ export function IspezioniForm() {
     name: "dailyHours",
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const start = values.startDate;
     const end = values.endDate;
     const cadenceHours = values.cadenceHours;
@@ -153,16 +153,43 @@ export function IspezioniForm() {
     }
 
     if (cadenceHours <= 0) {
-      setCalculatedInspections(0);
+      showError("La cadenza oraria deve essere maggiore di zero per calcolare le ispezioni.");
       return;
     }
 
     // Calculation: (Total operational hours over the period) / Cadenza + 1 (for the initial inspection)
     const numInspections = Math.floor(totalOperationalHours / cadenceHours) + 1;
-    setCalculatedInspections(numInspections);
-    console.log("Calculated Inspections:", numInspections);
-    console.log("Punto Servizio ID:", values.servicePointId); // Changed from Cliente ID
-    console.log("Fornitore ID:", values.fornitoreId);
+    console.log("Calculated Inspections (for saving):", numInspections);
+
+    // Prepare data for Supabase insertion
+    const payload = {
+      type: "Ispezioni", // Fixed type for this form
+      client_id: null, // This form uses servicePointId, not direct client_id
+      service_point_id: values.servicePointId,
+      start_date: format(values.startDate, 'yyyy-MM-dd'),
+      start_time: null, // Detailed times are in daily_hours_config
+      end_date: format(values.endDate, 'yyyy-MM-dd'),
+      end_time: null, // Detailed times are in daily_hours_config
+      status: "Pending", // Default status
+      calculated_cost: numInspections, // Use number of inspections as cost for now
+      num_agents: null, // Not applicable for Ispezioni
+      cadence_hours: values.cadenceHours,
+      inspection_type: values.inspectionType,
+      daily_hours_config: dailyHoursConfig, // Save the daily hours configuration
+    };
+
+    const { data, error } = await supabase
+      .from('servizi_richiesti')
+      .insert([payload]);
+
+    if (error) {
+      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
+      console.error("Error inserting service request:", error);
+    } else {
+      showSuccess("Richiesta di ispezione registrata con successo!");
+      console.log("Service request saved successfully:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -171,20 +198,20 @@ export function IspezioniForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="servicePointId" // Changed from clienteId
+            name="servicePointId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Punto Servizio</FormLabel> {/* Changed label */}
+                <FormLabel>Punto Servizio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un punto servizio" /> {/* Changed placeholder */}
+                      <SelectValue placeholder="Seleziona un punto servizio" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {puntiServizio.map((punto) => ( // Changed from clienti.map
+                    {puntiServizio.map((punto) => (
                       <SelectItem key={punto.id} value={punto.id}>
-                        {punto.nome_punto_servizio} {/* Changed display field */}
+                        {punto.nome_punto_servizio}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -404,16 +431,7 @@ export function IspezioniForm() {
           ))}
         </div>
 
-        <Button type="submit" className="w-full">Calcola Ispezioni</Button>
-        {calculatedInspections !== null && (
-          <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
-            <h3 className="text-lg font-semibold">Numero di Ispezioni Calcolate:</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{calculatedInspections}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              (Questo calcolo considera le ore operative totali tra la data di inizio e la data di fine, divise per la cadenza, più un'ispezione iniziale.)
-            </p>
-          </div>
-        )}
+        <Button type="submit" className="w-full">Registra Richiesta</Button>
       </form>
     </Form>
   );
