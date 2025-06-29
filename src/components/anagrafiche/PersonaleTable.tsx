@@ -29,6 +29,7 @@ export function PersonaleTable() {
 
   const fetchPersonaleData = useCallback(async () => {
     setLoading(true);
+    console.log("Fetching personale data from Supabase..."); // Log di inizio fetch
     const { data, error } = await supabase
       .from('personale')
       .select('id, created_at, nome, cognome, codice_fiscale, ruolo, telefono, email, data_nascita, luogo_nascita, indirizzo, cap, citta, provincia, data_assunzione, data_cessazione, attivo, note');
@@ -38,6 +39,7 @@ export function PersonaleTable() {
       console.error("Error fetching personale:", error);
       setData([]);
     } else {
+      console.log("Fetched personale data successfully:", data); // Log dei dati recuperati
       setData(data || []);
     }
     setLoading(false);
