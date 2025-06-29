@@ -56,9 +56,9 @@ export function InterventionForm() {
 
   useEffect(() => {
     const loadOperatoriClienti = async () => {
-      // Fetch personnel with the role 'operatore_network'
-      const fetchedPersonale = await fetchPersonale('operatore_network');
-      console.log("Fetched operatori_network personnel:", fetchedPersonale); // Debug log
+      // Fetch personnel with the role 'Operatore Network' (case-sensitive)
+      const fetchedPersonale = await fetchPersonale('Operatore Network');
+      console.log("Fetched 'Operatore Network' personnel for dropdown:", fetchedPersonale); // Debug log for dropdown data
       setOperatoriClientiPersonale(fetchedPersonale);
     };
     loadOperatoriClienti();
