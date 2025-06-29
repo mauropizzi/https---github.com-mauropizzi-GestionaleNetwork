@@ -43,6 +43,7 @@ interface AllarmeIntervento {
 
 export function AlarmEventsInProgressTable() {
   console.count("AlarmEventsInProgressTable render");
+  console.log("VITE_PUBLIC_BASE_URL:", import.meta.env.VITE_PUBLIC_BASE_URL); // Debugging line
 
   const navigate = useNavigate();
   const [data, setData] = useState<AllarmeIntervento[]>([]);
