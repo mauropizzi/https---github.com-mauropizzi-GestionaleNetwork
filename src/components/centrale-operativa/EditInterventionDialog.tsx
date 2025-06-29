@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,9 +36,10 @@ import {
   requestTypeOptions,
   coOperatorOptions,
   operatorClientOptions,
-  gpgInterventionOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-data';
+import { fetchPersonale } from '@/lib/data-fetching';
+import { Personale } from '@/lib/anagrafiche-data';
 
 interface AllarmeIntervento {
   id: string;
@@ -72,15 +73,25 @@ const formSchema = z.object({
   co_operator: z.string().optional().nullable(),
   operator_client: z.string().optional().nullable(),
   gpg_intervention: z.string().optional().nullable(),
-  service_outcome: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   latitude: z.coerce.number().optional().nullable(),
   longitude: z.coerce.number().optional().nullable(),
+  service_outcome: z.string().optional().nullable(), // Make service_outcome optional for in-progress events
 });
 
 export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditInterventionDialogProps) => {
   console.count("EditInterventionDialog render");
   console.log("EditInterventionDialog: rendering. isOpen:", isOpen, "event ID:", event?.id);
+
+  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
+
+  useEffect(() => {
+    const loadPersonnelData = async () => {
+      const fetchedPattuglia = await fetchPersonale('Pattuglia');
+      setPattugliaPersonale(fetchedPattuglia);
+    };
+    loadPersonnelData();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,10 +103,10 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
       co_operator: event?.co_operator || null, // Ensure null for optional fields
       operator_client: event?.operator_client || null,
       gpg_intervention: event?.gpg_intervention || null,
-      service_outcome: event?.service_outcome || null,
       notes: event?.notes || null,
       latitude: event?.latitude || undefined,
       longitude: event?.longitude || undefined,
+      service_outcome: event?.service_outcome || null,
     },
   });
 
@@ -109,10 +120,10 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
         co_operator: event.co_operator || null,
         operator_client: event.operator_client || null,
         gpg_intervention: event.gpg_intervention || null,
-        service_outcome: event.service_outcome || null,
         notes: event.notes || null,
         latitude: event.latitude || undefined,
         longitude: event.longitude || undefined,
+        service_outcome: event.service_outcome || null,
       });
     }
   }, [event, form]);
@@ -376,9 +387,9 @@ export const EditInterventionDialog = ({ isOpen, onClose, event, onSave }: EditI
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {gpgInterventionOptions.map(option => (
-                        <SelectItem key={option} value={option}>
-                          {option}
+                      {pattugliaPersonale.map(personale => (
+                        <SelectItem key={personale.id} value={personale.id}>
+                          {personale.nome} {personale.cognome}
                         </SelectItem>
                       ))}
                     </SelectContent>
