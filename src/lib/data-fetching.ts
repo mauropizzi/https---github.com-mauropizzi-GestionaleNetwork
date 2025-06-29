@@ -42,6 +42,7 @@ export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
 }
 
 export async function fetchPersonale(role?: string): Promise<Personale[]> {
+  console.log(`Attempting to fetch personnel with role: '${role}'`);
   let query = supabase
     .from('personale')
     .select('id, nome, cognome, ruolo');
@@ -57,6 +58,7 @@ export async function fetchPersonale(role?: string): Promise<Personale[]> {
     console.error("Error fetching personale:", error);
     return [];
   }
+  console.log(`Successfully fetched personnel for role '${role}':`, data);
   return data || [];
 }
 
