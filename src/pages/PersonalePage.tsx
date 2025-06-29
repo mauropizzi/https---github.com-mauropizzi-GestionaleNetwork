@@ -95,7 +95,7 @@ const PersonalePage = () => {
           </div>
 
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="nuovo-personale">Nuovo Personale</TabsTrigger>
               <TabsTrigger value="lista-personale">Lista Personale</TabsTrigger>
             </TabsList>

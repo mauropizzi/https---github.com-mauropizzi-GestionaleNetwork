@@ -57,14 +57,14 @@ const ServiceRequest = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={getParentTab(currentTab)} onValueChange={(value) => handleTabChange(value === "cadenza" ? "ispezioni" : value === "ore" ? "piantonamento" : "bonifiche")} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
               <TabsTrigger value="ore">Servizi in ORE</TabsTrigger>
               <TabsTrigger value="cadenza">Ispezioni</TabsTrigger>
               <TabsTrigger value="una-tantum">Servizi UNA TANTUM</TabsTrigger>
             </TabsList>
             <TabsContent value="ore" className="mt-4">
               <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
                   <TabsTrigger value="piantonamento">Piantonamento</TabsTrigger>
                   <TabsTrigger value="fiduciari">Servizi Fiduciari</TabsTrigger>
                 </TabsList>
@@ -81,7 +81,7 @@ const ServiceRequest = () => {
             </TabsContent>
             <TabsContent value="una-tantum" className="mt-4">
               <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
                   <TabsTrigger value="bonifiche">Bonifiche</TabsTrigger>
                   <TabsTrigger value="chiavi">Gestione Chiavi</TabsTrigger>
                   <TabsTrigger value="apertura-chiusura">Apertura/Chiusura</TabsTrigger>

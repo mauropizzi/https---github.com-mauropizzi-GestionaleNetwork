@@ -95,7 +95,7 @@ const PuntiServizioPage = () => {
           </div>
 
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="nuovo-punto-servizio">Nuovo Punto Servizio</TabsTrigger>
               <TabsTrigger value="lista-punti-servizio">Lista Punti Servizio</TabsTrigger>
             </TabsList>

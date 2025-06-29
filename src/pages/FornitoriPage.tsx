@@ -95,7 +95,7 @@ const FornitoriPage = () => {
           </div>
 
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="nuovo-fornitore">Nuovo Fornitore</TabsTrigger>
               <TabsTrigger value="lista-fornitori">Lista Fornitori</TabsTrigger>
             </TabsList>
