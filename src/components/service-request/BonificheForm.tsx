@@ -28,7 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
 import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const BASE_RATE_BONIFICA = 150; // Example base rate
 
@@ -55,7 +56,6 @@ const formSchema = z.object({
 });
 
 export function BonificheForm() {
-  const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]); // Changed from clienti
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
@@ -79,13 +79,42 @@ export function BonificheForm() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const cost = BASE_RATE_BONIFICA;
-    setCalculatedCost(cost);
     console.log("Calculated Bonifiche Cost:", cost);
     console.log("Bonifiche Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
     console.log("Punto Servizio ID:", values.servicePointId); // Changed from Cliente ID
     console.log("Fornitore ID:", values.fornitoreId);
+
+    // Prepare data for Supabase insertion
+    const payload = {
+      type: "Bonifiche", // Fixed type for this form
+      client_id: null, // This form uses servicePointId, not direct client_id
+      service_point_id: values.servicePointId,
+      start_date: format(values.startDate, 'yyyy-MM-dd'),
+      start_time: values.startTime,
+      end_date: format(values.endDate, 'yyyy-MM-dd'),
+      end_time: values.endTime,
+      status: "Pending", // Default status
+      calculated_cost: cost, // Use fixed cost for now
+      num_agents: null, // Not applicable for Bonifiche
+      cadence_hours: null, // Not applicable for Bonifiche
+      inspection_type: null, // Not applicable for Bonifiche
+      daily_hours_config: null, // Not applicable for Bonifiche
+    };
+
+    const { data, error } = await supabase
+      .from('servizi_richiesti')
+      .insert([payload]);
+
+    if (error) {
+      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
+      console.error("Error inserting service request:", error);
+    } else {
+      showSuccess("Richiesta di bonifica registrata con successo!");
+      console.log("Service request saved successfully:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -245,13 +274,7 @@ export function BonificheForm() {
             )}
           />
         </div>
-        <Button type="submit" className="w-full">Calcola Costo</Button>
-        {calculatedCost !== null && (
-          <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
-            <h3 className="text-lg font-semibold">Costo Calcolato:</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{calculatedCost.toFixed(2)} €</p>
-          </div>
-        )}
+        <Button type="submit" className="w-full">Registra Richiesta</Button>
       </form>
     </Form>
   );
