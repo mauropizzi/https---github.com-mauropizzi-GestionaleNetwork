@@ -36,6 +36,7 @@ export function PuntiServizioTable() {
 
   const fetchPuntiServizioData = useCallback(async () => {
     setLoading(true);
+    console.log("Fetching punti_servizio data from Supabase...");
     const { data: puntiServizioData, error: puntiServizioError } = await supabase
       .from('punti_servizio')
       .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
@@ -45,12 +46,14 @@ export function PuntiServizioTable() {
       console.error("Error fetching punti_servizio:", puntiServizioError);
       setData([]);
     } else {
+      console.log("Raw fetched punti_servizio data:", puntiServizioData); // Log raw data
       const mappedData = puntiServizioData.map(ps => ({
         ...ps,
         nome_cliente: ps.clienti?.nome_cliente || 'N/A',
         nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
       }));
       setData(mappedData || []);
+      console.log("Mapped punti_servizio data for table:", mappedData); // Log mapped data
     }
     setLoading(false);
   }, []);
