@@ -558,7 +558,7 @@ export function InterventionForm() {
           className="w-full bg-blue-600 hover:bg-blue-700" 
           onClick={handleStartGpsTracking}
         >
-          ACQUISIZIONE POSIZIONE DA RICHIESTA DA C.O.
+          Posizione GPS presa in carico richiesta
         </Button>
         {formData.startLatitude !== undefined && formData.startLongitude !== undefined && (
           <p className="text-sm text-gray-500 mt-1 text-center">
