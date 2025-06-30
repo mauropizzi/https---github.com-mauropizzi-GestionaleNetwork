@@ -317,14 +317,10 @@ export function InterventionForm() {
       notesCombined.push(`GPS: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
     }
 
-    // Determine the service_point_code to save based on the selected servicePoint ID
-    const selectedServicePoint = puntiServizioList.find(p => p.id === servicePoint);
-    const servicePointCodeToSave = selectedServicePoint?.codice_sicep || selectedServicePoint?.codice_cliente || selectedServicePoint?.nome_punto_servizio || servicePoint;
-
     const payload = {
       report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
       report_time: format(new Date(requestTime), 'HH:mm:ss'),
-      service_point_code: servicePointCodeToSave, // Store the code/name, not the ID
+      service_point_code: servicePoint, // Now consistently stores the ID (UUID)
       request_type: requestType,
       co_operator: coOperator || null,
       operator_client: operatorClient || null,

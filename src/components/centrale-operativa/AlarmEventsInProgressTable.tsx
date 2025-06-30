@@ -29,7 +29,7 @@ interface AllarmeIntervento {
   id: string;
   report_date: string;
   report_time: string;
-  service_point_code: string;
+  service_point_code: string; // This will now consistently be the UUID
   request_type: string;
   co_operator?: string;
   operator_client?: string;
@@ -80,10 +80,10 @@ export function AlarmEventsInProgressTable() {
     const fetchedPuntiServizio = await fetchPuntiServizio();
     const map = new Map<string, PuntoServizio>();
     fetchedPuntiServizio.forEach(p => {
+      map.set(p.id, p); // Map by ID
       if (p.codice_sicep) map.set(p.codice_sicep, p);
       if (p.codice_cliente) map.set(p.codice_cliente, p);
       if (p.nome_punto_servizio) map.set(p.nome_punto_servizio, p);
-      map.set(p.id, p); // Also map by ID for robustness
     });
     setPuntiServizioMap(map);
   }, []);
@@ -122,8 +122,8 @@ export function AlarmEventsInProgressTable() {
 
   const filteredData = useMemo(() => {
     return data.filter(report => {
-      const servicePoint = puntiServizioMap.get(report.service_point_code);
-      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code;
+      const servicePoint = puntiServizioMap.get(report.service_point_code); // Lookup by ID
+      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code; // Fallback to ID if name not found
       const matchesSearch = searchTerm === '' ||
         servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,8 +158,8 @@ export function AlarmEventsInProgressTable() {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
       cell: ({ row }) => {
-        const servicePoint = puntiServizioMap.get(row.original.service_point_code);
-        return servicePoint?.nome_punto_servizio || row.original.service_point_code;
+        const servicePoint = puntiServizioMap.get(row.original.service_point_code); // Lookup by ID
+        return servicePoint?.nome_punto_servizio || row.original.service_point_code; // Fallback to ID if name not found
       },
     },
     {

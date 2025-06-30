@@ -44,7 +44,7 @@ interface AllarmeIntervento {
   id: string;
   report_date: string;
   report_time: string;
-  service_point_code: string;
+  service_point_code: string; // This will now consistently be the UUID
   request_type: string;
   co_operator?: string | null;
   operator_client?: string | null;
@@ -60,7 +60,7 @@ const formSchema = z.object({
     required_error: "La data del rapporto è richiesta.",
   }),
   report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  service_point_code: z.string().min(1, "Il punto servizio è richiesto."),
+  service_point_code: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."), // Expecting UUID
   request_type: z.string().min(1, "La tipologia di richiesta è richiesta."),
   co_operator: z.string().optional().nullable(),
   operator_client: z.string().optional().nullable(),
@@ -126,7 +126,7 @@ const EditAlarmEventPage = () => {
           form.reset({
             report_date: event.report_date ? parseISO(event.report_date) : new Date(),
             report_time: event.report_time || format(new Date(), 'HH:mm'),
-            service_point_code: event.service_point_code || '',
+            service_point_code: event.service_point_code || '', // This will now be the UUID
             request_type: event.request_type || '',
             co_operator: event.co_operator || null,
             operator_client: event.operator_client || null,
@@ -187,7 +187,7 @@ const EditAlarmEventPage = () => {
     const updatedData = {
       report_date: format(values.report_date, 'yyyy-MM-dd'),
       report_time: values.report_time,
-      service_point_code: values.service_point_code,
+      service_point_code: values.service_point_code, // This is now consistently the UUID
       request_type: values.request_type,
       co_operator: values.co_operator,
       operator_client: values.operator_client,
@@ -342,25 +342,16 @@ const EditAlarmEventPage = () => {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleziona un punto servizio...">
-                            {field.value
-                              ? puntiServizioList.find(p =>
-                                  p.codice_sicep === field.value ||
-                                  p.codice_cliente === field.value ||
-                                  p.nome_punto_servizio === field.value
-                                )?.nome_punto_servizio || field.value
-                              : "Seleziona un punto servizio..."}
+                            {puntiServizioList.find(p => p.id === field.value)?.nome_punto_servizio || "Seleziona un punto servizio..."}
                           </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {puntiServizioList.map(point => {
-                          const valueToUse = point.codice_sicep || point.codice_cliente || point.nome_punto_servizio || point.id;
-                          return (
-                            <SelectItem key={point.id} value={valueToUse}>
-                              {point.nome_punto_servizio}
-                            </SelectItem>
-                          );
-                        })}
+                        {puntiServizioList.map(point => (
+                          <SelectItem key={point.id} value={point.id}>
+                            {point.nome_punto_servizio}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

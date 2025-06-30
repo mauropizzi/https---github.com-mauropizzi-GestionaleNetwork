@@ -13,7 +13,7 @@ interface AllarmeIntervento {
   created_at: string;
   report_date: string; // ISO date string
   report_time: string; // HH:MM:SS string
-  service_point_code: string;
+  service_point_code: string; // This will now consistently be the UUID
   request_type: string;
   co_operator?: string;
   operator_client?: string;
@@ -48,10 +48,10 @@ export const printSingleServiceReport = async (reportId: string) => {
   const puntiServizioList = await fetchPuntiServizio();
   const servicePointMap = new Map<string, PuntoServizio>();
   puntiServizioList.forEach(p => {
+    servicePointMap.set(p.id, p); // Map by ID
     if (p.codice_sicep) servicePointMap.set(p.codice_sicep, p);
     if (p.codice_cliente) servicePointMap.set(p.codice_cliente, p);
     if (p.nome_punto_servizio) servicePointMap.set(p.nome_punto_servizio, p);
-    servicePointMap.set(p.id, p); // Also map by ID for robustness
   });
 
   const doc = new jsPDF();
@@ -62,6 +62,9 @@ export const printSingleServiceReport = async (reportId: string) => {
   y += 10;
 
   doc.setFontSize(10);
+  // Lookup service point name using the ID from report.service_point_code
+  const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
+  
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
   doc.text(`Data Creazione: ${format(new Date(report.created_at), "PPP HH:mm", { locale: it })}`, 14, y);
@@ -71,7 +74,6 @@ export const printSingleServiceReport = async (reportId: string) => {
   doc.text(`Ora Intervento: ${report.report_time}`, 14, y);
   y += 7;
 
-  const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
   y += 7;
   doc.text(`Tipologia Richiesta: ${report.request_type}`, 14, y);
