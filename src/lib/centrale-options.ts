@@ -1,11 +1,6 @@
 export const requestTypeOptions: string[] = [
-  "Allarme",
+  "Intervento",
   "Ispezione",
-  "Ronda",
-  "Piantonamento",
-  "Bonifica",
-  "Gestione Chiavi",
-  "Apertura/Chiusura",
 ];
 
 export const coOperatorOptions: string[] = [
