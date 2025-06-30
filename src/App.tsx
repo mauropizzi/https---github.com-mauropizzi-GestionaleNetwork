@@ -1,3 +1,4 @@
+import React from "react"; // Explicitly import React
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -48,45 +49,47 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <SessionContextProvider>
-          <Routes>
-            {/* Public routes (no dashboard layout, no auth required) */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/public" element={<PublicFormLayout />}>
-              <Route path="alarm-event/edit/:id" element={<EditAlarmEventPage />} />
-              <Route path="success" element={<PublicSuccessPage />} />
-            </Route>
+  <React.Fragment>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SessionContextProvider>
+            <Routes>
+              {/* Public routes (no dashboard layout, no auth required) */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/public" element={<PublicFormLayout />}>
+                <Route path="alarm-event/edit/:id" element={<EditAlarmEventPage />} />
+                <Route path="success" element={<PublicSuccessPage />} />
+              </Route>
 
-            {/* Authenticated routes */}
-            <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              <Route index element={<CentraleOperativa />} />
-              <Route path="service-request" element={<ServiceRequest />} />
-              <Route path="anagrafiche" element={<Anagrafiche />} /> 
-              <Route path="anagrafiche/clienti" element={<ClientiPage />} />
-              <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
-              <Route path="anagrafiche/personale" element={<PersonalePage />} />
-              <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
-              <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
-              <Route path="anagrafiche/tariffe" element={<TariffePage />} />
-              <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
-              <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
-              <Route path="service-list" element={<ServiceList />} />
-              <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
-              <Route path="centrale-operativa" element={<CentraleOperativa />} />
-              <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
-              <Route path="servizi-a-canone" element={<ServiziCanone />} />
-              <Route path="incoming-emails" element={<IncomingEmailsPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </SessionContextProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              {/* Authenticated routes */}
+              <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route index element={<CentraleOperativa />} />
+                <Route path="service-request" element={<ServiceRequest />} />
+                <Route path="anagrafiche" element={<Anagrafiche />} /> 
+                <Route path="anagrafiche/clienti" element={<ClientiPage />} />
+                <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
+                <Route path="anagrafiche/personale" element={<PersonalePage />} />
+                <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
+                <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
+                <Route path="anagrafiche/tariffe" element={<TariffePage />} />
+                <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
+                <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
+                <Route path="service-list" element={<ServiceList />} />
+                <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
+                <Route path="centrale-operativa" element={<CentraleOperativa />} />
+                <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
+                <Route path="servizi-a-canone" element={<ServiziCanone />} />
+                <Route path="incoming-emails" element={<IncomingEmailsPage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </SessionContextProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </React.Fragment>
 );
 
 export default App;
