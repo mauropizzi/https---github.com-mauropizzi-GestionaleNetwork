@@ -25,7 +25,7 @@ import EditAlarmEventPage from "./pages/EditAlarmEventPage";
 import PublicSuccessPage from "./pages/PublicSuccessPage";
 import Login from "./pages/Login";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
-import IncomingEmailsPage from "./pages/IncomingEmails"; // Import the new page
+import { IncomingEmailsPage } from "./pages/IncomingEmails"; // Importazione corretta come named export
 
 const queryClient = new QueryClient();
 
