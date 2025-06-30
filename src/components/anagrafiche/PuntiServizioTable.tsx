@@ -47,11 +47,14 @@ export function PuntiServizioTable() {
       setData([]);
     } else {
       console.log("Raw fetched punti_servizio data:", puntiServizioData); // Log raw data
-      const mappedData = puntiServizioData.map(ps => ({
-        ...ps,
-        nome_cliente: ps.clienti?.nome_cliente || 'N/A',
-        nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
-      }));
+      const mappedData = puntiServizioData.map(ps => {
+        console.log(`Fetched point name: ${ps.nome_punto_servizio}`); // Log each point name
+        return {
+          ...ps,
+          nome_cliente: ps.clienti?.nome_cliente || 'N/A',
+          nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
+        };
+      });
       setData(mappedData || []);
       console.log("Mapped punti_servizio data for table:", mappedData); // Log mapped data
     }
