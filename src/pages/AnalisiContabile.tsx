@@ -159,7 +159,7 @@ const AnalisiContabile = () => {
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
+                    {header.headers.map((header) => (
                       <TableHead key={header.id}>
                         {header.isPlaceholder
                           ? null
@@ -169,7 +169,7 @@ const AnalisiContabile = () => {
                             )}
                       </TableHead>
                     ))}
-                  </TableHead>
+                  </TableRow>
                 ))}
               </TableHeader>
               <TableBody>
