@@ -58,6 +58,7 @@ export function InterventionForm() {
   const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
   const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false); // State for combobox popover
+  const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false); // State for GPG combobox popover
 
   useEffect(() => {
     const loadPersonnelData = async () => {
@@ -599,21 +600,47 @@ export function InterventionForm() {
 
       <div className="space-y-2">
         <Label htmlFor="gpg-intervention">G.P.G. Intervento</Label>
-        <Select
-          onValueChange={(value) => handleSelectChange('gpgIntervention', value)}
-          value={formData.gpgIntervention}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Seleziona G.P.G. intervento..." />
-          </SelectTrigger>
-          <SelectContent>
-            {pattugliaPersonale.map(personale => (
-              <SelectItem key={personale.id} value={personale.id}>
-                {personale.nome} {personale.cognome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={isGpgInterventionOpen} onOpenChange={setIsGpgInterventionOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isGpgInterventionOpen}
+              className="w-full justify-between"
+            >
+              {formData.gpgIntervention
+                ? pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.nome + " " + pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.cognome
+                : "Seleziona G.P.G. intervento..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput placeholder="Cerca G.P.G. intervento..." />
+              <CommandEmpty>Nessun G.P.G. trovato.</CommandEmpty>
+              <CommandGroup>
+                {pattugliaPersonale.map((personale) => (
+                  <CommandItem
+                    key={personale.id}
+                    value={`${personale.nome} ${personale.cognome || ''}`}
+                    onSelect={() => {
+                      setFormData(prev => ({ ...prev, gpgIntervention: personale.id }));
+                      setIsGpgInterventionOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        formData.gpgIntervention === personale.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {personale.nome} {personale.cognome}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">
