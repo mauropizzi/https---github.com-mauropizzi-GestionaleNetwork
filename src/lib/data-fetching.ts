@@ -105,7 +105,7 @@ export async function fetchProcedure(): Promise<Procedure[]> {
 export async function fetchServiceRequestsForAnalysis(clientId?: string): Promise<any[]> {
   let query = supabase
     .from('servizi_richiesti')
-    .select('id, type, client_id, service_point_id, calculated_cost'); // Select only necessary fields
+    .select('id, type, client_id, service_point_id, start_date, calculated_cost'); // Added start_date
 
   if (clientId) {
     query = query.eq('client_id', clientId);
@@ -116,6 +116,19 @@ export async function fetchServiceRequestsForAnalysis(clientId?: string): Promis
   if (error) {
     showError(`Errore nel recupero dei servizi per analisi: ${error.message}`);
     console.error("Error fetching service requests for analysis:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function fetchAllTariffe(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('tariffe')
+    .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita');
+
+  if (error) {
+    showError(`Errore nel recupero di tutte le tariffe: ${error.message}`);
+    console.error("Error fetching all tariffe:", error);
     return [];
   }
   return data || [];
