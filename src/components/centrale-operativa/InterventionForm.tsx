@@ -16,7 +16,7 @@ import {
   requestTypeOptions,
   coOperatorOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-data';
+} from '@/lib/centrale-options'; // Updated import
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
@@ -30,7 +30,7 @@ import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-da
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } "@/lib/utils";
 
 export function InterventionForm() {
   const { toast } = useToast();

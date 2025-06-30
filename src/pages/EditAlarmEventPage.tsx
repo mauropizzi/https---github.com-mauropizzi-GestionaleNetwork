@@ -36,7 +36,7 @@ import {
   coOperatorOptions,
   operatorClientOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-data';
+} from '@/lib/centrale-options'; // Updated import
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
 import { Personale, PuntoServizio } from '@/lib/anagrafiche-data';
 
