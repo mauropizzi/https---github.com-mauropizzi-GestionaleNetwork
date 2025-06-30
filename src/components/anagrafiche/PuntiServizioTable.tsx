@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, RefreshCcw } from "lucide-react";
+import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react"; // Import Eye icon
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
-import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog"; // Import the new dialog
+import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog";
+import { PuntiServizioDetailsDialog } from "./PuntiServizioDetailsDialog"; // Import the new dialog
 
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;
@@ -34,6 +35,8 @@ export function PuntiServizioTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPuntoServizioForEdit, setSelectedPuntoServizioForEdit] = useState<PuntoServizioExtended | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // New state for details dialog
+  const [selectedPuntoServizioForDetails, setSelectedPuntoServizioForDetails] = useState<PuntoServizioExtended | null>(null); // New state for details dialog
 
   const fetchPuntiServizioData = useCallback(async () => {
     setLoading(true);
@@ -67,6 +70,11 @@ export function PuntiServizioTable() {
     fetchPuntiServizioData();
   }, [fetchPuntiServizioData]);
 
+  const handleView = useCallback((puntoServizio: PuntoServizioExtended) => {
+    setSelectedPuntoServizioForDetails(puntoServizio);
+    setIsDetailsDialogOpen(true);
+  }, []);
+
   const handleEdit = useCallback((puntoServizio: PuntoServizioExtended) => {
     setSelectedPuntoServizioForEdit(puntoServizio);
     setIsEditDialogOpen(true);
@@ -85,9 +93,14 @@ export function PuntiServizioTable() {
     setSelectedPuntoServizioForEdit(null);
   }, [fetchPuntiServizioData]);
 
-  const handleCloseDialog = useCallback(() => {
+  const handleCloseEditDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedPuntoServizioForEdit(null);
+  }, []);
+
+  const handleCloseDetailsDialog = useCallback(() => {
+    setIsDetailsDialogOpen(false);
+    setSelectedPuntoServizioForDetails(null);
   }, []);
 
   const handleDelete = async (puntoServizioId: string, nomePuntoServizio: string) => {
@@ -206,6 +219,9 @@ export function PuntiServizioTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleView(row.original)} title="Visualizza Dettagli">
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
@@ -215,12 +231,12 @@ export function PuntiServizioTable() {
         </div>
       ),
     },
-  ], [handleEdit, handleDelete]);
+  ], [handleEdit, handleDelete, handleView]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
@@ -289,9 +305,17 @@ export function PuntiServizioTable() {
       {selectedPuntoServizioForEdit && (
         <PuntiServizioEditDialog
           isOpen={isEditDialogOpen}
-          onClose={handleCloseDialog}
+          onClose={handleCloseEditDialog}
           puntoServizio={selectedPuntoServizioForEdit}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {selectedPuntoServizioForDetails && (
+        <PuntiServizioDetailsDialog
+          isOpen={isDetailsDialogOpen}
+          onClose={handleCloseDetailsDialog}
+          puntoServizio={selectedPuntoServizioForDetails}
         />
       )}
     </div>
