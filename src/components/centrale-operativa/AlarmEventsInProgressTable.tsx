@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel,
+  getCoreRowModel, // Corrected typo here
   useReactTable,
 } from '@tanstack/react-table';
 import {
@@ -17,14 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText } from 'lucide-react'; // Import FileText icon
+import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText } from 'lucide-react';
 import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
-import { Personale, PuntoServizio, Procedure } from '@/lib/anagrafiche-data'; // Import Procedure
-import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog'; // Import the dialog
+import { Personale, PuntoServizio, Procedure } from '@/lib/anagrafiche-data';
+import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog';
 
 interface AllarmeIntervento {
   id: string;
@@ -37,14 +37,14 @@ interface AllarmeIntervento {
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
-  start_latitude?: number; // Nuovo campo
-  start_longitude?: number; // Nuovo campo
-  end_latitude?: number;   // Rinomina da latitude
-  end_longitude?: number;  // Rinomina da longitude
+  start_latitude?: number;
+  start_longitude?: number;
+  end_latitude?: number;
+  end_longitude?: number;
 }
 
 interface PuntoServizioExtended extends PuntoServizio {
-  procedure?: Procedure | null; // Ensure procedure details are available
+  procedure?: Procedure | null;
 }
 
 export function AlarmEventsInProgressTable() {
@@ -57,7 +57,7 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizioExtended>>(new Map()); // Use PuntoServizioExtended
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizioExtended>>(new Map());
   const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map());
 
   const [isProcedureDetailsDialogOpen, setIsProcedureDetailsDialogOpen] = useState(false);
@@ -67,7 +67,7 @@ export function AlarmEventsInProgressTable() {
     setLoading(true);
     const { data, error } = await supabase
       .from('allarme_interventi')
-      .select('*, start_latitude, start_longitude, end_latitude, end_longitude') // Seleziona i nuovi campi
+      .select('*, start_latitude, start_longitude, end_latitude, end_longitude')
       .is('service_outcome', null);
 
     if (error) {
@@ -95,7 +95,7 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const fetchPuntiServizioData = useCallback(async () => {
-    const fetchedPuntiServizio = await fetchPuntiServizio(); // This now fetches procedure(*)
+    const fetchedPuntiServizio = await fetchPuntiServizio();
     const map = new Map<string, PuntoServizioExtended>();
     fetchedPuntiServizio.forEach(p => {
       map.set(p.id, p);
