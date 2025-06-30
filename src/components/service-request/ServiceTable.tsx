@@ -225,10 +225,10 @@ export function ServiceTable() {
   }, [data, searchTerm, puntiServizioMap]); // Added puntiServizioMap to dependencies
 
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
-    {
-      accessorKey: "id",
-      header: "ID Servizio",
-    },
+    // {
+    //   accessorKey: "id",
+    //   header: "ID Servizio",
+    // },
     {
       accessorKey: "type",
       header: "Tipo Servizio",
@@ -335,7 +335,7 @@ export function ServiceTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   const handleResetFilters = () => {
