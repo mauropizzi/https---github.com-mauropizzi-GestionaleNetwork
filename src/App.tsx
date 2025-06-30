@@ -1,7 +1,7 @@
 import React from "react"; // Explicitly import React
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useNavigate, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import PublicFormLayout from "./components/layout/PublicFormLayout";
 import DashboardOverview from "./pages/DashboardOverview";
@@ -29,8 +29,9 @@ import IncomingEmailsPage from "./pages/IncomingEmails";
 const queryClient = new QueryClient();
 
 // Componente per proteggere le rotte
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = () => {
   const { session, loading } = useSession();
+  // const navigate = useNavigate(); // useNavigate is not needed here, use <Navigate> component
 
   if (loading) {
     return (
@@ -42,13 +43,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!session) {
     // Reindirizza al login se non autenticato
-    return <Login />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Restituisci direttamente i figli quando l'utente è autenticato.
-  // Poiché sappiamo che `children` in questo caso è sempre un singolo elemento (<DashboardLayout />),
-  // possiamo restituirlo direttamente per evitare problemi con `React.Children.only`.
-  return children;
+  // Render nested routes if authenticated
+  return <Outlet />;
 };
 
 const App = () => (
@@ -65,27 +64,29 @@ const App = () => (
                 <Route path="success" element={<PublicSuccessPage />} />
               </Route>
 
-              {/* Authenticated routes */}
-              <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                <Route index element={<CentraleOperativa />} />
-                <Route path="service-request" element={<ServiceRequest />} />
-                <Route path="anagrafiche" element={<Anagrafiche />} /> 
-                <Route path="anagrafiche/clienti" element={<ClientiPage />} />
-                <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
-                <Route path="anagrafiche/personale" element={<PersonalePage />} />
-                <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
-                <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
-                <Route path="anagrafiche/tariffe" element={<TariffePage />} />
-                <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
-                <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
-                <Route path="service-list" element={<ServiceList />} />
-                <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
-                <Route path="centrale-operativa" element={<CentraleOperativa />} />
-                <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
-                <Route path="servizi-a-canone" element={<ServiziCanone />} />
-                <Route path="incoming-emails" element={<IncomingEmailsPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
+              {/* Authenticated routes wrapped by ProtectedRoute */}
+              <Route element={<ProtectedRoute />}> {/* ProtectedRoute now wraps the DashboardLayout route */}
+                <Route path="/" element={<DashboardLayout />}> {/* DashboardLayout is now a direct child of the protected route */}
+                  <Route index element={<CentraleOperativa />} />
+                  <Route path="service-request" element={<ServiceRequest />} />
+                  <Route path="anagrafiche" element={<Anagrafiche />} /> 
+                  <Route path="anagrafiche/clienti" element={<ClientiPage />} />
+                  <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
+                  <Route path="anagrafiche/personale" element={<PersonalePage />} />
+                  <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
+                  <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
+                  <Route path="anagrafiche/tariffe" element={<TariffePage />} />
+                  <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
+                  <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
+                  <Route path="service-list" element={<ServiceList />} />
+                  <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
+                  <Route path="centrale-operativa" element={<CentraleOperativa />} />
+                  <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
+                  <Route path="servizi-a-canone" element={<ServiziCanone />} />
+                  <Route path="incoming-emails" element={<IncomingEmailsPage />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Route>
               </Route>
             </Routes>
           </SessionContextProvider>
