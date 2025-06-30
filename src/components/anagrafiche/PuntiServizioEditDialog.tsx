@@ -417,7 +417,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
                 name="codice_fatturazione"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Codice Fatturazione</FormBabel>
+                    <FormLabel>Codice Fatturazione</FormLabel>
                     <FormControl>
                       <Input placeholder="Codice Fatturazione" {...field} value={field.value || ''} />
                     </FormControl>
