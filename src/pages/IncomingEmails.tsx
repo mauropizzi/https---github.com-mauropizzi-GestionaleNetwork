@@ -241,5 +241,3 @@ export function IncomingEmailsPage() {
     </div>
   );
 }
-
-export default IncomingEmailsPage;
