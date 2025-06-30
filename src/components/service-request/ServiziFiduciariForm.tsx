@@ -159,10 +159,14 @@ export function ServiziFiduciariForm() {
     const finalCalculatedHours = totalHours * numAgents;
     console.log("Calculated Hours (for saving):", finalCalculatedHours);
 
+    // Get the client_id from the selected service point
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    const clientId = selectedServicePoint?.id_cliente || null;
+
     // Prepare data for Supabase insertion
     const payload = {
       type: "Servizi Fiduciari", // Fixed type for this form
-      client_id: null, // This form uses servicePointId, not direct client_id
+      client_id: clientId, // Now correctly setting client_id
       service_point_id: values.servicePointId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,

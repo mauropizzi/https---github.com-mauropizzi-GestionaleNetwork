@@ -16,14 +16,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { showInfo, showSuccess, showError } from "@/utils/toast";
-import { format } from "date-fns";
+import { format, isAfter, isBefore, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Eye, Edit, Trash2, RefreshCcw } from "lucide-react";
+import { Eye, Edit, Trash2, RefreshCcw, CalendarIcon } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 import { ServiceEditDialog } from "./ServiceEditDialog";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 import { fetchClienti, fetchPuntiServizio } from "@/lib/data-fetching"; // Import data fetching utilities
 import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data"; // Import interfaces
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input"; // Import Input for search
 
 // Define the structure of a service request from Supabase
 interface ServiceRequest {
@@ -44,7 +48,7 @@ interface ServiceRequest {
 
   // Joined fields for display
   clienti?: { nome_cliente: string } | null;
-  punti_servizio?: { nome_punto_servizio: string } | null;
+  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null; // Added id_cliente to service point
 }
 
 export function ServiceTable() {
@@ -53,14 +57,24 @@ export function ServiceTable() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
-  const [clientiMap, setClientiMap] = useState<Map<string, Cliente>>(new Map());
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map());
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState(""); // New state for general search
 
   const fetchServices = useCallback(async () => {
     setLoading(true);
-    const { data: servicesData, error } = await supabase
+    let query = supabase
       .from('servizi_richiesti')
-      .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio)'); // Fetch related client and service point names
+      .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio, id_cliente)'); // Fetch id_cliente from punti_servizio
+
+    if (startDateFilter) {
+      query = query.gte('start_date', format(startDateFilter, 'yyyy-MM-dd'));
+    }
+    if (endDateFilter) {
+      query = query.lte('end_date', format(endDateFilter, 'yyyy-MM-dd'));
+    }
+
+    const { data: servicesData, error } = await query;
 
     if (error) {
       showError(`Errore nel recupero dei servizi: ${error.message}`);
@@ -70,29 +84,21 @@ export function ServiceTable() {
       setData(servicesData || []);
     }
     setLoading(false);
-  }, []);
-
-  const fetchAnagraficheMaps = useCallback(async () => {
-    const fetchedClienti = await fetchClienti();
-    const cliMap = new Map<string, Cliente>();
-    fetchedClienti.forEach(c => cliMap.set(c.id, c));
-    setClientiMap(cliMap);
-
-    const fetchedPuntiServizio = await fetchPuntiServizio();
-    const psMap = new Map<string, PuntoServizio>();
-    fetchedPuntiServizio.forEach(ps => psMap.set(ps.id, ps));
-    setPuntiServizioMap(psMap);
-  }, []);
+  }, [startDateFilter, endDateFilter]);
 
   useEffect(() => {
     fetchServices();
-    fetchAnagraficheMaps();
-  }, [fetchServices, fetchAnagraficheMaps]);
+  }, [fetchServices]);
 
   const handleView = (service: ServiceRequest) => {
+    // Determine the client name: first from direct client_id join, then from service_point's client_id
+    const clientName = service.clienti?.nome_cliente || 
+                       (service.punti_servizio?.id_cliente ? 
+                         (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || 'N/A') : 'N/A');
+
     setSelectedService({
       ...service,
-      client: service.clienti?.nome_cliente || 'N/A',
+      client: clientName,
       location: service.punti_servizio?.nome_punto_servizio || 'N/A',
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
@@ -102,10 +108,14 @@ export function ServiceTable() {
   };
 
   const handleEdit = (service: ServiceRequest) => {
+    const clientName = service.clienti?.nome_cliente || 
+                       (service.punti_servizio?.id_cliente ? 
+                         (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || '') : '');
+
     setSelectedService({
       ...service,
-      client: service.clienti?.nome_cliente || '', // Pass name for form default
-      location: service.punti_servizio?.nome_punto_servizio || '', // Pass name for form default
+      client: clientName,
+      location: service.punti_servizio?.nome_punto_servizio || '',
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
       cost: service.calculated_cost || undefined,
@@ -125,9 +135,9 @@ export function ServiceTable() {
       // client_id and service_point_id are not directly editable in this dialog,
       // assuming they remain the same as the original selectedService.
       // If they were editable, you'd need to map names back to IDs.
-      start_date: format(selectedService.start_date, 'yyyy-MM-dd'), // Keep original dates for now
+      start_date: format(new Date(selectedService.start_date), 'yyyy-MM-dd'), // Keep original dates for now
       start_time: selectedService.start_time,
-      end_date: format(selectedService.end_date, 'yyyy-MM-dd'), // Keep original dates for now
+      end_date: format(new Date(selectedService.end_date), 'yyyy-MM-dd'), // Keep original dates for now
       end_time: selectedService.end_time,
       status: updatedService.status,
       // calculated_cost: updatedService.cost, // Rimosso il campo calculated_cost
@@ -173,6 +183,23 @@ export function ServiceTable() {
     }
   };
 
+  const filteredData = useMemo(() => {
+    return data.filter(service => {
+      const clientName = service.clienti?.nome_cliente || 
+                         (service.punti_servizio?.id_cliente ? 
+                           (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || '') : '');
+      const servicePointName = service.punti_servizio?.nome_punto_servizio || '';
+
+      const matchesSearch = searchTerm.toLowerCase() === '' ||
+        service.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.status.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [data, searchTerm]);
+
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
     {
       accessorKey: "id",
@@ -185,7 +212,18 @@ export function ServiceTable() {
     {
       accessorKey: "client_id",
       header: "Cliente",
-      cell: ({ row }) => row.original.clienti?.nome_cliente || 'N/A',
+      cell: ({ row }) => {
+        // Prioritize client_id from the service request itself, then from the associated service point
+        const clientIdFromService = row.original.client_id;
+        const clientIdFromServicePoint = row.original.punti_servizio?.id_cliente;
+        
+        if (clientIdFromService) {
+          return row.original.clienti?.nome_cliente || 'N/A';
+        } else if (clientIdFromServicePoint) {
+          return puntiServizioMap.get(clientIdFromServicePoint)?.nome_cliente || 'N/A';
+        }
+        return 'N/A';
+      },
     },
     {
       accessorKey: "service_point_id",
@@ -271,14 +309,102 @@ export function ServiceTable() {
   ], [handleView, handleEdit, handleDelete]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
+  // State for client and service point maps for display purposes in cells
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
+
+  const fetchAnagraficheMaps = useCallback(async () => {
+    const fetchedPuntiServizio = await supabase
+      .from('punti_servizio')
+      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)'); // Fetch client name through join
+
+    if (fetchedPuntiServizio.error) {
+      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
+      return;
+    }
+
+    const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
+    fetchedPuntiServizio.data.forEach(ps => {
+      psMap.set(ps.id, {
+        ...ps,
+        nome_cliente: ps.clienti?.nome_cliente || 'N/A'
+      });
+    });
+    setPuntiServizioMap(psMap);
+  }, []);
+
+  useEffect(() => {
+    fetchAnagraficheMaps();
+  }, [fetchAnagraficheMaps]);
+
+  const handleResetFilters = () => {
+    setStartDateFilter(undefined);
+    setEndDateFilter(undefined);
+    setSearchTerm("");
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
+        <Input
+          placeholder="Cerca per tipo, cliente, punto servizio..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full md:w-auto justify-start text-left font-normal",
+                !startDateFilter && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {startDateFilter ? format(startDateFilter, "PPP", { locale: it }) : "Data Inizio"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={startDateFilter}
+              onSelect={setStartDateFilter}
+              initialFocus
+              locale={it}
+            />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full md:w-auto justify-start text-left font-normal",
+                !endDateFilter && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {endDateFilter ? format(endDateFilter, "PPP", { locale: it }) : "Data Fine"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={endDateFilter}
+              onSelect={setEndDateFilter}
+              initialFocus
+              locale={it}
+            />
+          </PopoverContent>
+        </Popover>
+        <Button variant="outline" onClick={handleResetFilters}>
+          Reset Filtri
+        </Button>
         <Button variant="outline" onClick={fetchServices} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
@@ -341,8 +467,8 @@ export function ServiceTable() {
         service={selectedService ? {
           id: selectedService.id,
           type: selectedService.type,
-          client: selectedService.clienti?.nome_cliente || 'N/A',
-          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
+          client: selectedService.client, // Use the resolved client name
+          location: selectedService.location, // Use the resolved location name
           startDate: new Date(selectedService.start_date),
           endDate: new Date(selectedService.end_date),
           status: selectedService.status,
@@ -357,8 +483,8 @@ export function ServiceTable() {
         service={selectedService ? {
           id: selectedService.id,
           type: selectedService.type,
-          client: selectedService.clienti?.nome_cliente || '', // Pass name for form default
-          location: selectedService.punti_servizio?.nome_punto_servizio || '', // Pass name for form default
+          client: selectedService.client, // Use the resolved client name
+          location: selectedService.location, // Use the resolved location name
           startDate: new Date(selectedService.start_date),
           endDate: new Date(selectedService.end_date),
           status: selectedService.status,

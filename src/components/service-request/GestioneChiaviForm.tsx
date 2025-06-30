@@ -88,10 +88,14 @@ export function GestioneChiaviForm() {
     console.log("Punto Servizio ID:", values.servicePointId);
     console.log("Fornitore ID:", values.fornitoreId);
 
+    // Get the client_id from the selected service point
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    const clientId = selectedServicePoint?.id_cliente || null;
+
     // Prepare data for Supabase insertion
     const payload = {
       type: "Gestione Chiavi", // Fixed type for this form
-      client_id: null, // This form uses servicePointId, not direct client_id
+      client_id: clientId, // Now correctly setting client_id
       service_point_id: values.servicePointId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
@@ -278,7 +282,6 @@ export function GestioneChiaviForm() {
           />
         </div>
         <Button type="submit" className="w-full">Registra Richiesta</Button>
-        {/* Rimosso il display del costo calcolato */}
       </form>
     </Form>
   );

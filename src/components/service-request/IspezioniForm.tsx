@@ -161,10 +161,14 @@ export function IspezioniForm() {
     const numInspections = Math.floor(totalOperationalHours / cadenceHours) + 1;
     console.log("Calculated Inspections (for saving):", numInspections);
 
+    // Get the client_id from the selected service point
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    const clientId = selectedServicePoint?.id_cliente || null;
+
     // Prepare data for Supabase insertion
     const payload = {
       type: "Ispezioni", // Fixed type for this form
-      client_id: null, // This form uses servicePointId, not direct client_id
+      client_id: clientId, // Now correctly setting client_id
       service_point_id: values.servicePointId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: null, // Detailed times are in daily_hours_config
