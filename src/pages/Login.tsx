@@ -26,6 +26,9 @@ const Login = () => {
           redirectTo={window.location.origin} // Reindirizza alla root dopo il login
           localization={{
             variables: {
+              common: {
+                missing_email_or_phone: 'Email o telefono mancanti', // Aggiunta questa riga
+              },
               sign_in: {
                 email_label: 'Indirizzo Email',
                 password_label: 'La tua Password',
@@ -41,7 +44,7 @@ const Login = () => {
                 password_input_placeholder: 'Crea la tua password',
                 button_label: 'Registrati',
                 link_text: 'Non hai un account? Registrati',
-                confirmation_text: 'Controlla la tua email per il link di conferma', // Added this line
+                confirmation_text: 'Controlla la tua email per il link di conferma',
               },
               forgotten_password: {
                 email_label: 'Indirizzo Email',
