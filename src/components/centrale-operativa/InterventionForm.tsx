@@ -157,7 +157,7 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Operatore Cliente: ${formData.operatorClient || 'N/A'}`, 14, y);
+      doc.text(`Operatore Network: ${formData.operatorClient || 'N/A'}`, 14, y); // Changed label here
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
       doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
@@ -546,13 +546,13 @@ export function InterventionForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="operator-client">Operatore Cliente</Label>
+        <Label htmlFor="operator-client">Operatore Network</Label> {/* Changed label here */}
         <Select
           onValueChange={(value) => handleSelectChange('operatorClient', value)}
           value={formData.operatorClient}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Seleziona operatore cliente..." />
+            <SelectValue placeholder="Seleziona operatore network..." /> {/* Changed placeholder here */}
           </SelectTrigger>
           <SelectContent>
             {operatoriClientiPersonale.map(personale => (
