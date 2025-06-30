@@ -4,7 +4,8 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const redirectToUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+  // Reindirizza sempre alla radice dell'applicazione dopo il login
+  const redirectToUrl = '/'; 
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
@@ -74,7 +75,6 @@ const Login = () => {
               verify_otp: {
                 email_input_placeholder: 'Il tuo indirizzo email',
                 phone_input_placeholder: 'Il tuo numero di telefono',
-                token_input_placeholder: 'Il tuo codice OTP',
                 button_label: 'Verifica OTP',
                 link_text: 'Hai già un codice OTP? Verifica',
               },

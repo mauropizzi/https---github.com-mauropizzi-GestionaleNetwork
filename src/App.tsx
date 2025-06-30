@@ -32,7 +32,7 @@ const queryClient = new QueryClient();
 // Componente per proteggere le rotte
 const ProtectedRoute = () => {
   const { session, loading } = useSession();
-  // const navigate = useNavigate(); // useNavigate is not needed here, use <Navigate> component
+  console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null');
 
   if (loading) {
     return (
@@ -44,10 +44,12 @@ const ProtectedRoute = () => {
 
   if (!session) {
     // Reindirizza al login se non autenticato
+    console.log('ProtectedRoute: No session found, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
   // Render nested routes if authenticated
+  console.log('ProtectedRoute: Session found, rendering protected content.');
   return <Outlet />;
 };
 
