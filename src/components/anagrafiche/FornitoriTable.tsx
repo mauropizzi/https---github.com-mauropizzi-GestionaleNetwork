@@ -19,11 +19,14 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Fornitore } from "@/lib/anagrafiche-data";
+import { FornitoreEditDialog } from "./FornitoriEditDialog"; // Import the new dialog
 
 export function FornitoriTable() {
   const [data, setData] = useState<Fornitore[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedFornitoreForEdit, setSelectedFornitoreForEdit] = useState<Fornitore | null>(null);
 
   const fetchFornitoriData = useCallback(async () => {
     setLoading(true);
@@ -45,10 +48,28 @@ export function FornitoriTable() {
     fetchFornitoriData();
   }, [fetchFornitoriData]);
 
-  const handleEdit = (fornitore: Fornitore) => {
-    showInfo(`Modifica fornitore: ${fornitore.nome_fornitore} (ID: ${fornitore.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((fornitore: Fornitore) => {
+    setSelectedFornitoreForEdit(fornitore);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedFornitore: Fornitore) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(f =>
+        f.id === updatedFornitore.id ? updatedFornitore : f
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    // fetchFornitoriData(); // Uncomment if you prefer a full re-fetch
+    setIsEditDialogOpen(false);
+    setSelectedFornitoreForEdit(null);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedFornitoreForEdit(null);
+  }, []);
 
   const handleDelete = async (fornitoreId: string, nomeFornitore: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il fornitore "${nomeFornitore}"?`)) {
@@ -201,6 +222,15 @@ export function FornitoriTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedFornitoreForEdit && (
+        <FornitoreEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          fornitore={selectedFornitoreForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
