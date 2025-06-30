@@ -60,6 +60,9 @@ export function ServiceTable() {
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState(""); // New state for general search
+  // State for client and service point maps for display purposes in cells
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
+
 
   const fetchServices = useCallback(async () => {
     setLoading(true);
@@ -86,9 +89,30 @@ export function ServiceTable() {
     setLoading(false);
   }, [startDateFilter, endDateFilter]);
 
+  const fetchAnagraficheMaps = useCallback(async () => {
+    const fetchedPuntiServizio = await supabase
+      .from('punti_servizio')
+      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)'); // Fetch client name through join
+
+    if (fetchedPuntiServizio.error) {
+      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
+      return;
+    }
+
+    const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
+    fetchedPuntiServizio.data.forEach(ps => {
+      psMap.set(ps.id, {
+        ...ps,
+        nome_cliente: ps.clienti?.nome_cliente || 'N/A'
+      });
+    });
+    setPuntiServizioMap(psMap);
+  }, []);
+
   useEffect(() => {
     fetchServices();
-  }, [fetchServices]);
+    fetchAnagraficheMaps();
+  }, [fetchServices, fetchAnagraficheMaps]);
 
   const handleView = (service: ServiceRequest) => {
     // Determine the client name: first from direct client_id join, then from service_point's client_id
@@ -198,7 +222,7 @@ export function ServiceTable() {
 
       return matchesSearch;
     });
-  }, [data, searchTerm]);
+  }, [data, searchTerm, puntiServizioMap]); // Added puntiServizioMap to dependencies
 
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
     {
@@ -306,40 +330,13 @@ export function ServiceTable() {
         </div>
       ),
     },
-  ], [handleView, handleEdit, handleDelete]);
+  ], [handleView, handleEdit, handleDelete, puntiServizioMap]); // Added puntiServizioMap to dependencies
 
   const table = useReactTable({
     data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  // State for client and service point maps for display purposes in cells
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
-
-  const fetchAnagraficheMaps = useCallback(async () => {
-    const fetchedPuntiServizio = await supabase
-      .from('punti_servizio')
-      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)'); // Fetch client name through join
-
-    if (fetchedPuntiServizio.error) {
-      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
-      return;
-    }
-
-    const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
-    fetchedPuntiServizio.data.forEach(ps => {
-      psMap.set(ps.id, {
-        ...ps,
-        nome_cliente: ps.clienti?.nome_cliente || 'N/A'
-      });
-    });
-    setPuntiServizioMap(psMap);
-  }, []);
-
-  useEffect(() => {
-    fetchAnagraficheMaps();
-  }, [fetchAnagraficheMaps]);
 
   const handleResetFilters = () => {
     setStartDateFilter(undefined);
