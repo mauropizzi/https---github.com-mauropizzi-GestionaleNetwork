@@ -35,7 +35,7 @@ import {
   requestTypeOptions,
   operatorClientOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-options'; // Updated import
+} from '@/lib/centrale-options';
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
 import { Personale, PuntoServizio } from '@/lib/anagrafiche-data';
 
@@ -43,15 +43,17 @@ interface AllarmeIntervento {
   id: string;
   report_date: string;
   report_time: string;
-  service_point_code: string; // This will now consistently be the UUID
+  service_point_code: string;
   request_type: string;
   co_operator?: string | null;
   operator_client?: string | null;
   gpg_intervention?: string | null;
   service_outcome?: string | null;
   notes?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  start_latitude?: number | null; // Nuovo campo
+  start_longitude?: number | null; // Nuovo campo
+  end_latitude?: number | null;   // Rinomina da latitude
+  end_longitude?: number | null;  // Rinomina da longitude
 }
 
 const formSchema = z.object({
@@ -59,14 +61,16 @@ const formSchema = z.object({
     required_error: "La data del rapporto è richiesta.",
   }),
   report_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  service_point_code: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."), // Expecting UUID
+  service_point_code: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   request_type: z.string().min(1, "La tipologia di richiesta è richiesta."),
   co_operator: z.string().optional().nullable(),
   operator_client: z.string().optional().nullable(),
   gpg_intervention: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  latitude: z.coerce.number().optional().nullable(),
-  longitude: z.coerce.number().optional().nullable(),
+  start_latitude: z.coerce.number().optional().nullable(), // Nuovo campo
+  start_longitude: z.coerce.number().optional().nullable(), // Nuovo campo
+  end_latitude: z.coerce.number().optional().nullable(),   // Rinomina
+  end_longitude: z.coerce.number().optional().nullable(),  // Rinomina
   service_outcome: z.string().optional().nullable(),
 });
 
@@ -80,7 +84,7 @@ const EditAlarmEventPage = () => {
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
-  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]); // New state for CO Operators
+  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,8 +97,10 @@ const EditAlarmEventPage = () => {
       operator_client: null,
       gpg_intervention: null,
       notes: null,
-      latitude: undefined,
-      longitude: undefined,
+      start_latitude: null, // Default per nuovo campo
+      start_longitude: null, // Default per nuovo campo
+      end_latitude: null,   // Default per rinominato
+      end_longitude: null,  // Default per rinominato
       service_outcome: null,
     },
   });
@@ -108,7 +114,7 @@ const EditAlarmEventPage = () => {
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
 
-      const fetchedCoOperators = await fetchPersonale('Operatore C.O.'); // Fetch only 'Operatore C.O.'
+      const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
       setCoOperatorsPersonnel(fetchedCoOperators);
 
       if (id) {
@@ -129,14 +135,16 @@ const EditAlarmEventPage = () => {
           form.reset({
             report_date: event.report_date ? parseISO(event.report_date) : new Date(),
             report_time: event.report_time || format(new Date(), 'HH:mm'),
-            service_point_code: event.service_point_code || '', // This will now be the UUID
+            service_point_code: event.service_point_code || '',
             request_type: event.request_type || '',
             co_operator: event.co_operator || null,
             operator_client: event.operator_client || null,
             gpg_intervention: event.gpg_intervention || null,
             notes: event.notes || null,
-            latitude: event.latitude || undefined,
-            longitude: event.longitude || undefined,
+            start_latitude: event.start_latitude || null, // Popola nuovo campo
+            start_longitude: event.start_longitude || null, // Popola nuovo campo
+            end_latitude: event.end_latitude || null,     // Popola rinominato
+            end_longitude: event.end_longitude || null,    // Popola rinominato
             service_outcome: event.service_outcome || null,
           });
         } else {
@@ -160,19 +168,40 @@ const EditAlarmEventPage = () => {
     form.setValue(field, format(new Date(), "HH:mm"));
   };
 
-  const handleGpsTracking = () => {
+  const handleStartGpsTracking = () => {
     if (navigator.geolocation) {
-      showInfo("Acquisizione posizione GPS...");
+      showInfo("Acquisizione posizione GPS inizio intervento...");
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          form.setValue("latitude", latitude);
-          form.setValue("longitude", longitude);
-          showSuccess(`Posizione GPS acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+          form.setValue("start_latitude", latitude);
+          form.setValue("start_longitude", longitude);
+          showSuccess(`Posizione GPS inizio intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
         },
         (error) => {
-          showError(`Errore acquisizione GPS: ${error.message}`);
-          console.error("Error getting GPS position:", error);
+          showError(`Errore acquisizione GPS inizio intervento: ${error.message}`);
+          console.error("Error getting start GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
+  };
+
+  const handleEndGpsTracking = () => {
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS fine intervento...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          form.setValue("end_latitude", latitude);
+          form.setValue("end_longitude", longitude);
+          showSuccess(`Posizione GPS fine intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS fine intervento: ${error.message}`);
+          console.error("Error getting end GPS position:", error);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -190,15 +219,17 @@ const EditAlarmEventPage = () => {
     const updatedData = {
       report_date: format(values.report_date, 'yyyy-MM-dd'),
       report_time: values.report_time,
-      service_point_code: values.service_point_code, // This is now consistently the UUID
+      service_point_code: values.service_point_code,
       request_type: values.request_type,
       co_operator: values.co_operator,
       operator_client: values.operator_client,
       gpg_intervention: values.gpg_intervention,
       service_outcome: values.service_outcome,
       notes: values.notes,
-      latitude: values.latitude,
-      longitude: values.longitude,
+      start_latitude: values.start_latitude, // Includi nuovo campo
+      start_longitude: values.start_longitude, // Includi nuovo campo
+      end_latitude: values.end_latitude,     // Includi rinominato
+      end_longitude: values.end_longitude,    // Includi rinominato
     };
 
     try {
@@ -327,14 +358,71 @@ const EditAlarmEventPage = () => {
                   </FormItem>
                 )}
               />
-              <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleGpsTracking}>
-                ACQUISIZIONE POSIZIONE GPS
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="start_latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitudine Inizio</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="start_longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitudine Inizio</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleStartGpsTracking}>
+                ACQUISIZIONE POSIZIONE GPS INIZIO INTERVENTO
               </Button>
-              {form.watch("latitude") !== undefined && form.watch("longitude") !== undefined && (
-                <p className="text-sm text-gray-500 mt-1 text-center">
-                  Latitudine: {form.watch("latitude")?.toFixed(6)}, Longitudine: {form.watch("longitude")?.toFixed(6)}
-                </p>
-              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="end_latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitudine Fine</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="end_longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitudine Fine</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEndGpsTracking}>
+                ACQUISIZIONE POSIZIONE GPS FINE INTERVENTO
+              </Button>
+
               <FormField
                 control={form.control}
                 name="service_point_code"

@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   requestTypeOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-options'; // Removed coOperatorOptions as it will be fetched dynamically
+} from '@/lib/centrale-options';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
@@ -29,15 +29,15 @@ import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-da
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { operatorClientOptions } from '@/lib/centrale-options'; // Ensure operatorClientOptions is imported if needed
-import { cn } from "@/lib/utils"; // Import cn
+import { operatorClientOptions } from '@/lib/centrale-options';
+import { cn } from "@/lib/utils";
 
 export function InterventionForm() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    servicePoint: '', // This will now store the ID of the selected service point
+    servicePoint: '',
     requestType: '',
-    coOperator: '', // This will now store the ID of the selected CO Operator
+    coOperator: '',
     requestTime: '',
     startTime: '',
     endTime: '',
@@ -51,17 +51,19 @@ export function InterventionForm() {
     delayNotes: '',
     serviceOutcome: '',
     barcode: '',
-    latitude: undefined as number | undefined,
-    longitude: undefined as number | undefined,
+    startLatitude: undefined as number | undefined, // Nuovo campo
+    startLongitude: undefined as number | undefined, // Nuovo campo
+    endLatitude: undefined as number | undefined,   // Rinomina da latitude
+    endLongitude: undefined as number | undefined,  // Rinomina da longitude
   });
   const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
-  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]); // New state for CO Operators
+  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]);
   const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
   const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
-  const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false); // New state for CO Operator combobox
+  const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -74,7 +76,7 @@ export function InterventionForm() {
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
 
-      const fetchedCoOperators = await fetchPersonale('Operatore C.O.'); // Fetch only 'Operatore C.O.'
+      const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
       setCoOperatorsPersonnel(fetchedCoOperators);
     };
     loadData();
@@ -99,18 +101,38 @@ export function InterventionForm() {
     setFormData(prev => ({ ...prev, [field]: formattedDateTime }));
   };
 
-  const handleGpsTracking = () => {
+  const handleStartGpsTracking = () => {
     if (navigator.geolocation) {
-      showInfo("Acquisizione posizione GPS...");
+      showInfo("Acquisizione posizione GPS inizio intervento...");
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setFormData(prev => ({ ...prev, latitude, longitude }));
-          showSuccess(`Posizione GPS acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+          setFormData(prev => ({ ...prev, startLatitude: latitude, startLongitude: longitude }));
+          showSuccess(`Posizione GPS inizio intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
         },
         (error) => {
-          showError(`Errore acquisizione GPS: ${error.message}`);
-          console.error("Error getting GPS position:", error);
+          showError(`Errore acquisizione GPS inizio intervento: ${error.message}`);
+          console.error("Error getting start GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
+  };
+
+  const handleEndGpsTracking = () => {
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS fine intervento...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({ ...prev, endLatitude: latitude, endLongitude: longitude }));
+          showSuccess(`Posizione GPS fine intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS fine intervento: ${error.message}`);
+          console.error("Error getting end GPS position:", error);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -165,12 +187,16 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
-      if (formData.latitude !== undefined && formData.longitude !== undefined) {
-        doc.text(`Posizione GPS: Lat ${formData.latitude.toFixed(6)}, Lon ${formData.longitude.toFixed(6)}`, 14, y);
+      if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
+        doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
       doc.text(`Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
+      if (formData.endLatitude !== undefined && formData.endLongitude !== undefined) {
+        doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
+        y += 7;
+      }
       doc.text(`Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
@@ -273,9 +299,9 @@ export function InterventionForm() {
 
   const saveIntervention = async (isFinal: boolean) => {
     const {
-      servicePoint, // This is the ID
+      servicePoint,
       requestType,
-      coOperator, // This is the ID
+      coOperator,
       requestTime,
       startTime,
       endTime,
@@ -289,8 +315,10 @@ export function InterventionForm() {
       delayNotes,
       serviceOutcome,
       barcode,
-      latitude,
-      longitude,
+      startLatitude,
+      startLongitude,
+      endLatitude,
+      endLongitude,
     } = formData;
 
     // Basic validation for both save types
@@ -322,22 +350,21 @@ export function InterventionForm() {
     if (delay === 'si' && delayNotes) {
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
-    if (latitude !== undefined && longitude !== undefined) {
-      notesCombined.push(`GPS: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
-    }
 
     const payload = {
       report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
       report_time: format(new Date(requestTime), 'HH:mm:ss'),
-      service_point_code: servicePoint, // Now consistently stores the ID (UUID)
+      service_point_code: servicePoint,
       request_type: requestType,
-      co_operator: coOperator || null, // Store the ID
+      co_operator: coOperator || null,
       operator_client: operatorClient || null,
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
-      latitude: latitude || null,
-      longitude: longitude || null,
+      start_latitude: startLatitude || null, // Nuovo campo
+      start_longitude: startLongitude || null, // Nuovo campo
+      end_latitude: endLatitude || null,     // Rinomina
+      end_longitude: endLongitude || null,    // Rinomina
     };
 
     const { data, error } = await supabase
@@ -367,8 +394,10 @@ export function InterventionForm() {
         delayNotes: '',
         serviceOutcome: '',
         barcode: '',
-        latitude: undefined,
-        longitude: undefined,
+        startLatitude: undefined,
+        startLongitude: undefined,
+        endLatitude: undefined,
+        endLongitude: undefined,
       });
     }
   };
@@ -526,21 +555,6 @@ export function InterventionForm() {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Button 
-          type="button" 
-          className="w-full bg-blue-600 hover:bg-blue-700" 
-          onClick={handleGpsTracking}
-        >
-          ACQUISIZIONE POSIZIONE GPS
-        </Button>
-        {formData.latitude !== undefined && formData.longitude !== undefined && (
-          <p className="text-sm text-gray-500 mt-1 text-center">
-            Latitudine: {formData.latitude?.toFixed(6)}, Longitudine: {formData.longitude?.toFixed(6)}
-          </p>
-        )}
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startTime">Orario Inizio Intervento</Label>
@@ -561,6 +575,18 @@ export function InterventionForm() {
               Ora Attuale
             </Button>
           </div>
+          <Button 
+            type="button" 
+            className="w-full bg-blue-600 hover:bg-blue-700" 
+            onClick={handleStartGpsTracking}
+          >
+            ACQUISIZIONE POSIZIONE GPS INIZIO INTERVENTO
+          </Button>
+          {formData.startLatitude !== undefined && formData.startLongitude !== undefined && (
+            <p className="text-sm text-gray-500 mt-1 text-center">
+              Latitudine: {formData.startLatitude?.toFixed(6)}, Longitudine: {formData.startLongitude?.toFixed(6)}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="endTime">Orario Fine Intervento</Label>
@@ -581,6 +607,18 @@ export function InterventionForm() {
               Ora Attuale
             </Button>
           </div>
+          <Button 
+            type="button" 
+            className="w-full bg-blue-600 hover:bg-blue-700" 
+            onClick={handleEndGpsTracking}
+          >
+            ACQUISIZIONE POSIZIONE GPS FINE INTERVENTO
+          </Button>
+          {formData.endLatitude !== undefined && formData.endLongitude !== undefined && (
+            <p className="text-sm text-gray-500 mt-1 text-center">
+              Latitudine: {formData.endLatitude?.toFixed(6)}, Longitudine: {formData.endLongitude?.toFixed(6)}
+            </p>
+          )}
         </div>
       </div>
 

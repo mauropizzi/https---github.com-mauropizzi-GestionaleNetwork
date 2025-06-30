@@ -4,31 +4,33 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPuntiServizio } from "@/lib/data-fetching"; // Import fetchPuntiServizio
-import { PuntoServizio } from "@/lib/anagrafiche-data"; // Import PuntoServizio interface
+import { fetchPuntiServizio } from "@/lib/data-fetching";
+import { PuntoServizio } from "@/lib/anagrafiche-data";
 
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
   id: string;
   created_at: string;
-  report_date: string; // ISO date string
-  report_time: string; // HH:MM:SS string
-  service_point_code: string; // This will now consistently be the UUID
+  report_date: string;
+  report_time: string;
+  service_point_code: string;
   request_type: string;
   co_operator?: string;
   operator_client?: string;
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
-  latitude?: number;
-  longitude?: number;
+  start_latitude?: number; // Nuovo campo
+  start_longitude?: number; // Nuovo campo
+  end_latitude?: number;   // Rinomina da latitude
+  end_longitude?: number;  // Rinomina da longitude
 }
 
 export const printSingleServiceReport = async (reportId: string) => {
   showInfo(`Generazione PDF per il rapporto di allarme ${reportId}...`);
 
   const { data: report, error } = await supabase
-    .from('allarme_interventi') // Fetch from the correct table
+    .from('allarme_interventi')
     .select('*')
     .eq('id', reportId)
     .single();
@@ -48,7 +50,7 @@ export const printSingleServiceReport = async (reportId: string) => {
   const puntiServizioList = await fetchPuntiServizio();
   const servicePointMap = new Map<string, PuntoServizio>();
   puntiServizioList.forEach(p => {
-    servicePointMap.set(p.id, p); // Map by ID
+    servicePointMap.set(p.id, p);
     if (p.codice_sicep) servicePointMap.set(p.codice_sicep, p);
     if (p.codice_cliente) servicePointMap.set(p.codice_cliente, p);
     if (p.nome_punto_servizio) servicePointMap.set(p.nome_punto_servizio, p);
@@ -62,7 +64,6 @@ export const printSingleServiceReport = async (reportId: string) => {
   y += 10;
 
   doc.setFontSize(10);
-  // Lookup service point name using the ID from report.service_point_code
   const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
@@ -87,15 +88,24 @@ export const printSingleServiceReport = async (reportId: string) => {
   doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
 
+  if (report.start_latitude !== undefined && report.start_longitude !== undefined && report.start_latitude !== null && report.start_longitude !== null) {
+    doc.text(`GPS Inizio Intervento: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
+    y += 7;
+  }
+  if (report.end_latitude !== undefined && report.end_longitude !== undefined && report.end_latitude !== null && report.end_longitude !== null) {
+    doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
+    y += 7;
+  }
+
   if (report.notes) {
     y += 5;
     doc.setFontSize(12);
     doc.text("Note:", 14, y);
     y += 5;
     doc.setFontSize(10);
-    const splitNotes = doc.splitTextToSize(report.notes, 180); // Max width 180mm
+    const splitNotes = doc.splitTextToSize(report.notes, 180);
     doc.text(splitNotes, 14, y);
-    y += (splitNotes.length * 5); // Adjust y for multiple lines
+    y += (splitNotes.length * 5);
   }
 
   doc.output('dataurlnewwindow');

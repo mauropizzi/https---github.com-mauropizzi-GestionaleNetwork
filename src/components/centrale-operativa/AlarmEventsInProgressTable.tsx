@@ -17,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2 } from 'lucide-react'; // Import Trash2 icon
-import { showInfo, showError, showSuccess } from '@/utils/toast'; // Import showSuccess
+import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2 } from 'lucide-react';
+import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
@@ -29,15 +29,17 @@ interface AllarmeIntervento {
   id: string;
   report_date: string;
   report_time: string;
-  service_point_code: string; // This will now consistently be the UUID
+  service_point_code: string;
   request_type: string;
-  co_operator?: string; // This will now be the ID of the CO Operator
+  co_operator?: string;
   operator_client?: string;
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
-  latitude?: number;
-  longitude?: number;
+  start_latitude?: number; // Nuovo campo
+  start_longitude?: number; // Nuovo campo
+  end_latitude?: number;   // Rinomina da latitude
+  end_longitude?: number;  // Rinomina da longitude
 }
 
 export function AlarmEventsInProgressTable() {
@@ -50,14 +52,14 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map()); // New state for service points map
-  const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map()); // New state for CO Operators map
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map());
+  const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map());
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('allarme_interventi')
-      .select('*')
+      .select('*, start_latitude, start_longitude, end_latitude, end_longitude') // Seleziona i nuovi campi
       .is('service_outcome', null);
 
     if (error) {
@@ -88,7 +90,7 @@ export function AlarmEventsInProgressTable() {
     const fetchedPuntiServizio = await fetchPuntiServizio();
     const map = new Map<string, PuntoServizio>();
     fetchedPuntiServizio.forEach(p => {
-      map.set(p.id, p); // Map by ID
+      map.set(p.id, p);
       if (p.codice_sicep) map.set(p.codice_sicep, p);
       if (p.codice_cliente) map.set(p.codice_cliente, p);
       if (p.nome_punto_servizio) map.set(p.nome_punto_servizio, p);
@@ -99,8 +101,8 @@ export function AlarmEventsInProgressTable() {
   useEffect(() => {
     fetchInProgressEvents();
     fetchPattugliaPersonnel();
-    fetchCoOperatorsPersonnel(); // Fetch CO Operators on mount
-    fetchPuntiServizioData(); // Fetch service points on mount
+    fetchCoOperatorsPersonnel();
+    fetchPuntiServizioData();
   }, [fetchInProgressEvents, fetchPattugliaPersonnel, fetchCoOperatorsPersonnel, fetchPuntiServizioData]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
@@ -141,7 +143,7 @@ export function AlarmEventsInProgressTable() {
         console.error("Error deleting alarm event:", error);
       } else {
         showSuccess(`Evento ${eventId} eliminato con successo!`);
-        fetchInProgressEvents(); // Refresh data after deletion
+        fetchInProgressEvents();
       }
     } else {
       showInfo(`Eliminazione dell'evento ${eventId} annullata.`);
@@ -150,13 +152,13 @@ export function AlarmEventsInProgressTable() {
 
   const filteredData = useMemo(() => {
     return data.filter(report => {
-      const servicePoint = puntiServizioMap.get(report.service_point_code); // Lookup by ID
-      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code; // Fallback to ID if name not found
-      const coOperatorName = coOperatorsPersonnelMap.get(report.co_operator || '')?.nome || ''; // Lookup CO Operator name
+      const servicePoint = puntiServizioMap.get(report.service_point_code);
+      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code;
+      const coOperatorName = coOperatorsPersonnelMap.get(report.co_operator || '')?.nome || '';
       const matchesSearch = searchTerm === '' ||
         servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        coOperatorName.toLowerCase().includes(searchTerm.toLowerCase()) || // Search by CO Operator name
+        coOperatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.cognome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -187,8 +189,8 @@ export function AlarmEventsInProgressTable() {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
       cell: ({ row }) => {
-        const servicePoint = puntiServizioMap.get(row.original.service_point_code); // Lookup by ID
-        return servicePoint?.nome_punto_servizio || row.original.service_point_code; // Fallback to ID if name not found
+        const servicePoint = puntiServizioMap.get(row.original.service_point_code);
+        return servicePoint?.nome_punto_servizio || row.original.service_point_code;
       },
     },
     {
@@ -236,7 +238,7 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowodel(),
+    getCoreRowModel: getCoreRowModel(),
   });
 
   return (
