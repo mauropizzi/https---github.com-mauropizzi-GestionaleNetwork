@@ -31,7 +31,7 @@ export async function fetchFornitori(): Promise<Fornitore[]> {
 export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
   const { data, error } = await supabase
     .from('punti_servizio')
-    .select('id, nome_punto_servizio, id_cliente, tempo_intervento, codice_sicep, codice_cliente'); // Include tempo_intervento and codes
+    .select('id, nome_punto_servizio, id_cliente'); // Include id_cliente if needed for display/filtering
 
   if (error) {
     showError(`Errore nel recupero dei punti servizio: ${error.message}`);

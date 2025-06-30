@@ -7,9 +7,6 @@ export interface PuntoServizio {
   id: string;
   nome_punto_servizio: string;
   id_cliente: string; // Assuming a link back to Cliente
-  tempo_intervento?: number; // Added tempo_intervento
-  codice_sicep?: string; // Added for mapping in InterventionForm
-  codice_cliente?: string; // Added for mapping in InterventionForm
 }
 
 export interface Fornitore {
