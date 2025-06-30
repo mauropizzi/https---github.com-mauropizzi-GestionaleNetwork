@@ -29,7 +29,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchPuntiServizio, fetchFornitori, fetchMonthlyTariffe } from "@/lib/data-fetching";
+import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+
+const tipoCanoneOptions = [
+  "Disponibilità Pronto Intervento",
+  "Videosorveglianza",
+  "Impianto Allarme",
+  "Bidirezionale",
+  "Monodirezionale",
+  "Tenuta Chiavi",
+];
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -56,16 +65,13 @@ const formSchema = z.object({
 export function CanoneForm() {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-  const [monthlyTariffe, setMonthlyTariffe] = useState<{ id: string; service_type: string; }[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       const fetchedPuntiServizio = await fetchPuntiServizio();
       const fetchedFornitori = await fetchFornitori();
-      const fetchedMonthlyTariffe = await fetchMonthlyTariffe();
       setPuntiServizio(fetchedPuntiServizio);
       setFornitori(fetchedFornitori);
-      setMonthlyTariffe(fetchedMonthlyTariffe);
     };
     loadData();
   }, []);
@@ -167,9 +173,9 @@ export function CanoneForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {monthlyTariffe.map((tariffa) => (
-                    <SelectItem key={tariffa.id} value={tariffa.service_type}>
-                      {tariffa.service_type}
+                  {tipoCanoneOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
                     </SelectItem>
                   ))}
                 </SelectContent>
