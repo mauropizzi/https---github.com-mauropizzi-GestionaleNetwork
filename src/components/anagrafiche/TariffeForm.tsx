@@ -87,6 +87,31 @@ export function TariffeForm() {
     },
   });
 
+  // Watch for changes in tipo_servizio to auto-set unita_misura
+  const tipoServizio = form.watch("tipo_servizio");
+
+  useEffect(() => {
+    let defaultUnitaMisura = "";
+    switch (tipoServizio) {
+      case "Piantonamento":
+      case "Servizi Fiduciari":
+        defaultUnitaMisura = "ora";
+        break;
+      case "Ispezioni":
+      case "Bonifiche":
+      case "Gestione Chiavi":
+      case "Apertura/Chiusura":
+      case "Intervento":
+        defaultUnitaMisura = "intervento";
+        break;
+      // Add other cases if needed, e.g., "Servizi a Canone" -> "mese"
+      // For now, if not matched, it remains empty or user can select manually
+    }
+    if (defaultUnitaMisura) {
+      form.setValue("unita_misura", defaultUnitaMisura, { shouldValidate: true });
+    }
+  }, [tipoServizio, form]);
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log("Dati Tariffa:", values);
     showSuccess("Tariffa salvata con successo!");
@@ -183,7 +208,7 @@ export function TariffeForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Unità di Misura</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento")}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona unità di misura" />
