@@ -587,6 +587,18 @@ export function InterventionForm() {
               Ora Attuale
             </Button>
           </div>
+          <Button 
+            type="button" 
+            className="w-full bg-blue-600 hover:bg-blue-700" 
+            onClick={handleEndGpsTracking}
+          >
+            Posizione GPS Fine Intervento
+          </Button>
+          {formData.endLatitude !== undefined && formData.endLongitude !== undefined && (
+            <p className="text-sm text-gray-500 mt-1 text-center">
+              Latitudine: {formData.endLatitude?.toFixed(6)}, Longitudine: {formData.endLongitude?.toFixed(6)}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="endTime">Orario Fine Intervento</Label>
@@ -607,18 +619,6 @@ export function InterventionForm() {
               Ora Attuale
             </Button>
           </div>
-          <Button 
-            type="button" 
-            className="w-full bg-blue-600 hover:bg-blue-700" 
-            onClick={handleEndGpsTracking}
-          >
-            Posizione GPS Inizio Intervento
-          </Button>
-          {formData.endLatitude !== undefined && formData.endLongitude !== undefined && (
-            <p className="text-sm text-gray-500 mt-1 text-center">
-              Latitudine: {formData.endLatitude?.toFixed(6)}, Longitudine: {formData.endLongitude?.toFixed(6)}
-            </p>
-          )}
         </div>
       </div>
 
