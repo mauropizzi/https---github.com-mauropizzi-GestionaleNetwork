@@ -24,6 +24,49 @@ const Login = () => {
           }}
           theme="light" // Puoi impostare 'dark' se la tua app supporta il tema scuro
           redirectTo={window.location.origin} // Reindirizza alla root dopo il login
+          localization={{
+            variables: {
+              sign_in: {
+                email_label: 'Indirizzo Email',
+                password_label: 'La tua Password',
+                email_input_placeholder: 'Il tuo indirizzo email',
+                password_input_placeholder: 'La tua password',
+                button_label: 'Accedi',
+                link_text: 'Hai già un account? Accedi',
+              },
+              sign_up: {
+                email_label: 'Indirizzo Email',
+                password_label: 'Crea una Password',
+                email_input_placeholder: 'Il tuo indirizzo email',
+                password_input_placeholder: 'Crea la tua password',
+                button_label: 'Registrati',
+                link_text: 'Non hai un account? Registrati',
+              },
+              forgotten_password: {
+                email_label: 'Indirizzo Email',
+                email_input_placeholder: 'Il tuo indirizzo email',
+                button_label: 'Invia istruzioni per il reset',
+                link_text: 'Hai dimenticato la password?',
+              },
+              update_password: {
+                password_label: 'Nuova Password',
+                password_input_placeholder: 'La tua nuova password',
+                button_label: 'Aggiorna Password',
+              },
+              magic_link: {
+                email_input_placeholder: 'Il tuo indirizzo email',
+                button_label: 'Invia Magic Link',
+                link_text: 'Invia un Magic Link',
+              },
+              verify_otp: {
+                email_input_placeholder: 'Il tuo indirizzo email',
+                phone_input_placeholder: 'Il tuo numero di telefono',
+                token_input_placeholder: 'Il tuo codice OTP',
+                button_label: 'Verifica OTP',
+                link_text: 'Hai già un codice OTP? Verifica',
+              },
+            },
+          }}
         />
       </div>
     </div>
