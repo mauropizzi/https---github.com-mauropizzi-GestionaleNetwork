@@ -41,6 +41,7 @@ const Login = () => {
                 password_input_placeholder: 'Crea la tua password',
                 button_label: 'Registrati',
                 link_text: 'Non hai un account? Registrati',
+                confirmation_text: 'Controlla la tua email per il link di conferma', // Added this line
               },
               forgotten_password: {
                 email_label: 'Indirizzo Email',
