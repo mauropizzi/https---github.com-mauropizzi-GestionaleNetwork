@@ -38,7 +38,7 @@ interface IncomingEmail {
   raw_email?: string | null;
 }
 
-export const IncomingEmailsPage: React.FC = () => {
+const IncomingEmailsPage: React.FC = () => {
   const [data, setData] = useState<IncomingEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -243,3 +243,5 @@ export const IncomingEmailsPage: React.FC = () => {
     </div>
   );
 };
+
+export default IncomingEmailsPage;
