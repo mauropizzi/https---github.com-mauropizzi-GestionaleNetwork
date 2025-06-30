@@ -425,7 +425,7 @@ const EditAlarmEventPage = () => {
                   />
                 </div>
                 <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEndGpsTracking}>
-                  Posizione GPS Fine Intervento
+                  Posizione GPS Inizio Intervento
                 </Button>
               </div>
 

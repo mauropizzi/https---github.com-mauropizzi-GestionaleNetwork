@@ -335,7 +335,6 @@ export function InterventionForm() {
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
         showError("Tutti i campi 'SI/NO' sono obbligatori per la chiusura.");
-        return;
       }
       if (!serviceOutcome) {
         showError("L'Esito Evento è obbligatorio per la chiusura.");
@@ -612,7 +611,7 @@ export function InterventionForm() {
             className="w-full bg-blue-600 hover:bg-blue-700" 
             onClick={handleEndGpsTracking}
           >
-            Posizione GPS Fine Intervento
+            Posizione GPS Inizio Intervento
           </Button>
           {formData.endLatitude !== undefined && formData.endLongitude !== undefined && (
             <p className="text-sm text-gray-500 mt-1 text-center">
