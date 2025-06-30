@@ -25,12 +25,19 @@ import { showSuccess, showError } from "@/utils/toast";
 interface ServiceRequest {
   id: string;
   type: string;
-  client: string;
-  location: string;
+  client: string; // Display name
+  location: string; // Display name
   startDate: Date;
   endDate: Date;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   cost?: number;
+  // Add other fields if you want to make them editable
+  startTime?: string;
+  endTime?: string;
+  numAgents?: number;
+  cadenceHours?: number;
+  inspectionType?: string;
+  dailyHoursConfig?: any;
 }
 
 interface ServiceEditDialogProps {
@@ -42,12 +49,13 @@ interface ServiceEditDialogProps {
 
 const formSchema = z.object({
   type: z.string().min(1, "Il tipo di servizio è richiesto."),
-  client: z.string().min(1, "Il cliente è richiesto."),
-  location: z.string().min(1, "La località è richiesta."),
+  client: z.string().min(1, "Il cliente è richiesto."), // This will be a display name, not ID
+  location: z.string().min(1, "La località è richiesta."), // This will be a display name, not ID
   status: z.enum(["Pending", "Approved", "Rejected", "Completed"], {
     required_error: "Lo stato è richiesto.",
   }),
   cost: z.coerce.number().optional(),
+  // Add other fields here if they need to be editable
 });
 
 export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceEditDialogProps) {
@@ -75,9 +83,9 @@ export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceE
         ...values,
         cost: values.cost !== undefined ? values.cost : undefined,
       };
-      onSave(updatedService);
-      showSuccess(`Servizio ${updatedService.id} aggiornato con successo!`);
-      onClose();
+      onSave(updatedService); // Pass the updated service back to the parent
+      // showSuccess(`Servizio ${updatedService.id} aggiornato con successo!`); // Handled by parent
+      // onClose(); // Handled by parent
     } else {
       showError("Nessun servizio selezionato per la modifica.");
     }
@@ -114,7 +122,7 @@ export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceE
                 <FormItem>
                   <FormLabel>Cliente</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} disabled /> {/* Client name is display-only */}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,9 +133,9 @@ export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceE
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Località</FormLabel>
+                  <FormLabel>Punto Servizio</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} disabled /> {/* Location name is display-only */}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

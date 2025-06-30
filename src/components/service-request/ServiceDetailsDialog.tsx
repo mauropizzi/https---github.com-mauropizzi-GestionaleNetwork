@@ -6,12 +6,19 @@ import { it } from 'date-fns/locale';
 interface ServiceRequest {
   id: string;
   type: string;
-  client: string;
-  location: string;
+  client: string; // Display name
+  location: string; // Display name
   startDate: Date;
   endDate: Date;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   cost?: number;
+  // Add other fields if you want to display them in the details dialog
+  startTime?: string;
+  endTime?: string;
+  numAgents?: number;
+  cadenceHours?: number;
+  inspectionType?: string;
+  dailyHoursConfig?: any;
 }
 
 interface ServiceDetailsDialogProps {
@@ -42,17 +49,29 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
             <span className="col-span-2 text-sm">{service.client}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
-            <span className="text-sm font-medium">Località:</span>
+            <span className="text-sm font-medium">Punto Servizio:</span>
             <span className="col-span-2 text-sm">{service.location}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Data Inizio:</span>
             <span className="col-span-2 text-sm">{format(service.startDate, "PPP", { locale: it })}</span>
           </div>
+          {service.startTime && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="text-sm font-medium">Ora Inizio:</span>
+              <span className="col-span-2 text-sm">{service.startTime}</span>
+            </div>
+          )}
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Data Fine:</span>
             <span className="col-span-2 text-sm">{format(service.endDate, "PPP", { locale: it })}</span>
           </div>
+          {service.endTime && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="text-sm font-medium">Ora Fine:</span>
+              <span className="col-span-2 text-sm">{service.endTime}</span>
+            </div>
+          )}
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Stato:</span>
             <span className="col-span-2 text-sm">{service.status}</span>
@@ -61,6 +80,36 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
             <span className="text-sm font-medium">Costo Stimato:</span>
             <span className="col-span-2 text-sm">{service.cost !== undefined ? `${service.cost.toFixed(2)} €` : "N/A"}</span>
           </div>
+          {service.numAgents && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="text-sm font-medium">Num. Agenti:</span>
+              <span className="col-span-2 text-sm">{service.numAgents}</span>
+            </div>
+          )}
+          {service.cadenceHours && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="text-sm font-medium">Cadenza (ore):</span>
+              <span className="col-span-2 text-sm">{service.cadenceHours}</span>
+            </div>
+          )}
+          {service.inspectionType && (
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="text-sm font-medium">Tipo Ispezione:</span>
+              <span className="col-span-2 text-sm">{service.inspectionType}</span>
+            </div>
+          )}
+          {service.dailyHoursConfig && service.dailyHoursConfig.length > 0 && (
+            <div className="grid grid-cols-3 items-start gap-4">
+              <span className="text-sm font-medium">Orari Giornalieri:</span>
+              <div className="col-span-2 text-sm space-y-1">
+                {service.dailyHoursConfig.map((day: any, index: number) => (
+                  <p key={index}>
+                    {day.day}: {day.is24h ? "H24" : `${day.startTime} - ${day.endTime}`}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
