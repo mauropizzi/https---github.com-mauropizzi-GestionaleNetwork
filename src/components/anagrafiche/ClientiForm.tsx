@@ -15,46 +15,76 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { showSuccess, showError } from "@/utils/toast"; // Import toast utilities
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const formSchema = z.object({
-  ragione_sociale: z.string().min(2, "La ragione sociale è richiesta."),
-  partita_iva: z.string().optional(),
-  codice_fiscale: z.string().optional(),
-  indirizzo: z.string().optional(),
-  cap: z.string().optional(),
-  citta: z.string().optional(),
-  provincia: z.string().optional(),
-  telefono: z.string().optional(),
-  email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
-  pec: z.string().email("Formato PEC non valido.").optional().or(z.literal("")),
-  sdi: z.string().optional(),
+  nome_cliente: z.string().min(2, "La ragione sociale è richiesta."), // Changed to nome_cliente to match DB
+  partita_iva: z.string().optional().nullable(),
+  codice_fiscale: z.string().optional().nullable(),
+  indirizzo: z.string().optional().nullable(),
+  cap: z.string().optional().nullable(),
+  citta: z.string().optional().nullable(),
+  provincia: z.string().optional().nullable(),
+  telefono: z.string().optional().nullable(),
+  email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
+  pec: z.string().email("Formato PEC non valido.").optional().nullable().or(z.literal("")),
+  sdi: z.string().optional().nullable(),
   attivo: z.boolean().default(true).optional(),
-  note: z.string().optional(),
+  note: z.string().optional().nullable(),
 });
 
 export function ClientiForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      ragione_sociale: "",
-      codice_fiscale: "",
-      partita_iva: "",
-      indirizzo: "",
-      citta: "",
-      cap: "",
-      provincia: "",
-      telefono: "",
-      email: "",
-      pec: "",
-      sdi: "",
+      nome_cliente: "",
+      codice_fiscale: null,
+      partita_iva: null,
+      indirizzo: null,
+      citta: null,
+      cap: null,
+      provincia: null,
+      telefono: null,
+      email: null,
+      pec: null,
+      sdi: null,
       attivo: true,
-      note: "",
+      note: null,
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Cliente:", values);
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Ensure empty strings are converted to null for optional fields
+    const payload = {
+      nome_cliente: values.nome_cliente,
+      partita_iva: values.partita_iva || null,
+      codice_fiscale: values.codice_fiscale || null,
+      indirizzo: values.indirizzo || null,
+      citta: values.citta || null,
+      cap: values.cap || null,
+      provincia: values.provincia || null,
+      telefono: values.telefono || null,
+      email: values.email || null,
+      pec: values.pec || null,
+      sdi: values.sdi || null,
+      attivo: values.attivo,
+      note: values.note || null,
+    };
+
+    const { data, error } = await supabase
+      .from('clienti')
+      .insert([payload])
+      .select(); // Use .select() to get the inserted data back
+
+    if (error) {
+      showError(`Errore durante la registrazione del cliente: ${error.message}`);
+      console.error("Error inserting cliente:", error);
+    } else {
+      showSuccess("Cliente salvato con successo!");
+      console.log("Dati Cliente salvati:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -63,7 +93,7 @@ export function ClientiForm() {
         <h3 className="text-lg font-semibold">Dettagli Cliente</h3>
         <FormField
           control={form.control}
-          name="ragione_sociale"
+          name="nome_cliente" // Changed name to match DB
           render={({ field }) => (
             <FormItem>
               <FormLabel>Ragione Sociale</FormLabel>
@@ -82,7 +112,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Codice Fiscale</FormLabel>
                 <FormControl>
-                  <Input placeholder="Codice Fiscale" {...field} />
+                  <Input placeholder="Codice Fiscale" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -95,7 +125,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Partita IVA</FormLabel>
                 <FormControl>
-                  <Input placeholder="Partita IVA" {...field} />
+                  <Input placeholder="Partita IVA" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -109,7 +139,7 @@ export function ClientiForm() {
             <FormItem>
               <FormLabel>Indirizzo</FormLabel>
               <FormControl>
-                <Input placeholder="Via, numero civico" {...field} />
+                <Input placeholder="Via, numero civico" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -123,7 +153,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Città</FormLabel>
                 <FormControl>
-                  <Input placeholder="Città" {...field} />
+                  <Input placeholder="Città" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -136,7 +166,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>CAP</FormLabel>
                 <FormControl>
-                  <Input placeholder="CAP" {...field} />
+                  <Input placeholder="CAP" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -149,7 +179,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Provincia</FormLabel>
                 <FormControl>
-                  <Input placeholder="Provincia" {...field} />
+                  <Input placeholder="Provincia" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -164,7 +194,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Telefono</FormLabel>
                 <FormControl>
-                  <Input placeholder="Telefono" {...field} />
+                  <Input placeholder="Telefono" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -177,7 +207,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} />
+                  <Input type="email" placeholder="email@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -192,7 +222,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>PEC</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="pec@example.com" {...field} />
+                  <Input type="email" placeholder="pec@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -205,7 +235,7 @@ export function ClientiForm() {
               <FormItem>
                 <FormLabel>Codice SDI</FormLabel>
                 <FormControl>
-                  <Input placeholder="Codice SDI" {...field} />
+                  <Input placeholder="Codice SDI" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -238,7 +268,7 @@ export function ClientiForm() {
             <FormItem>
               <FormLabel>Note Aggiuntive</FormLabel>
               <FormControl>
-                <Textarea placeholder="Note sul cliente..." {...field} />
+                <Textarea placeholder="Note sul cliente..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

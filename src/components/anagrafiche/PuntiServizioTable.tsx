@@ -36,7 +36,6 @@ export function PuntiServizioTable() {
 
   const fetchPuntiServizioData = useCallback(async () => {
     setLoading(true);
-    console.log("Fetching punti_servizio data from Supabase...");
     const { data: puntiServizioData, error: puntiServizioError } = await supabase
       .from('punti_servizio')
       .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
@@ -46,14 +45,12 @@ export function PuntiServizioTable() {
       console.error("Error fetching punti_servizio:", puntiServizioError);
       setData([]);
     } else {
-      console.log("Raw fetched punti_servizio data:", puntiServizioData); // Log raw data
       const mappedData = puntiServizioData.map(ps => ({
         ...ps,
         nome_cliente: ps.clienti?.nome_cliente || 'N/A',
         nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
       }));
       setData(mappedData || []);
-      console.log("Mapped punti_servizio data for table:", mappedData); // Log mapped data
     }
     setLoading(false);
   }, []);
@@ -105,19 +102,16 @@ export function PuntiServizioTable() {
   };
 
   const filteredData = useMemo(() => {
-    console.log("Current search term:", searchTerm); // Log the current search term
-    const filtered = data.filter(punto => {
+    return data.filter(punto => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        punto.nome_punto_servizio.toLowerCase().trim().includes(searchLower) || // Added .trim() here
-        (punto.nome_cliente?.toLowerCase().trim().includes(searchLower)) ||
-        (punto.indirizzo?.toLowerCase().trim().includes(searchLower)) ||
-        (punto.citta?.toLowerCase().trim().includes(searchLower)) ||
-        (punto.referente?.toLowerCase().trim().includes(searchLower))
+        (punto.nome_punto_servizio || '').toLowerCase().includes(searchLower) ||
+        (punto.nome_cliente || '').toLowerCase().includes(searchLower) ||
+        (punto.indirizzo || '').toLowerCase().includes(searchLower) ||
+        (punto.citta || '').toLowerCase().includes(searchLower) ||
+        (punto.referente || '').toLowerCase().includes(searchLower)
       );
     });
-    console.log("Filtered data for table:", filtered); // Log the filtered data
-    return filtered;
   }, [data, searchTerm]);
 
   const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
@@ -176,7 +170,7 @@ export function PuntiServizioTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(), // Corrected typo here
+    getCoreRowModel: getCoreRowModel(),
   });
 
   return (
