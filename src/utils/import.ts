@@ -57,7 +57,7 @@ const tableConfigs: {
   "operatori-network": {
     tableName: "operatori_network",
     requiredFields: ["nome"],
-    uniqueFields: ["nome", "cognome"],
+    uniqueFields: ["nome"], // Changed to nome only, as cognome is nullable
     fieldMapping: { clienteId: "client_id" },
   },
   "fornitori": {
