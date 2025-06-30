@@ -45,6 +45,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Login />;
   }
 
+  // Restituisci direttamente i figli quando l'utente è autenticato
   return <>{children}</>;
 };
 
