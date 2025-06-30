@@ -225,10 +225,11 @@ export function ServiceTable() {
   }, [data, searchTerm, puntiServizioMap]); // Added puntiServizioMap to dependencies
 
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
-    {
-      accessorKey: "id",
-      header: "ID Servizio",
-    },
+    // Commented out to hide the column
+    // {
+    //   accessorKey: "id",
+    //   header: "ID Servizio",
+    // },
     {
       accessorKey: "type",
       header: "Tipo Servizio",
