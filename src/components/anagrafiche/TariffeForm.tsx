@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { Cliente, PuntoServizio, Fornitore, serviceTypeRateOptions } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const unitaMisuraOptions = ["ora", "intervento", "km", "mese"];
 
@@ -41,9 +42,9 @@ const formSchema = z.object({
   unita_misura: z.string().min(1, "L'unità di misura è richiesta."),
   punto_servizio_id: z.string().uuid("Seleziona un punto servizio valido.").optional().or(z.literal("")),
   fornitore_id: z.string().uuid("Seleziona un fornitore valido.").optional().or(z.literal("")), // Nuovo campo
-  data_inizio_validita: z.date().optional(),
-  data_fine_validita: z.date().optional(),
-  note: z.string().optional(),
+  data_inizio_validita: z.date().optional().nullable(),
+  data_fine_validita: z.date().optional().nullable(),
+  note: z.string().optional().nullable(),
 }).refine(data => {
   if (data.data_inizio_validita && data.data_fine_validita) {
     return data.data_fine_validita >= data.data_inizio_validita;
@@ -81,9 +82,9 @@ export function TariffeForm() {
       unita_misura: "",
       punto_servizio_id: "",
       fornitore_id: "", // Default per il nuovo campo
-      data_inizio_validita: undefined,
-      data_fine_validita: undefined,
-      note: "",
+      data_inizio_validita: null,
+      data_fine_validita: null,
+      note: null,
     },
   });
 
@@ -112,10 +113,46 @@ export function TariffeForm() {
     }
   }, [tipoServizio, form]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log("Dati Tariffa:", values);
-    showSuccess("Tariffa salvata con successo!");
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+
+    const payload = {
+      client_id: values.cliente_id,
+      service_type: values.tipo_servizio,
+      client_rate: values.importo,
+      supplier_rate: values.supplier_rate,
+      unita_misura: values.unita_misura,
+      punto_servizio_id: values.punto_servizio_id || null,
+      fornitore_id: values.fornitore_id || null,
+      data_inizio_validita: values.data_inizio_validita ? format(values.data_inizio_validita, 'yyyy-MM-dd') : null,
+      data_fine_validita: values.data_fine_validita ? format(values.data_fine_validita, 'yyyy-MM-dd') : null,
+      note: values.note || null,
+    };
+
+    const { data, error } = await supabase
+      .from('tariffe')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      showError(`Errore durante la registrazione della tariffa: ${error.message}`);
+      console.error("Error inserting tariffa:", error);
+    } else {
+      showSuccess("Tariffa salvata con successo!");
+      console.log("Dati Tariffa salvati:", data);
+      form.reset({
+        cliente_id: "",
+        tipo_servizio: "",
+        importo: 0,
+        supplier_rate: 0,
+        unita_misura: "",
+        punto_servizio_id: "",
+        fornitore_id: "",
+        data_inizio_validita: null,
+        data_fine_validita: null,
+        note: null,
+      });
+    }
   };
 
   return (
@@ -311,7 +348,7 @@ export function TariffeForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -350,7 +387,7 @@ export function TariffeForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -369,7 +406,7 @@ export function TariffeForm() {
             <FormItem>
               <FormLabel>Note Aggiuntive</FormLabel>
               <FormControl>
-                <Textarea placeholder="Note sulla tariffa..." {...field} />
+                <Textarea placeholder="Note sulla tariffa..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

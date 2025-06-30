@@ -19,6 +19,7 @@ const TariffePage = () => {
   const currentTab = searchParams.get("tab") || "lista-tariffe"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
+  const [refreshTable, setRefreshTable] = useState(false); // State to trigger table refresh
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -29,6 +30,13 @@ const TariffePage = () => {
       setSearchParams({ tab: "lista-tariffe" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
+
+  // Effect to trigger table refresh when `refreshTable` changes
+  useEffect(() => {
+    if (refreshTable) {
+      setRefreshTable(false); // Reset the state
+    }
+  }, [refreshTable]);
 
   const handleExport = async () => {
     const tableName = "tariffe";
@@ -61,6 +69,7 @@ const TariffePage = () => {
 
       setImportSummary(result.details);
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
+      setRefreshTable(true); // Trigger table refresh after import
 
       if (result.success) {
         // showSuccess(result.message); // Handled by dialog
@@ -108,7 +117,7 @@ const TariffePage = () => {
               <TariffeForm />
             </TabsContent>
             <TabsContent value="lista-tariffe" className="mt-4">
-              <TariffeTable />
+              <TariffeTable key={refreshTable ? 'refresh' : 'no-refresh'} />
             </TabsContent>
           </Tabs>
         </CardContent>

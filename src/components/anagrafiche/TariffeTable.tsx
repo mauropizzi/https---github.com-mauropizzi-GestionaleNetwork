@@ -22,6 +22,7 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { TariffaEditDialog } from "./TariffaEditDialog"; // Import the new dialog
 
 interface Tariffa {
   id: string;
@@ -46,6 +47,8 @@ export function TariffeTable() {
   const [data, setData] = useState<Tariffa[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTariffaForEdit, setSelectedTariffaForEdit] = useState<Tariffa | null>(null);
 
   const fetchTariffeData = useCallback(async () => {
     setLoading(true);
@@ -73,10 +76,27 @@ export function TariffeTable() {
     fetchTariffeData();
   }, [fetchTariffeData]);
 
-  const handleEdit = (tariffa: Tariffa) => {
-    showInfo(`Modifica tariffa: ${tariffa.service_type} (ID: ${tariffa.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((tariffa: Tariffa) => {
+    setSelectedTariffaForEdit(tariffa);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedTariffa: Tariffa) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(t =>
+        t.id === updatedTariffa.id ? updatedTariffa : t
+      )
+    );
+    fetchTariffeData(); // Re-fetch to ensure data consistency
+    setIsEditDialogOpen(false);
+    setSelectedTariffaForEdit(null);
+  }, [fetchTariffeData]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedTariffaForEdit(null);
+  }, []);
 
   const handleDelete = async (tariffaId: string, serviceType: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare la tariffa "${serviceType}"?`)) {
@@ -235,6 +255,15 @@ export function TariffeTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedTariffaForEdit && (
+        <TariffaEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          tariffa={selectedTariffaForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
