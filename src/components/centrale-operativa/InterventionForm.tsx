@@ -26,8 +26,12 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchPersonale, fetchOperatoriNetwork } from '@/lib/data-fetching'; // Import fetchOperatoriNetwork
-import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data'; // Import OperatoreNetwork interface
+import { fetchPersonale, fetchOperatoriNetwork } from '@/lib/data-fetching';
+import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function InterventionForm() {
   const { toast } = useToast();
@@ -40,7 +44,7 @@ export function InterventionForm() {
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '',
+    operatorClient: '', // This will store the ID of the selected operator
     gpgIntervention: '', // This will now be a personnel ID
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
@@ -51,12 +55,13 @@ export function InterventionForm() {
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
   });
-  const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]); // Changed state name and type
+  const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
+  const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false); // State for combobox popover
 
   useEffect(() => {
     const loadPersonnelData = async () => {
-      const fetchedOperatoriNetwork = await fetchOperatoriNetwork(); // Use new fetch function
+      const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
       setOperatoriNetworkList(fetchedOperatoriNetwork);
 
       const fetchedPattuglia = await fetchPersonale('Pattuglia');
@@ -157,8 +162,9 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      const selectedOperatorNetwork = operatoriNetworkList.find(op => `${op.nome} ${op.cognome || ''}` === formData.operatorClient);
-      doc.text(`Operatore Network: ${selectedOperatorNetwork ? `${selectedOperatorNetwork.nome} ${selectedOperatorNetwork.cognome || ''}` : 'N/A'}`, 14, y);
+      // Find the full name for the PDF
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorClient);
+      doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
       doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
@@ -260,7 +266,7 @@ export function InterventionForm() {
       endTime,
       fullAccess,
       vaultAccess,
-      operatorClient,
+      operatorClient, // This is now the ID
       gpgIntervention,
       anomalies,
       anomalyDescription,
@@ -311,7 +317,7 @@ export function InterventionForm() {
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorClient || null,
+      operator_client: operatorClient || null, // This is now the ID
       gpg_intervention: gpgIntervention || null, // Now stores the ID of the selected personnel
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
@@ -547,22 +553,48 @@ export function InterventionForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="operator-client">Operatore Network</Label>
-        <Select
-          onValueChange={(value) => handleSelectChange('operatorClient', value)}
-          value={formData.operatorClient}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Seleziona operatore network..." />
-          </SelectTrigger>
-          <SelectContent>
-            {operatoriNetworkList.map(personale => (
-              <SelectItem key={personale.id} value={`${personale.nome} ${personale.cognome || ''}`}>
-                {personale.nome} {personale.cognome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="operator-network">Operatore Network</Label>
+        <Popover open={isOperatorNetworkOpen} onOpenChange={setIsOperatorNetworkOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isOperatorNetworkOpen}
+              className="w-full justify-between"
+            >
+              {formData.operatorClient
+                ? operatoriNetworkList.find(op => op.id === formData.operatorClient)?.nome + " " + operatoriNetworkList.find(op => op.id === formData.operatorClient)?.cognome
+                : "Seleziona operatore network..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput placeholder="Cerca operatore network..." />
+              <CommandEmpty>Nessun operatore trovato.</CommandEmpty>
+              <CommandGroup>
+                {operatoriNetworkList.map((op) => (
+                  <CommandItem
+                    key={op.id}
+                    value={`${op.nome} ${op.cognome || ''}`}
+                    onSelect={() => {
+                      setFormData(prev => ({ ...prev, operatorClient: op.id }));
+                      setIsOperatorNetworkOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        formData.operatorClient === op.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {op.nome} {op.cognome}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">
