@@ -29,7 +29,8 @@ const OperatoriNetworkPage = () => {
 
   const handleExport = async () => {
     const tableName = "operatori_network";
-    const columnsToSelect = ["id", "created_at", "nome_operatore", "referente", "telefono", "email", "tipo_servizio"];
+    // Updated columns to select for export
+    const columnsToSelect = ["id", "created_at", "nome", "cognome", "client_id", "telefono", "email"];
 
     const { data, error } = await supabase
       .from(tableName)
