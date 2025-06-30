@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel, // Corrected typo here
+  getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import {
@@ -132,7 +132,7 @@ const IncomingEmailsPage: React.FC = () => {
       cell: ({ row }) => (
         <Select onValueChange={(value) => handleUpdateFolder(row.original.id, value)} value={row.original.folder}>
           <SelectTrigger className="w-[120px]">
-            <span><SelectValue placeholder="Seleziona cartella" /></span> {/* Wrapped SelectValue in a span */}
+            <SelectValue placeholder="Seleziona cartella" />
           </SelectTrigger>
           <SelectContent>
             {folderOptions.map(folder => (
@@ -182,7 +182,7 @@ const IncomingEmailsPage: React.FC = () => {
               <Filter className="h-4 w-4 text-gray-500" />
               <Select onValueChange={setFilterFolder} value={filterFolder}>
                 <SelectTrigger className="w-[180px]">
-                  <span><SelectValue placeholder="Filtra per cartella" /></span> {/* Wrapped SelectValue in a span */}
+                  <SelectValue placeholder="Filtra per cartella" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">Tutte le Cartelle</SelectItem>
@@ -269,7 +269,7 @@ const IncomingEmailsPage: React.FC = () => {
                   <h4 className="font-semibold">Cartella:</h4>
                   <Select onValueChange={(value) => handleUpdateFolder(selectedEmail.id, value)} value={selectedEmail.folder}>
                     <SelectTrigger className="w-[180px]">
-                      <span><SelectValue placeholder="Seleziona cartella" /></span> {/* Wrapped SelectValue in a span */}
+                      <SelectValue placeholder="Seleziona cartella" />
                     </SelectTrigger>
                     <SelectContent>
                       {folderOptions.map(folder => (
