@@ -17,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText } from 'lucide-react';
-import { showInfo, showError } from '@/utils/toast';
+import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2 } from 'lucide-react'; // Import Trash2 icon
+import { showInfo, showError, showSuccess } from '@/utils/toast'; // Import showSuccess
 import { supabase } from '@/integrations/supabase/client';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
@@ -120,6 +120,25 @@ export function AlarmEventsInProgressTable() {
     }
   }, [pattugliaPersonnelMap]);
 
+  const handleDelete = async (eventId: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare l'evento di allarme con ID ${eventId}?`)) {
+      const { error } = await supabase
+        .from('allarme_interventi')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) {
+        showError(`Errore durante l'eliminazione dell'evento: ${error.message}`);
+        console.error("Error deleting alarm event:", error);
+      } else {
+        showSuccess(`Evento ${eventId} eliminato con successo!`);
+        fetchInProgressEvents(); // Refresh data after deletion
+      }
+    } else {
+      showInfo(`Eliminazione dell'evento ${eventId} annullata.`);
+    }
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(report => {
       const servicePoint = puntiServizioMap.get(report.service_point_code); // Lookup by ID
@@ -192,10 +211,13 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id)} title="Elimina">
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, pattugliaPersonnelMap, puntiServizioMap]);
+  ], [handleEdit, handleWhatsAppMessage, handleDelete, pattugliaPersonnelMap, puntiServizioMap]);
 
   const table = useReactTable({
     data: filteredData,
