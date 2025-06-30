@@ -15,7 +15,7 @@ import PersonalePage from "./pages/PersonalePage";
 import OperatoriNetworkPage from "./pages/OperatoriNetworkPage";
 import FornitoriPage from "./pages/FornitoriPage";
 import TariffePage from "./pages/TariffePage";
-import ProcedurePage from "./pages/ProcedurePage"; // Import the new page
+import ProcedurePage from "./pages/ProcedurePage";
 import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
@@ -23,8 +23,9 @@ import CentraleOperativa from "./pages/CentraleOperativa";
 import ServiziCanone from "./pages/ServiziCanone";
 import EditAlarmEventPage from "./pages/EditAlarmEventPage";
 import PublicSuccessPage from "./pages/PublicSuccessPage";
-import Login from "./pages/Login"; // Import the Login page
-import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider"; // Import SessionContextProvider and useSession
+import Login from "./pages/Login";
+import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
+import IncomingEmailsPage from "./pages/IncomingEmails"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -74,13 +75,14 @@ const App = () => (
               <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
               <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
               <Route path="anagrafiche/tariffe" element={<TariffePage />} />
-              <Route path="anagrafiche/procedure" element={<ProcedurePage />} /> {/* New route */}
+              <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
               <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
               <Route path="service-list" element={<ServiceList />} />
               <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
               <Route path="centrale-operativa" element={<CentraleOperativa />} />
               <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
               <Route path="servizi-a-canone" element={<ServiziCanone />} />
+              <Route path="incoming-emails" element={<IncomingEmailsPage />} /> {/* New route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Route>
