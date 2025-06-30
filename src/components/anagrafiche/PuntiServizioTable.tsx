@@ -105,11 +105,11 @@ export function PuntiServizioTable() {
     return data.filter(punto => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        punto.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (punto.nome_cliente?.toLowerCase().includes(searchLower)) ||
-        (punto.indirizzo?.toLowerCase().includes(searchLower)) ||
-        (punto.citta?.toLowerCase().includes(searchLower)) ||
-        (punto.referente?.toLowerCase().includes(searchLower))
+        (punto.nome_punto_servizio || '').toLowerCase().includes(searchLower) ||
+        (punto.nome_cliente || '').toLowerCase().includes(searchLower) ||
+        (punto.indirizzo || '').toLowerCase().includes(searchLower) ||
+        (punto.citta || '').toLowerCase().includes(searchLower) ||
+        (punto.referente || '').toLowerCase().includes(searchLower)
       );
     });
   }, [data, searchTerm]);
