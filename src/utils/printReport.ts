@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { servicePointsData } from "@/lib/centrale-data";
+import { fetchPuntiServizio } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { PuntoServizio } from "@/lib/anagrafiche-data"; // Import PuntoServizio interface
 
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
@@ -19,6 +20,8 @@ interface AllarmeIntervento {
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const printSingleServiceReport = async (reportId: string) => {
@@ -41,6 +44,16 @@ export const printSingleServiceReport = async (reportId: string) => {
     return;
   }
 
+  // Fetch all service points to map the code to a name
+  const puntiServizioList = await fetchPuntiServizio();
+  const servicePointMap = new Map<string, PuntoServizio>();
+  puntiServizioList.forEach(p => {
+    if (p.codice_sicep) servicePointMap.set(p.codice_sicep, p);
+    if (p.codice_cliente) servicePointMap.set(p.codice_cliente, p);
+    if (p.nome_punto_servizio) servicePointMap.set(p.nome_punto_servizio, p);
+    servicePointMap.set(p.id, p); // Also map by ID for robustness
+  });
+
   const doc = new jsPDF();
   let y = 20;
 
@@ -58,7 +71,7 @@ export const printSingleServiceReport = async (reportId: string) => {
   doc.text(`Ora Intervento: ${report.report_time}`, 14, y);
   y += 7;
 
-  const servicePointName = servicePointsData.find(sp => sp.code === report.service_point_code)?.name || report.service_point_code || 'N/A';
+  const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
   y += 7;
   doc.text(`Tipologia Richiesta: ${report.request_type}`, 14, y);
