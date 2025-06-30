@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { operatorClientOptions } from '@/lib/centrale-options'; // Ensure operatorClientOptions is imported if needed
+import { cn } from "@/lib/utils"; // Import cn
 
 export function InterventionForm() {
   const { toast } = useToast();
