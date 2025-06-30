@@ -33,8 +33,8 @@ const tableConfigs: {
   },
   "punti-servizio": {
     tableName: "punti_servizio",
-    requiredFields: ["nome_punto_servizio", "id_cliente", "indirizzo", "citta"],
-    uniqueFields: ["nome_punto_servizio", "id_cliente"],
+    requiredFields: ["nome_punto_servizio", "indirizzo", "citta"], // id_cliente removed from requiredFields
+    uniqueFields: ["nome_punto_servizio"], // Changed to only nome_punto_servizio for uniqueness
     fieldMapping: { nomePuntoServizio: "nome_punto_servizio", idCliente: "id_cliente", telefonoReferente: "telefono_referente", tempoIntervento: "tempo_intervento", codiceCliente: "codice_cliente", codiceSicep: "codice_sicep", codiceFatturazione: "codice_fatturazione", fornitoreId: "fornitore_id" },
     typeConversion: {
       tempo_intervento: (val: any) => val ? parseInt(val, 10) : null,
