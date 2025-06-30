@@ -101,3 +101,22 @@ export async function fetchProcedure(): Promise<Procedure[]> {
   }
   return data || [];
 }
+
+export async function fetchServiceRequestsForAnalysis(clientId?: string): Promise<any[]> {
+  let query = supabase
+    .from('servizi_richiesti')
+    .select('id, type, client_id, service_point_id, calculated_cost'); // Select only necessary fields
+
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    showError(`Errore nel recupero dei servizi per analisi: ${error.message}`);
+    console.error("Error fetching service requests for analysis:", error);
+    return [];
+  }
+  return data || [];
+}
