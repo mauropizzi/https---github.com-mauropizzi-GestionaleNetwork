@@ -30,7 +30,7 @@ interface ServiceRequest {
   startDate: Date;
   endDate: Date;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
-  cost?: number;
+  cost?: number; // Keep optional for display, but not editable via form
   // Add other fields if you want to make them editable
   startTime?: string;
   endTime?: string;
@@ -54,25 +54,37 @@ const formSchema = z.object({
   status: z.enum(["Pending", "Approved", "Rejected", "Completed"], {
     required_error: "Lo stato è richiesto.",
   }),
-  cost: z.coerce.number().optional(),
+  // Rimosso cost: z.coerce.number().optional(),
   // Add other fields here if they need to be editable
 });
 
 export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceEditDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: service || {
+    defaultValues: service ? {
+      type: service.type,
+      client: service.client,
+      location: service.location,
+      status: service.status,
+      // Rimosso cost: service.cost,
+    } : {
       type: "",
       client: "",
       location: "",
       status: "Pending",
-      cost: 0,
+      // Rimosso cost: 0,
     },
   });
 
   React.useEffect(() => {
     if (service) {
-      form.reset(service);
+      form.reset({
+        type: service.type,
+        client: service.client,
+        location: service.location,
+        status: service.status,
+        // Rimosso cost: service.cost,
+      });
     }
   }, [service, form]);
 
@@ -81,7 +93,7 @@ export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceE
       const updatedService: ServiceRequest = {
         ...service,
         ...values,
-        cost: values.cost !== undefined ? values.cost : undefined,
+        // Rimosso cost: values.cost !== undefined ? values.cost : undefined,
       };
       onSave(updatedService); // Pass the updated service back to the parent
       // showSuccess(`Servizio ${updatedService.id} aggiornato con successo!`); // Handled by parent
@@ -164,19 +176,7 @@ export function ServiceEditDialog({ isOpen, onClose, service, onSave }: ServiceE
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Costo Stimato (€)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Rimosso FormField per il costo */}
             <DialogFooter>
               <Button type="submit">Salva Modifiche</Button>
             </DialogFooter>

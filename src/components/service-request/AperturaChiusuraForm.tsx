@@ -31,7 +31,7 @@ import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Imp
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
-const BASE_RATE_APERTURA_CHIUSURA = 100; // Example base rate
+// Rimosso BASE_RATE_APERTURA_CHIUSURA
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -80,8 +80,7 @@ export function AperturaChiusuraForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const cost = BASE_RATE_APERTURA_CHIUSURA;
-    console.log("Calculated Apertura/Chiusura Cost:", cost);
+    // Rimosso il calcolo del costo
     console.log("Apertura/Chiusura Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
     console.log("Punto Servizio ID:", values.servicePointId);
     console.log("Fornitore ID:", values.fornitoreId);
@@ -96,7 +95,7 @@ export function AperturaChiusuraForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
       status: "Pending", // Default status
-      calculated_cost: cost, // Use fixed cost for now
+      // calculated_cost: cost, // Rimosso il campo calculated_cost
       num_agents: null, // Not applicable for Apertura/Chiusura
       cadence_hours: null, // Not applicable for Apertura/Chiusura
       inspection_type: null, // Not applicable for Apertura/Chiusura

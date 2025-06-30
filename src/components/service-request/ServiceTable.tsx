@@ -125,12 +125,12 @@ export function ServiceTable() {
       // client_id and service_point_id are not directly editable in this dialog,
       // assuming they remain the same as the original selectedService.
       // If they were editable, you'd need to map names back to IDs.
-      start_date: format(selectedService.startDate, 'yyyy-MM-dd'), // Keep original dates for now
+      start_date: format(selectedService.start_date, 'yyyy-MM-dd'), // Keep original dates for now
       start_time: selectedService.start_time,
-      end_date: format(selectedService.endDate, 'yyyy-MM-dd'), // Keep original dates for now
+      end_date: format(selectedService.end_date, 'yyyy-MM-dd'), // Keep original dates for now
       end_time: selectedService.end_time,
       status: updatedService.status,
-      calculated_cost: updatedService.cost,
+      // calculated_cost: updatedService.cost, // Rimosso il campo calculated_cost
       num_agents: selectedService.num_agents,
       cadence_hours: selectedService.cadence_hours,
       inspection_type: selectedService.inspection_type,

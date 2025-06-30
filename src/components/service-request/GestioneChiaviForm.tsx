@@ -24,6 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
@@ -31,7 +32,7 @@ import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Imp
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
-const BASE_RATE_CHIAVI = 80; // Example base rate
+// Rimosso BASE_RATE_CHIAVI
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -56,7 +57,7 @@ const formSchema = z.object({
 });
 
 export function GestioneChiaviForm() {
-  const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
+  // Rimosso lo stato calculatedCost
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
@@ -81,9 +82,8 @@ export function GestioneChiaviForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const cost = BASE_RATE_CHIAVI;
-    setCalculatedCost(cost);
-    console.log("Calculated Gestione Chiavi Cost:", cost);
+    // Rimosso il calcolo del costo
+    // setCalculatedCost(cost); // Rimosso l'aggiornamento dello stato
     console.log("Gestione Chiavi Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
     console.log("Punto Servizio ID:", values.servicePointId);
     console.log("Fornitore ID:", values.fornitoreId);
@@ -98,7 +98,7 @@ export function GestioneChiaviForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
       status: "Pending", // Default status
-      calculated_cost: cost, // Use fixed cost for now
+      // calculated_cost: cost, // Rimosso il campo calculated_cost
       num_agents: null, // Not applicable for Gestione Chiavi
       cadence_hours: null, // Not applicable for Gestione Chiavi
       inspection_type: null, // Not applicable for Gestione Chiavi
@@ -116,7 +116,7 @@ export function GestioneChiaviForm() {
       showSuccess("Richiesta di gestione chiavi registrata con successo!");
       console.log("Service request saved successfully:", data);
       form.reset(); // Reset form after successful submission
-      setCalculatedCost(null); // Clear calculated cost after submission
+      // setCalculatedCost(null); // Rimosso il reset dello stato
     }
   };
 
@@ -278,12 +278,7 @@ export function GestioneChiaviForm() {
           />
         </div>
         <Button type="submit" className="w-full">Registra Richiesta</Button>
-        {calculatedCost !== null && (
-          <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
-            <h3 className="text-lg font-semibold">Costo Calcolato:</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{calculatedCost.toFixed(2)} €</p>
-          </div>
-        )}
+        {/* Rimosso il display del costo calcolato */}
       </form>
     </Form>
   );

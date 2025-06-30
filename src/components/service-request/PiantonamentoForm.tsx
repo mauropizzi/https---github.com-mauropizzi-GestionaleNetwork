@@ -170,7 +170,7 @@ export function PiantonamentoForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
       status: "Pending", // Default status
-      calculated_cost: finalCalculatedHours, // Use calculated hours as cost for now
+      // calculated_cost: finalCalculatedHours, // Rimosso il calcolo del costo stimato
       num_agents: values.numAgents,
       cadence_hours: null, // Not applicable for Piantonamento
       inspection_type: null, // Not applicable for Piantonamento

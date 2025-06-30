@@ -171,7 +171,7 @@ export function IspezioniForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: null, // Detailed times are in daily_hours_config
       status: "Pending", // Default status
-      calculated_cost: numInspections, // Use number of inspections as cost for now
+      // calculated_cost: numInspections, // Rimosso il calcolo del costo stimato
       num_agents: null, // Not applicable for Ispezioni
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
