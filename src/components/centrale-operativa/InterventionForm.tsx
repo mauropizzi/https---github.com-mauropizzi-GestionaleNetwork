@@ -59,6 +59,7 @@ export function InterventionForm() {
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]); // New state for service points
   const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
   const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
+  const [isServicePointOpen, setIsServicePointOpen] = useState(false); // State for service point combobox
 
   useEffect(() => {
     const loadData = async () => {
@@ -380,21 +381,47 @@ export function InterventionForm() {
     <form onSubmit={handleCloseEvent} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="service-point">Punto Servizio</Label>
-        <Select 
-          onValueChange={(value) => handleSelectChange('servicePoint', value)}
-          value={formData.servicePoint}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Seleziona un punto servizio..." />
-          </SelectTrigger>
-          <SelectContent>
-            {puntiServizioList.map(point => (
-              <SelectItem key={point.id} value={point.id}>
-                {point.nome_punto_servizio}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={isServicePointOpen} onOpenChange={setIsServicePointOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isServicePointOpen}
+              className="w-full justify-between"
+            >
+              {formData.servicePoint
+                ? puntiServizioList.find(point => point.id === formData.servicePoint)?.nome_punto_servizio
+                : "Seleziona un punto servizio..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput placeholder="Cerca punto servizio..." />
+              <CommandEmpty>Nessun punto servizio trovato.</CommandEmpty>
+              <CommandGroup>
+                {puntiServizioList.map((point) => (
+                  <CommandItem
+                    key={point.id}
+                    value={point.nome_punto_servizio}
+                    onSelect={() => {
+                      setFormData(prev => ({ ...prev, servicePoint: point.id }));
+                      setIsServicePointOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        formData.servicePoint === point.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {point.nome_punto_servizio}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">
