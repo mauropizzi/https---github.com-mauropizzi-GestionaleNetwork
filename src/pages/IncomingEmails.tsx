@@ -164,93 +164,91 @@ const IncomingEmailsPage: React.FC = () => {
   });
 
   return (
-    <React.Fragment>
-      <div className="container mx-auto p-4">
-        <Card className="w-full max-w-6xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold text-center">Email in Arrivo</CardTitle>
-            <CardDescription className="text-center">Visualizza tutte le email ricevute tramite webhook.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
-              <Input
-                placeholder="Cerca per mittente o oggetto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500" />
-                <Select onValueChange={setFilterFolder} value={filterFolder}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filtra per cartella" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All">Tutte le Cartelle</SelectItem>
-                    {folderOptions.map(folder => (
-                      <SelectItem key={folder} value={folder}>
-                        {folder}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" onClick={fetchIncomingEmails} disabled={loading}>
-                <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
-              </Button>
-            </div>
-
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableHead>
+    <div className="container mx-auto p-4">
+      <Card className="w-full max-w-6xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">Email in Arrivo</CardTitle>
+          <CardDescription className="text-center">Visualizza tutte le email ricevute tramite webhook.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
+            <Input
+              placeholder="Cerca per mittente o oggetto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <Select onValueChange={setFilterFolder} value={filterFolder}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtra per cartella" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">Tutte le Cartelle</SelectItem>
+                  {folderOptions.map(folder => (
+                    <SelectItem key={folder} value={folder}>
+                      {folder}
+                    </SelectItem>
                   ))}
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center">
-                        Caricamento email...
-                      </TableCell>
-                    </TableRow>
-                  ) : (table && table.getRowModel().rows?.length) ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center">
-                        Nessuna email trovata.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Button variant="outline" onClick={fetchIncomingEmails} disabled={loading}>
+              <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+            </Button>
+          </div>
+
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableHead>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      Caricamento email...
+                    </TableCell>
+                  </TableRow>
+                ) : (table && table.getRowModel().rows?.length) ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      Nessuna email trovata.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {selectedEmail && (
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
@@ -319,7 +317,7 @@ const IncomingEmailsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
-    </React.Fragment>
+    </div>
   );
 };
 
