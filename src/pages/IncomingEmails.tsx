@@ -1,6 +1,5 @@
 "use client";
 
-// This is a TypeScript React Component (TSX)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
@@ -20,8 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { RefreshCcw, Eye, Folder, Filter } from 'lucide-react';
-import { showInfo, showError, showSuccess } from '@/utils/toast';
+import { RefreshCcw, Eye, Folder, Filter } from 'lucide-react'; // Added Folder and Filter icons
+import { showInfo, showError, showSuccess } from '@/utils/toast'; // Added showSuccess
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -44,16 +43,16 @@ interface IncomingEmail {
   body_html?: string | null;
   attachments?: any | null;
   raw_email?: string | null;
-  folder: string;
+  folder: string; // Added folder column
 }
 
-const folderOptions = ["Inbox", "Archived", "Spam", "Trash"];
+const folderOptions = ["Inbox", "Archived", "Spam", "Trash"]; // Hardcoded folder options
 
 const IncomingEmailsPage: React.FC = () => {
   const [data, setData] = useState<IncomingEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterFolder, setFilterFolder] = useState<string>('All');
+  const [filterFolder, setFilterFolder] = useState<string>('All'); // New state for folder filter
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<IncomingEmail | null>(null);
 
@@ -94,7 +93,7 @@ const IncomingEmailsPage: React.FC = () => {
       console.error("Error updating email folder:", error);
     } else {
       showSuccess(`Email spostata in "${newFolder}" con successo!`);
-      fetchIncomingEmails();
+      fetchIncomingEmails(); // Refresh data to reflect the change
     }
   }, [fetchIncomingEmails]);
 
@@ -215,7 +214,7 @@ const IncomingEmailsPage: React.FC = () => {
                             )}
                       </TableHead>
                     ))}
-                  </TableHead>
+                  </TableRow>
                 ))}
               </TableHeader>
               <TableBody>

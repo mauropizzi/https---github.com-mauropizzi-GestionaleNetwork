@@ -144,7 +144,7 @@ export function CanoneForm() {
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un fornitore" />
+                    <SelectValue placeholder="Seleziona fornitore" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -201,14 +201,12 @@ export function CanoneForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>gg/mm/aaaa</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>gg/mm/aaaa</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -242,14 +240,12 @@ export function CanoneForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>gg/mm/aaaa</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>gg/mm/aaaa</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>

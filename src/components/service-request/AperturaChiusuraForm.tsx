@@ -185,14 +185,12 @@ export function AperturaChiusuraForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>Seleziona una data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -239,14 +237,12 @@ export function AperturaChiusuraForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>Seleziona una data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>

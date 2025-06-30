@@ -108,10 +108,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
                   isLinkActive(item.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
                 )}
               >
-                <span className="flex items-center">
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.title}
-                </span>
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.title}
               </Button>
             </Link>
             {item.subItems && (
@@ -125,10 +123,8 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
                         isLinkActive(subItem.href) && "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90"
                       )}
                     >
-                      <span className="flex items-center">
-                        <subItem.icon className="mr-2 h-3 w-3" />
-                        {subItem.title}
-                      </span>
+                      <subItem.icon className="mr-2 h-3 w-3" />
+                      {subItem.title}
                     </Button>
                   </Link>
                 ))}

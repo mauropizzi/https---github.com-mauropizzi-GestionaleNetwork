@@ -185,14 +185,12 @@ export function BonificheForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>Seleziona una data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -239,14 +237,12 @@ export function BonificheForm() {
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="flex items-center justify-between w-full">
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: it })
-                          ) : (
-                            <span>Seleziona una data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </span>
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -279,12 +275,6 @@ export function BonificheForm() {
           />
         </div>
         <Button type="submit" className="w-full">Registra Richiesta</Button>
-        {calculatedCost !== null && (
-          <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
-            <h3 className="text-lg font-semibold">Costo Calcolato:</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{calculatedCost.toFixed(2)} €</p>
-          </div>
-        )}
       </form>
     </Form>
   );
