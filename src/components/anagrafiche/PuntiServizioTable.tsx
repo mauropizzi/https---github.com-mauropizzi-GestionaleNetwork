@@ -105,7 +105,8 @@ export function PuntiServizioTable() {
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(punto => {
+    console.log("Current search term:", searchTerm); // Log the current search term
+    const filtered = data.filter(punto => {
       const searchLower = searchTerm.toLowerCase();
       return (
         punto.nome_punto_servizio.toLowerCase().includes(searchLower) ||
@@ -115,6 +116,8 @@ export function PuntiServizioTable() {
         (punto.referente?.toLowerCase().includes(searchLower))
       );
     });
+    console.log("Filtered data for table:", filtered); // Log the filtered data
+    return filtered;
   }, [data, searchTerm]);
 
   const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
