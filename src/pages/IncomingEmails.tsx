@@ -1,5 +1,6 @@
 "use client";
 
+// This is a TypeScript React Component (TSX)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
