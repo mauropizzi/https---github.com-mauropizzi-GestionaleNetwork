@@ -358,74 +358,78 @@ const EditAlarmEventPage = () => {
                   </FormItem>
                 )}
               />
-              <Button 
-                type="button" 
-                className="w-full bg-blue-600 hover:bg-blue-700" 
-                onClick={handleStartGpsTracking}
-              >
-                Posizione GPS presa in carico richiesta
-              </Button>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="start_latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitudine Inizio</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="start_longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitudine Inizio</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-2"> {/* Wrapped the first button and its coordinates */}
+                <Button 
+                  type="button" 
+                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                  onClick={handleStartGpsTracking}
+                >
+                  Posizione GPS presa in carico richiesta
+                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="start_latitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Latitudine Inizio</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="start_longitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Longitudine Inizio</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
               
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="end_latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitudine Fine</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="end_longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitudine Fine</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-2"> {/* Wrapped the second button and its coordinates */}
+                <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEndGpsTracking}>
+                  Posizione GPS Inizio Intervento
+                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="end_latitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Latitudine Fine</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="any" placeholder="Es: 38.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="end_longitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Longitudine Fine</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="any" placeholder="Es: 13.123456" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-              <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEndGpsTracking}>
-                Posizione GPS Inizio Intervento
-              </Button>
 
               <FormField
                 control={form.control}
