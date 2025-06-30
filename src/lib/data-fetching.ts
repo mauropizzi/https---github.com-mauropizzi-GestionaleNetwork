@@ -102,13 +102,19 @@ export async function fetchProcedure(): Promise<Procedure[]> {
   return data || [];
 }
 
-export async function fetchServiceRequestsForAnalysis(clientId?: string): Promise<any[]> {
+export async function fetchServiceRequestsForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
   let query = supabase
     .from('servizi_richiesti')
     .select('id, type, client_id, service_point_id, start_date, calculated_cost'); // Added start_date
 
   if (clientId) {
     query = query.eq('client_id', clientId);
+  }
+  if (startDate) {
+    query = query.gte('start_date', startDate);
+  }
+  if (endDate) {
+    query = query.lte('end_date', endDate);
   }
 
   const { data, error } = await query;

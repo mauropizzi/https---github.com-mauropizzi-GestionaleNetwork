@@ -7,11 +7,14 @@ import { fetchClienti, fetchPuntiServizio, fetchServiceRequestsForAnalysis, fetc
 import { showError } from "@/utils/toast";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, CalendarIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, isWithinInterval, parseISO } from "date-fns";
+import { format, isWithinInterval, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { it } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface ServiceSummary {
   servicePointId: string;
@@ -38,6 +41,10 @@ const AnalisiContabile = () => {
   const [missingTariffs, setMissingTariffs] = useState<MissingTariffEntry[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingMissingTariffs, setLoadingMissingTariffs] = useState(true);
+
+  // Date filters
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(endOfMonth(new Date()));
 
   // Fetch initial data: clients and service points
   useEffect(() => {
@@ -69,11 +76,15 @@ const AnalisiContabile = () => {
     loadInitialData();
   }, []);
 
-  // Fetch and process service data for summary based on selected client
+  // Fetch and process service data for summary based on selected client and date filters
   const fetchAndProcessServiceData = useCallback(async () => {
     setLoadingSummary(true);
     try {
-      const rawServices = await fetchServiceRequestsForAnalysis(selectedClientId || undefined);
+      const rawServices = await fetchServiceRequestsForAnalysis(
+        selectedClientId || undefined,
+        startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined,
+        endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined
+      );
 
       const summary: { [key: string]: ServiceSummary } = {};
 
@@ -103,13 +114,17 @@ const AnalisiContabile = () => {
     } finally {
       setLoadingSummary(false);
     }
-  }, [selectedClientId, puntiServizioMap]);
+  }, [selectedClientId, startDateFilter, endDateFilter, puntiServizioMap]);
 
   // Fetch and identify missing tariffs
   const fetchAndIdentifyMissingTariffs = useCallback(async () => {
     setLoadingMissingTariffs(true);
     try {
-      const allServices = await fetchServiceRequestsForAnalysis(); // Fetch all services
+      const allServices = await fetchServiceRequestsForAnalysis(
+        undefined, // Fetch all services regardless of client for this tab
+        startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined,
+        endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined
+      );
       const allTariffe = await fetchAllTariffe();
       const allClients = await fetchClienti(); // Re-fetch clients for names
       const allPuntiServizio = await fetchPuntiServizio(); // Re-fetch service points for names
@@ -178,7 +193,7 @@ const AnalisiContabile = () => {
     } finally {
       setLoadingMissingTariffs(false);
     }
-  }, [puntiServizioMap]); // Depend on puntiServizioMap for names
+  }, [startDateFilter, endDateFilter, puntiServizioMap]); // Depend on puntiServizioMap for names
 
   useEffect(() => {
     if (puntiServizioMap.size > 0 || clientsList.length > 0) {
@@ -242,6 +257,11 @@ const AnalisiContabile = () => {
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const handleResetFilters = () => {
+    setStartDateFilter(startOfMonth(new Date()));
+    setEndDateFilter(endOfMonth(new Date()));
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-6xl mx-auto">
@@ -260,7 +280,7 @@ const AnalisiContabile = () => {
 
             <TabsContent value="sintesi-contabile" className="mt-4">
               <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
-                <div className="w-full md:w-1/2">
+                <div className="w-full md:w-1/3">
                   <Label htmlFor="client-select">Seleziona Cliente</Label>
                   <Select
                     onValueChange={(value) => setSelectedClientId(value === "all" ? null : value)}
@@ -280,6 +300,55 @@ const AnalisiContabile = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full md:w-auto justify-start text-left font-normal",
+                        !startDateFilter && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDateFilter ? format(startDateFilter, "PPP", { locale: it }) : "Data Inizio"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDateFilter}
+                      onSelect={setStartDateFilter}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full md:w-auto justify-start text-left font-normal",
+                        !endDateFilter && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDateFilter ? format(endDateFilter, "PPP", { locale: it }) : "Data Fine"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDateFilter}
+                      onSelect={setEndDateFilter}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button onClick={handleResetFilters} variant="outline" className="mt-auto">
+                  Reset Filtri
+                </Button>
                 <Button onClick={fetchAndProcessServiceData} disabled={loadingSummary} className="mt-auto">
                   <RefreshCcw className="mr-2 h-4 w-4" /> {loadingSummary ? 'Caricamento...' : 'Aggiorna Dati'}
                 </Button>
@@ -336,8 +405,57 @@ const AnalisiContabile = () => {
             </TabsContent>
 
             <TabsContent value="tariffe-mancanti" className="mt-4">
-              <div className="flex justify-end mb-4">
-                <Button onClick={fetchAndIdentifyMissingTariffs} disabled={loadingMissingTariffs}>
+              <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full md:w-auto justify-start text-left font-normal",
+                        !startDateFilter && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDateFilter ? format(startDateFilter, "PPP", { locale: it }) : "Data Inizio"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDateFilter}
+                      onSelect={setStartDateFilter}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full md:w-auto justify-start text-left font-normal",
+                        !endDateFilter && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDateFilter ? format(endDateFilter, "PPP", { locale: it }) : "Data Fine"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDateFilter}
+                      onSelect={setEndDateFilter}
+                      initialFocus
+                      locale={it}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button onClick={handleResetFilters} variant="outline" className="mt-auto">
+                  Reset Filtri
+                </Button>
+                <Button onClick={fetchAndIdentifyMissingTariffs} disabled={loadingMissingTariffs} className="mt-auto">
                   <RefreshCcw className="mr-2 h-4 w-4" /> {loadingMissingTariffs ? 'Caricamento...' : 'Aggiorna Tariffe Mancanti'}
                 </Button>
               </div>
