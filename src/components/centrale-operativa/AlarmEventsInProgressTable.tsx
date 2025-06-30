@@ -172,10 +172,10 @@ export function AlarmEventsInProgressTable() {
   }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-    },
+    // {
+    //   accessorKey: 'id',
+    //   header: 'ID',
+    // },
     {
       accessorKey: 'report_date',
       header: 'Data',
@@ -238,7 +238,7 @@ export function AlarmEventsInProgressTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
