@@ -31,7 +31,7 @@ interface AllarmeIntervento {
   report_time: string;
   service_point_code: string; // This will now consistently be the UUID
   request_type: string;
-  co_operator?: string;
+  co_operator?: string; // This will now be the ID of the CO Operator
   operator_client?: string;
   gpg_intervention?: string;
   service_outcome?: string;
@@ -51,6 +51,7 @@ export function AlarmEventsInProgressTable() {
   const [filterDate, setFilterDate] = useState<string>('');
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
   const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map()); // New state for service points map
+  const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map()); // New state for CO Operators map
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
@@ -76,6 +77,13 @@ export function AlarmEventsInProgressTable() {
     setPattugliaPersonnelMap(map);
   }, []);
 
+  const fetchCoOperatorsPersonnel = useCallback(async () => {
+    const personnel = await fetchPersonale('Operatore C.O.');
+    const map = new Map<string, Personale>();
+    personnel.forEach(p => map.set(p.id, p));
+    setCoOperatorsPersonnelMap(map);
+  }, []);
+
   const fetchPuntiServizioData = useCallback(async () => {
     const fetchedPuntiServizio = await fetchPuntiServizio();
     const map = new Map<string, PuntoServizio>();
@@ -91,8 +99,9 @@ export function AlarmEventsInProgressTable() {
   useEffect(() => {
     fetchInProgressEvents();
     fetchPattugliaPersonnel();
+    fetchCoOperatorsPersonnel(); // Fetch CO Operators on mount
     fetchPuntiServizioData(); // Fetch service points on mount
-  }, [fetchInProgressEvents, fetchPattugliaPersonnel, fetchPuntiServizioData]);
+  }, [fetchInProgressEvents, fetchPattugliaPersonnel, fetchCoOperatorsPersonnel, fetchPuntiServizioData]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
     navigate(`/centrale-operativa/edit/${event.id}`);
@@ -143,10 +152,11 @@ export function AlarmEventsInProgressTable() {
     return data.filter(report => {
       const servicePoint = puntiServizioMap.get(report.service_point_code); // Lookup by ID
       const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code; // Fallback to ID if name not found
+      const coOperatorName = coOperatorsPersonnelMap.get(report.co_operator || '')?.nome || ''; // Lookup CO Operator name
       const matchesSearch = searchTerm === '' ||
         servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.co_operator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        coOperatorName.toLowerCase().includes(searchTerm.toLowerCase()) || // Search by CO Operator name
         (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.gpg_intervention && pattugliaPersonnelMap.get(report.gpg_intervention)?.cognome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -157,7 +167,7 @@ export function AlarmEventsInProgressTable() {
 
       return matchesSearch && matchesDate;
     });
-  }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap]);
+  }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
     {
@@ -188,6 +198,10 @@ export function AlarmEventsInProgressTable() {
     {
       accessorKey: 'co_operator',
       header: 'Operatore C.O.',
+      cell: ({ row }) => {
+        const personnel = coOperatorsPersonnelMap.get(row.original.co_operator || '');
+        return personnel ? `${personnel.nome} ${personnel.cognome || ''}` : 'N/A';
+      },
     },
     {
       accessorKey: 'gpg_intervention',
@@ -217,12 +231,12 @@ export function AlarmEventsInProgressTable() {
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, handleDelete, pattugliaPersonnelMap, puntiServizioMap]);
+  ], [handleEdit, handleWhatsAppMessage, handleDelete, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (

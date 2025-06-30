@@ -33,7 +33,6 @@ import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import {
   requestTypeOptions,
-  coOperatorOptions,
   operatorClientOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-options'; // Updated import
@@ -81,6 +80,7 @@ const EditAlarmEventPage = () => {
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
+  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]); // New state for CO Operators
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -107,6 +107,9 @@ const EditAlarmEventPage = () => {
 
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
+
+      const fetchedCoOperators = await fetchPersonale('Operatore C.O.'); // Fetch only 'Operatore C.O.'
+      setCoOperatorsPersonnel(fetchedCoOperators);
 
       if (id) {
         const { data: event, error } = await supabase
@@ -395,9 +398,9 @@ const EditAlarmEventPage = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {coOperatorOptions.map(option => (
-                          <SelectItem key={option} value={option}>
-                            {option}
+                        {coOperatorsPersonnel.map(personale => (
+                          <SelectItem key={personale.id} value={personale.id}>
+                            {personale.nome} {personale.cognome}
                           </SelectItem>
                         ))}
                       </SelectContent>

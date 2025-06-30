@@ -14,9 +14,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import {
   requestTypeOptions,
-  coOperatorOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-options';
+} from '@/lib/centrale-options'; // Removed coOperatorOptions as it will be fetched dynamically
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
@@ -30,14 +29,14 @@ import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-da
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { operatorClientOptions } from '@/lib/centrale-options'; // Ensure operatorClientOptions is imported if needed
 
 export function InterventionForm() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     servicePoint: '', // This will now store the ID of the selected service point
     requestType: '',
-    coOperator: '',
+    coOperator: '', // This will now store the ID of the selected CO Operator
     requestTime: '',
     startTime: '',
     endTime: '',
@@ -56,10 +55,12 @@ export function InterventionForm() {
   });
   const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
-  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]); // New state for service points
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
+  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]); // New state for CO Operators
   const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
   const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
-  const [isServicePointOpen, setIsServicePointOpen] = useState(false); // State for service point combobox
+  const [isServicePointOpen, setIsServicePointOpen] = useState(false);
+  const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false); // New state for CO Operator combobox
 
   useEffect(() => {
     const loadData = async () => {
@@ -69,8 +70,11 @@ export function InterventionForm() {
       const fetchedPattuglia = await fetchPersonale('Pattuglia');
       setPattugliaPersonale(fetchedPattuglia);
 
-      const fetchedPuntiServizio = await fetchPuntiServizio(); // Fetch service points
+      const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
+
+      const fetchedCoOperators = await fetchPersonale('Operatore C.O.'); // Fetch only 'Operatore C.O.'
+      setCoOperatorsPersonnel(fetchedCoOperators);
     };
     loadData();
   }, []);
@@ -146,6 +150,9 @@ export function InterventionForm() {
       const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
       const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
       const interventionTime = selectedServicePoint?.tempo_intervento || 'N/A';
+      const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === formData.coOperator);
+      const coOperatorName = selectedCoOperatorForPdf ? `${selectedCoOperatorForPdf.nome} ${selectedCoOperatorForPdf.cognome || ''}` : 'N/A';
+
 
       doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
@@ -153,7 +160,7 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Tipologia Servizio Richiesto: ${formData.requestType}`, 14, y);
       y += 7;
-      doc.text(`Operatore C.O. Security Service: ${formData.coOperator}`, 14, y);
+      doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
       y += 7;
       doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
@@ -267,7 +274,7 @@ export function InterventionForm() {
     const {
       servicePoint, // This is the ID
       requestType,
-      coOperator,
+      coOperator, // This is the ID
       requestTime,
       startTime,
       endTime,
@@ -323,7 +330,7 @@ export function InterventionForm() {
       report_time: format(new Date(requestTime), 'HH:mm:ss'),
       service_point_code: servicePoint, // Now consistently stores the ID (UUID)
       request_type: requestType,
-      co_operator: coOperator || null,
+      co_operator: coOperator || null, // Store the ID
       operator_client: operatorClient || null,
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
@@ -454,21 +461,47 @@ export function InterventionForm() {
 
       <div className="space-y-2">
         <Label htmlFor="co-operator">Operatore C.O. Security Service</Label>
-        <Select
-          onValueChange={(value) => handleSelectChange('coOperator', value)}
-          value={formData.coOperator}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Seleziona operatore..." />
-          </SelectTrigger>
-          <SelectContent>
-            {coOperatorOptions.map(option => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={isCoOperatorOpen} onOpenChange={setIsCoOperatorOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isCoOperatorOpen}
+              className="w-full justify-between"
+            >
+              {formData.coOperator
+                ? coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.nome + " " + coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.cognome
+                : "Seleziona operatore C.O...."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command>
+              <CommandInput placeholder="Cerca operatore C.O...." />
+              <CommandEmpty>Nessun operatore C.O. trovato.</CommandEmpty>
+              <CommandGroup>
+                {coOperatorsPersonnel.map((op) => (
+                  <CommandItem
+                    key={op.id}
+                    value={`${op.nome} ${op.cognome || ''}`}
+                    onSelect={() => {
+                      setFormData(prev => ({ ...prev, coOperator: op.id }));
+                      setIsCoOperatorOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        formData.coOperator === op.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {op.nome} {op.cognome}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">
