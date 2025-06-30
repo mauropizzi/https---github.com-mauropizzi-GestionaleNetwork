@@ -17,7 +17,7 @@ import {
   requestTypeOptions,
   coOperatorOptions,
   serviceOutcomeOptions,
-} from '@/lib/centrale-data'; // Removed gpgInterventionOptions
+} from '@/lib/centrale-data';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
@@ -26,8 +26,8 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchPersonale } from '@/lib/data-fetching';
-import { Personale } from '@/lib/anagrafiche-data';
+import { fetchPersonale, fetchOperatoriNetwork } from '@/lib/data-fetching'; // Import fetchOperatoriNetwork
+import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data'; // Import OperatoreNetwork interface
 
 export function InterventionForm() {
   const { toast } = useToast();
@@ -51,15 +51,15 @@ export function InterventionForm() {
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
   });
-  const [operatoriClientiPersonale, setOperatoriClientiPersonale] = useState<Personale[]>([]);
-  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]); // New state for 'Pattuglia' personnel
+  const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]); // Changed state name and type
+  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
 
   useEffect(() => {
     const loadPersonnelData = async () => {
-      const fetchedOperatoriClienti = await fetchPersonale('Operatore Network');
-      setOperatoriClientiPersonale(fetchedOperatoriClienti);
+      const fetchedOperatoriNetwork = await fetchOperatoriNetwork(); // Use new fetch function
+      setOperatoriNetworkList(fetchedOperatoriNetwork);
 
-      const fetchedPattuglia = await fetchPersonale('Pattuglia'); // Fetch personnel with role 'Pattuglia'
+      const fetchedPattuglia = await fetchPersonale('Pattuglia');
       console.log("Fetched 'Pattuglia' personnel for G.P.G. Intervention:", fetchedPattuglia);
       setPattugliaPersonale(fetchedPattuglia);
     };
@@ -157,7 +157,8 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Operatore Network: ${formData.operatorClient || 'N/A'}`, 14, y); // Changed label here
+      const selectedOperatorNetwork = operatoriNetworkList.find(op => `${op.nome} ${op.cognome || ''}` === formData.operatorClient);
+      doc.text(`Operatore Network: ${selectedOperatorNetwork ? `${selectedOperatorNetwork.nome} ${selectedOperatorNetwork.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
       doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
@@ -546,17 +547,17 @@ export function InterventionForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="operator-client">Operatore Network</Label> {/* Changed label here */}
+        <Label htmlFor="operator-client">Operatore Network</Label>
         <Select
           onValueChange={(value) => handleSelectChange('operatorClient', value)}
           value={formData.operatorClient}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Seleziona operatore network..." /> {/* Changed placeholder here */}
+            <SelectValue placeholder="Seleziona operatore network..." />
           </SelectTrigger>
           <SelectContent>
-            {operatoriClientiPersonale.map(personale => (
-              <SelectItem key={personale.id} value={`${personale.nome} ${personale.cognome}`}>
+            {operatoriNetworkList.map(personale => (
+              <SelectItem key={personale.id} value={`${personale.nome} ${personale.cognome || ''}`}>
                 {personale.nome} {personale.cognome}
               </SelectItem>
             ))}

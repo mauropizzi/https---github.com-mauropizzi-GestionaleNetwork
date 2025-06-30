@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Cliente, Fornitore, PuntoServizio, Personale } from "@/lib/anagrafiche-data";
+import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { showError } from "@/utils/toast";
 
 export async function fetchClienti(): Promise<Cliente[]> {
@@ -59,6 +59,19 @@ export async function fetchPersonale(role?: string): Promise<Personale[]> {
     return [];
   }
   console.log(`Successfully fetched personnel for role '${role}':`, data);
+  return data || [];
+}
+
+export async function fetchOperatoriNetwork(): Promise<OperatoreNetwork[]> {
+  const { data, error } = await supabase
+    .from('operatori_network')
+    .select('id, nome, cognome, telefono, email, client_id');
+
+  if (error) {
+    showError(`Errore nel recupero degli operatori network: ${error.message}`);
+    console.error("Error fetching operatori_network:", error);
+    return [];
+  }
   return data || [];
 }
 
