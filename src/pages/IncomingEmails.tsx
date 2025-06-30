@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel,
+  getCoreRowModel, // Corrected typo here
   useReactTable,
 } from '@tanstack/react-table';
 import {
@@ -160,7 +160,7 @@ const IncomingEmailsPage: React.FC = () => {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowodel(),
+    getCoreRowModel: getCoreRowModel(),
   });
 
   return (
