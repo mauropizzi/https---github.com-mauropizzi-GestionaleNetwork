@@ -21,48 +21,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { showSuccess, showError } from "@/utils/toast"; // Import toast utilities
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const formSchema = z.object({
-  ragione_sociale: z.string().min(2, "La ragione sociale è richiesta."),
-  partita_iva: z.string().optional(),
-  codice_fiscale: z.string().optional(),
-  indirizzo: z.string().optional(),
-  cap: z.string().optional(),
-  citta: z.string().optional(),
-  provincia: z.string().optional(),
-  telefono: z.string().optional(),
-  email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
-  pec: z.string().email("Formato PEC non valido.").optional().or(z.literal("")),
-  tipo_servizio: z.enum(["piantonamento", "fiduciario", "entrambi"], {
+  nome_fornitore: z.string().min(2, "La ragione sociale è richiesta."), // Changed to nome_fornitore to match DB
+  partita_iva: z.string().optional().nullable(),
+  codice_fiscale: z.string().optional().nullable(),
+  indirizzo: z.string().optional().nullable(),
+  cap: z.string().optional().nullable(),
+  citta: z.string().optional().nullable(),
+  provincia: z.string().optional().nullable(),
+  telefono: z.string().optional().nullable(),
+  email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
+  pec: z.string().email("Formato PEC non valido.").optional().nullable().or(z.literal("")),
+  tipo_fornitura: z.enum(["piantonamento", "fiduciario", "entrambi"], {
     required_error: "Seleziona un tipo di servizio.",
-  }).optional().or(z.literal("")),
+  }).optional().nullable().or(z.literal("")), // Changed to tipo_fornitura to match DB
   attivo: z.boolean().default(true).optional(),
-  note: z.string().optional(),
+  note: z.string().optional().nullable(),
 });
 
 export function FornitoriForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      ragione_sociale: "",
-      partita_iva: "",
-      codice_fiscale: "",
-      indirizzo: "",
-      cap: "",
-      citta: "",
-      provincia: "",
-      telefono: "",
-      email: "",
-      pec: "",
-      tipo_servizio: "",
+      nome_fornitore: "",
+      partita_iva: null,
+      codice_fiscale: null,
+      indirizzo: null,
+      cap: null,
+      citta: null,
+      provincia: null,
+      telefono: null,
+      email: null,
+      pec: null,
+      tipo_fornitura: null,
       attivo: true,
-      note: "",
+      note: null,
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Fornitore:", values);
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Ensure empty strings are converted to null for optional fields
+    const payload = {
+      nome_fornitore: values.nome_fornitore,
+      partita_iva: values.partita_iva || null,
+      codice_fiscale: values.codice_fiscale || null,
+      indirizzo: values.indirizzo || null,
+      cap: values.cap || null,
+      citta: values.citta || null,
+      provincia: values.provincia || null,
+      telefono: values.telefono || null,
+      email: values.email || null,
+      pec: values.pec || null,
+      tipo_fornitura: values.tipo_fornitura || null,
+      attivo: values.attivo,
+      note: values.note || null,
+    };
+
+    const { data, error } = await supabase
+      .from('fornitori')
+      .insert([payload])
+      .select(); // Use .select() to get the inserted data back
+
+    if (error) {
+      showError(`Errore durante la registrazione del fornitore: ${error.message}`);
+      console.error("Error inserting fornitore:", error);
+    } else {
+      showSuccess("Fornitore salvato con successo!");
+      console.log("Dati Fornitore salvati:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -71,7 +101,7 @@ export function FornitoriForm() {
         <h3 className="text-lg font-semibold">Dettagli Fornitore</h3>
         <FormField
           control={form.control}
-          name="ragione_sociale"
+          name="nome_fornitore" // Changed name to match DB
           render={({ field }) => (
             <FormItem>
               <FormLabel>Ragione Sociale</FormLabel>
@@ -90,7 +120,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Partita IVA</FormLabel>
                 <FormControl>
-                  <Input placeholder="Partita IVA" {...field} />
+                  <Input placeholder="Partita IVA" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,7 +133,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Codice Fiscale</FormLabel>
                 <FormControl>
-                  <Input placeholder="Codice Fiscale" {...field} />
+                  <Input placeholder="Codice Fiscale" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -117,7 +147,7 @@ export function FornitoriForm() {
             <FormItem>
               <FormLabel>Indirizzo</FormLabel>
               <FormControl>
-                <Input placeholder="Via, numero civico" {...field} />
+                <Input placeholder="Via, numero civico" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,7 +161,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>CAP</FormLabel>
                 <FormControl>
-                  <Input placeholder="CAP" {...field} />
+                  <Input placeholder="CAP" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -144,7 +174,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Città</FormLabel>
                 <FormControl>
-                  <Input placeholder="Città" {...field} />
+                  <Input placeholder="Città" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -157,7 +187,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Provincia</FormLabel>
                 <FormControl>
-                  <Input placeholder="Provincia" {...field} />
+                  <Input placeholder="Provincia" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -172,7 +202,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Telefono</FormLabel>
                 <FormControl>
-                  <Input placeholder="Telefono" {...field} />
+                  <Input placeholder="Telefono" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -185,7 +215,7 @@ export function FornitoriForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} />
+                  <Input type="email" placeholder="email@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -199,7 +229,7 @@ export function FornitoriForm() {
             <FormItem>
               <FormLabel>PEC</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="pec@example.com" {...field} />
+                <Input type="email" placeholder="pec@example.com" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -207,12 +237,12 @@ export function FornitoriForm() {
         />
         <FormField
           control={form.control}
-          name="tipo_servizio"
+          name="tipo_fornitura" // Changed name to match DB
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo di Servizio Fornito</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? null : value)}
                 value={field.value || "DYAD_EMPTY_VALUE"}
               >
                 <FormControl>
@@ -257,7 +287,7 @@ export function FornitoriForm() {
             <FormItem>
               <FormLabel>Note Aggiuntive</FormLabel>
               <FormControl>
-                <Textarea placeholder="Note sul fornitore..." {...field} />
+                <Textarea placeholder="Note sul fornitore..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
