@@ -19,12 +19,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { RefreshCcw, Eye } from 'lucide-react';
-import { showInfo, showError } from '@/utils/toast';
+import { RefreshCcw, Eye, Folder, Filter } from 'lucide-react'; // Added Folder and Filter icons
+import { showInfo, showError, showSuccess } from '@/utils/toast'; // Added showSuccess
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface IncomingEmail {
   id: string;
@@ -36,12 +43,16 @@ interface IncomingEmail {
   body_html?: string | null;
   attachments?: any | null;
   raw_email?: string | null;
+  folder: string; // Added folder column
 }
+
+const folderOptions = ["Inbox", "Archived", "Spam", "Trash"]; // Hardcoded folder options
 
 const IncomingEmailsPage: React.FC = () => {
   const [data, setData] = useState<IncomingEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterFolder, setFilterFolder] = useState<string>('All'); // New state for folder filter
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<IncomingEmail | null>(null);
 
@@ -71,17 +82,34 @@ const IncomingEmailsPage: React.FC = () => {
     setIsDetailsDialogOpen(true);
   }, []);
 
+  const handleUpdateFolder = useCallback(async (emailId: string, newFolder: string) => {
+    const { error } = await supabase
+      .from('incoming_emails')
+      .update({ folder: newFolder })
+      .eq('id', emailId);
+
+    if (error) {
+      showError(`Errore durante l'aggiornamento della cartella: ${error.message}`);
+      console.error("Error updating email folder:", error);
+    } else {
+      showSuccess(`Email spostata in "${newFolder}" con successo!`);
+      fetchIncomingEmails(); // Refresh data to reflect the change
+    }
+  }, [fetchIncomingEmails]);
+
   const filteredData = useMemo(() => {
     return data.filter(email => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        email.sender_email.toLowerCase().includes(searchLower) ||
-        (email.sender_name?.toLowerCase().includes(searchLower)) ||
-        email.subject.toLowerCase().includes(searchLower) ||
-        (email.body_text?.toLowerCase().includes(searchLower))
-      );
+      const matchesSearch = searchTerm.toLowerCase() === '' ||
+        email.sender_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (email.sender_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (email.body_text?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesFolder = filterFolder === 'All' || email.folder === filterFolder;
+
+      return matchesSearch && matchesFolder;
     });
-  }, [data, searchTerm]);
+  }, [data, searchTerm, filterFolder]);
 
   const columns: ColumnDef<IncomingEmail>[] = useMemo(() => [
     {
@@ -99,6 +127,24 @@ const IncomingEmailsPage: React.FC = () => {
       header: 'Oggetto',
     },
     {
+      accessorKey: 'folder',
+      header: 'Cartella',
+      cell: ({ row }) => (
+        <Select onValueChange={(value) => handleUpdateFolder(row.original.id, value)} value={row.original.folder}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Seleziona cartella" />
+          </SelectTrigger>
+          <SelectContent>
+            {folderOptions.map(folder => (
+              <SelectItem key={folder} value={folder}>
+                {folder}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
       id: 'actions',
       header: 'Azioni',
       cell: ({ row }) => (
@@ -109,7 +155,7 @@ const IncomingEmailsPage: React.FC = () => {
         </div>
       ),
     },
-  ], [handleViewDetails]);
+  ], [handleViewDetails, handleUpdateFolder]);
 
   const table = useReactTable({
     data: filteredData,
@@ -132,6 +178,22 @@ const IncomingEmailsPage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <Select onValueChange={setFilterFolder} value={filterFolder}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtra per cartella" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">Tutte le Cartelle</SelectItem>
+                  {folderOptions.map(folder => (
+                    <SelectItem key={folder} value={folder}>
+                      {folder}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button variant="outline" onClick={fetchIncomingEmails} disabled={loading}>
               <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
             </Button>
@@ -154,7 +216,7 @@ const IncomingEmailsPage: React.FC = () => {
                     ))}
                   </TableRow>
                 ))}
-              </TableHeader> {/* Added missing closing tag here */}
+              </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
@@ -202,6 +264,21 @@ const IncomingEmailsPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold">Oggetto:</h4>
                   <p>{selectedEmail.subject}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Cartella:</h4>
+                  <Select onValueChange={(value) => handleUpdateFolder(selectedEmail.id, value)} value={selectedEmail.folder}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Seleziona cartella" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {folderOptions.map(folder => (
+                        <SelectItem key={folder} value={folder}>
+                          {folder}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {selectedEmail.body_html ? (
                   <div>
