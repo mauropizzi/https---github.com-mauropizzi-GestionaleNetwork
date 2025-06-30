@@ -56,9 +56,10 @@ const tableConfigs: {
   },
   "operatori-network": {
     tableName: "operatori_network",
-    requiredFields: ["nome_operatore"],
-    uniqueFields: ["nome_operatore"],
-    fieldMapping: { nomeOperatore: "nome_operatore", tipoServizio: "tipo_servizio" },
+    requiredFields: ["nome"], // Updated required field
+    uniqueFields: ["nome", "cognome"], // Updated unique fields
+    fieldMapping: { clienteId: "client_id" }, // New mapping
+    // Removed 'referente' and 'tipo_servizio' from mapping as they are dropped
   },
   "fornitori": {
     tableName: "fornitori",

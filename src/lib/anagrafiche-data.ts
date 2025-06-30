@@ -48,6 +48,16 @@ export interface Personale {
   note?: string;
 }
 
+export interface OperatoreNetwork {
+  id: string;
+  created_at: string;
+  nome: string; // Renamed from nome_operatore
+  cognome?: string; // New field
+  client_id?: string; // New field
+  telefono?: string;
+  email?: string;
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",

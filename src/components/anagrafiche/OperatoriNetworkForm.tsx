@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,58 +12,128 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { showSuccess, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Cliente } from "@/lib/anagrafiche-data";
+import { fetchClienti } from "@/lib/data-fetching";
 
 const formSchema = z.object({
-  nomeOperatore: z.string().min(2, "Il nome dell'operatore è richiesto."),
-  referente: z.string().optional(),
-  telefono: z.string().optional(),
+  nome: z.string().min(2, "Il nome è richiesto."),
+  cognome: z.string().optional().or(z.literal("")),
+  clienteId: z.string().uuid("Seleziona un cliente valido.").optional().or(z.literal("")),
+  telefono: z.string().optional().or(z.literal("")),
   email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
-  tipoServizio: z.string().optional(),
 });
 
 export function OperatoriNetworkForm() {
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+
+  useEffect(() => {
+    const loadClienti = async () => {
+      const fetchedClienti = await fetchClienti();
+      setClienti(fetchedClienti);
+    };
+    loadClienti();
+  }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nomeOperatore: "",
-      referente: "",
+      nome: "",
+      cognome: "",
+      clienteId: "",
       telefono: "",
       email: "",
-      tipoServizio: "",
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Operatore Network:", values);
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      nome: values.nome,
+      cognome: values.cognome || null,
+      client_id: values.clienteId || null,
+      telefono: values.telefono || null,
+      email: values.email || null,
+    };
+
+    const { data, error } = await supabase
+      .from('operatori_network')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      showError(`Errore durante la registrazione dell'operatore network: ${error.message}`);
+      console.error("Error inserting operatore network:", error);
+    } else {
+      showSuccess("Operatore Network salvato con successo!");
+      console.log("Operatore Network Data:", data);
+      form.reset(); // Reset form after submission
+    }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <h3 className="text-lg font-semibold">Dettagli Operatore Network</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cognome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cognome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Cognome" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
-          name="nomeOperatore"
+          name="clienteId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome Operatore/Azienda</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome Operatore/Azienda" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="referente"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Referente</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome Referente" {...field} />
-              </FormControl>
+              <FormLabel>Cliente Associato (Opzionale)</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                value={field.value || "DYAD_EMPTY_VALUE"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un cliente" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="DYAD_EMPTY_VALUE">Nessun Cliente Associato</SelectItem>
+                  {clienti.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.nome_cliente}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -96,19 +166,6 @@ export function OperatoriNetworkForm() {
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="tipoServizio"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo di Servizio Fornito</FormLabel>
-              <FormControl>
-                <Input placeholder="Es: Trasporto valori, Vigilanza armata" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button type="submit" className="w-full">Salva Operatore Network</Button>
       </form>
     </Form>
