@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
-  getCoreRowodel,
+  getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -176,7 +176,7 @@ export function PuntiServizioTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowModel(), // Corrected typo here
   });
 
   return (
