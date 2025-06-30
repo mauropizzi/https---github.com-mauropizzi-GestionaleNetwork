@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat } from "lucide-react"; // Import Repeat icon
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat, FileTextIcon } from "lucide-react"; // Import FileTextIcon for Procedure
 
 interface NavItem {
   title: string;
@@ -62,6 +62,7 @@ const navItems: NavItem[] = [
       { title: "Operatori Network", href: "/anagrafiche/operatori-network", icon: Briefcase },
       { title: "Fornitori", href: "/anagrafiche/fornitori", icon: Package },
       { title: "Tariffe", href: "/anagrafiche/tariffe", icon: Euro },
+      { title: "Procedure", href: "/anagrafiche/procedure", icon: FileTextIcon }, // New sub-item
     ],
   },
 ];
@@ -79,7 +80,11 @@ export function Sidebar({ onLinkClick }: SidebarProps) {
       return location.pathname === path && location.search === `?${query}`;
     }
     // For top-level Anagrafiche link, check if current path starts with /anagrafiche
-    if (path === "/anagrafiche/clienti" && location.pathname.startsWith("/anagrafiche")) {
+    if (path === "/anagrafiche/clienti" && location.pathname.startsWith("/anagrafiche") && !location.pathname.includes("/anagrafiche/procedure")) {
+      return true;
+    }
+    // For Procedure link, check if current path starts with /anagrafiche/procedure
+    if (path === "/anagrafiche/procedure" && location.pathname.startsWith("/anagrafiche/procedure")) {
       return true;
     }
     return location.pathname === path;

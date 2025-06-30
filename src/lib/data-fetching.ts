@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data";
+import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
 import { showError } from "@/utils/toast";
 
 export async function fetchClienti(): Promise<Cliente[]> {
@@ -84,6 +84,19 @@ export async function fetchMonthlyTariffe(): Promise<{ id: string; service_type:
   if (error) {
     showError(`Errore nel recupero delle tariffe mensili: ${error.message}`);
     console.error("Error fetching monthly tariffe:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function fetchProcedure(): Promise<Procedure[]> {
+  const { data, error } = await supabase
+    .from('procedure')
+    .select('*');
+
+  if (error) {
+    showError(`Errore nel recupero delle procedure: ${error.message}`);
+    console.error("Error fetching procedure:", error);
     return [];
   }
   return data || [];

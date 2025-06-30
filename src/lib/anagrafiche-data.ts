@@ -61,6 +61,19 @@ export interface OperatoreNetwork {
   email?: string;
 }
 
+export interface Procedure {
+  id: string;
+  created_at?: string;
+  nome_procedura: string;
+  descrizione?: string;
+  versione?: string;
+  data_ultima_revisione?: string; // ISO date string
+  responsabile?: string;
+  documento_url?: string;
+  attivo?: boolean;
+  note?: string;
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",

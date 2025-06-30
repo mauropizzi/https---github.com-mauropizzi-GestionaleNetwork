@@ -15,6 +15,7 @@ import PersonalePage from "./pages/PersonalePage";
 import OperatoriNetworkPage from "./pages/OperatoriNetworkPage";
 import FornitoriPage from "./pages/FornitoriPage";
 import TariffePage from "./pages/TariffePage";
+import ProcedurePage from "./pages/ProcedurePage"; // Import the new page
 import DotazioniDiServizio from "./pages/DotazioniDiServizio";
 import ServiceList from "./pages/ServiceList";
 import RegistroDiCantiere from "./pages/RegistroDiCantiere";
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
               <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
               <Route path="anagrafiche/tariffe" element={<TariffePage />} />
+              <Route path="anagrafiche/procedure" element={<ProcedurePage />} /> {/* New route */}
               <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
               <Route path="service-list" element={<ServiceList />} />
               <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />

@@ -79,6 +79,16 @@ const tableConfigs: {
       data_fine_validita: (val: any) => val ? format(new Date(val), 'yyyy-MM-dd') : null,
     },
   },
+  "procedure": {
+    tableName: "procedure",
+    requiredFields: ["nome_procedura"],
+    uniqueFields: ["nome_procedura", "versione"], // Assuming name and version make a procedure unique
+    fieldMapping: { data_ultima_revisione: "data_ultima_revisione", documento_url: "documento_url" },
+    typeConversion: {
+      data_ultima_revisione: (val: any) => val ? format(new Date(val), 'yyyy-MM-dd') : null,
+      attivo: (val: any) => val === true || val === "true" || val === "SI" || val === "si",
+    },
+  },
 };
 
 export async function importDataFromExcel(file: File, currentTab: string): Promise<ImportResult> {
