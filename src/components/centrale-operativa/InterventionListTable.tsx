@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -17,6 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { RefreshCcw } from 'lucide-react';
+import { showInfo, showError } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchPuntiServizio } from '@/lib/data-fetching';
+import { PuntoServizio } from '@/lib/anagrafiche-data';
 
 interface Intervention {
   id: string;
@@ -32,7 +37,66 @@ interface Intervention {
 }
 
 export function InterventionListTable() {
-  const columns: ColumnDef<Intervention>[] = [
+  const [data, setData] = useState<Intervention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDate, setFilterDate] = useState<string>('');
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map());
+
+  const fetchInterventionHistory = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('allarme_interventi')
+      .select('*')
+      .not('service_outcome', 'is', null); // Fetch only completed events
+
+    if (error) {
+      showError(`Errore nel recupero dello storico interventi: ${error.message}`);
+      console.error("Error fetching intervention history:", error);
+      setData([]);
+    } else {
+      setData(data || []);
+    }
+    setLoading(false);
+  }, []);
+
+  const fetchPuntiServizioData = useCallback(async () => {
+    const fetchedPuntiServizio = await fetchPuntiServizio();
+    const map = new Map<string, PuntoServizio>();
+    fetchedPuntiServizio.forEach(p => {
+      if (p.codice_sicep) map.set(p.codice_sicep, p);
+      if (p.codice_cliente) map.set(p.codice_cliente, p);
+      if (p.nome_punto_servizio) map.set(p.nome_punto_servizio, p);
+      map.set(p.id, p); // Also map by ID for robustness
+    });
+    setPuntiServizioMap(map);
+  }, []);
+
+  useEffect(() => {
+    fetchInterventionHistory();
+    fetchPuntiServizioData();
+  }, [fetchInterventionHistory, fetchPuntiServizioData]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(report => {
+      const servicePoint = puntiServizioMap.get(report.service_point_code);
+      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code;
+      const matchesSearch = searchTerm === '' ||
+        servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.co_operator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.operator_client?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (report.gpg_intervention?.toLowerCase().includes(searchTerm.toLowerCase())) || // Assuming GPG intervention is a name string here
+        (report.notes?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesDate = filterDate === '' ||
+        format(new Date(report.report_date), "yyyy-MM-dd") === filterDate;
+
+      return matchesSearch && matchesDate;
+    });
+  }, [data, searchTerm, filterDate, puntiServizioMap]);
+
+  const columns: ColumnDef<Intervention>[] = useMemo(() => [
     {
       accessorKey: 'id',
       header: 'ID',
@@ -49,6 +113,10 @@ export function InterventionListTable() {
     {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
+      cell: ({ row }) => {
+        const servicePoint = puntiServizioMap.get(row.original.service_point_code);
+        return servicePoint?.nome_punto_servizio || row.original.service_point_code;
+      },
     },
     {
       accessorKey: 'request_type',
@@ -58,22 +126,10 @@ export function InterventionListTable() {
       accessorKey: 'service_outcome',
       header: 'Esito',
     },
-  ];
-
-  // Mock data - replace with real data from your API
-  const data: Intervention[] = [
-    {
-      id: '1',
-      report_date: '2024-01-01',
-      report_time: '10:00',
-      service_point_code: '0107208',
-      request_type: 'Intervento',
-      service_outcome: 'Completato',
-    },
-  ];
+  ], [puntiServizioMap]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -83,12 +139,22 @@ export function InterventionListTable() {
       <div className="flex flex-wrap items-center gap-4 mb-4">
         <Input
           placeholder="Cerca per ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
         <Input
           type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
           className="max-w-xs"
         />
+        <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterDate(''); }}>
+          Reset Filtri
+        </Button>
+        <Button variant="outline" onClick={fetchInterventionHistory} disabled={loading}>
+          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        </Button>
       </div>
 
       <div className="rounded-md border overflow-x-auto">
@@ -110,7 +176,13 @@ export function InterventionListTable() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Caricamento storico interventi...
+                </TableCell>
+              </TableRow>
+            ) : (table && table.getRowModel().rows?.length) ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

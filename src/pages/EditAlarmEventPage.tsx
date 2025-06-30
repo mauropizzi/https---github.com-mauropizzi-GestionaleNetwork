@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,19 +32,18 @@ import { cn } from "@/lib/utils";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import {
-  servicePointsData,
   requestTypeOptions,
   coOperatorOptions,
   operatorClientOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-data';
-import { fetchPersonale } from '@/lib/data-fetching';
-import { Personale } from '@/lib/anagrafiche-data';
+import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
+import { Personale, PuntoServizio } from '@/lib/anagrafiche-data';
 
 interface AllarmeIntervento {
   id: string;
-  report_date: string; // ISO date string
-  report_time: string; // HH:MM:SS string
+  report_date: string;
+  report_time: string;
   service_point_code: string;
   request_type: string;
   co_operator?: string | null;
@@ -75,12 +74,13 @@ const formSchema = z.object({
 const EditAlarmEventPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation(); // Get current location
-  const isPublicMode = location.pathname.startsWith('/public/'); // Check if in public mode
+  const location = useLocation();
+  const isPublicMode = location.pathname.startsWith('/public/');
 
   const [eventData, setEventData] = useState<AllarmeIntervento | null>(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -105,6 +105,9 @@ const EditAlarmEventPage = () => {
       const fetchedPattuglia = await fetchPersonale('Pattuglia');
       setPattugliaPersonale(fetchedPattuglia);
 
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      setPuntiServizioList(fetchedPuntiServizio);
+
       if (id) {
         const { data: event, error } = await supabase
           .from('allarme_interventi')
@@ -115,7 +118,7 @@ const EditAlarmEventPage = () => {
         if (error) {
           showError(`Errore nel recupero dell'evento: ${error.message}`);
           console.error("Error fetching alarm event:", error);
-          if (!isPublicMode) { // Only redirect if not in public mode
+          if (!isPublicMode) {
             navigate('/centrale-operativa?tab=eventi-in-gestione');
           }
         } else if (event) {
@@ -135,13 +138,13 @@ const EditAlarmEventPage = () => {
           });
         } else {
           showError("Evento non trovato.");
-          if (!isPublicMode) { // Only redirect if not in public mode
+          if (!isPublicMode) {
             navigate('/centrale-operativa?tab=eventi-in-gestione');
           }
         }
       } else {
         showError("ID evento non fornito.");
-        if (!isPublicMode) { // Only redirect if not in public mode
+        if (!isPublicMode) {
           navigate('/centrale-operativa?tab=eventi-in-gestione');
         }
       }
@@ -208,9 +211,9 @@ const EditAlarmEventPage = () => {
       } else {
         showSuccess(`Evento ${id} aggiornato con successo!`);
         if (isPublicMode) {
-          navigate('/public/success'); // Redirect to public success page
+          navigate('/public/success');
         } else {
-          navigate('/centrale-operativa?tab=eventi-in-gestione'); // Redirect back to the list
+          navigate('/centrale-operativa?tab=eventi-in-gestione');
         }
       }
     } catch (err: any) {
@@ -243,7 +246,7 @@ const EditAlarmEventPage = () => {
           </CardHeader>
           <CardContent>
             <p>L'evento di allarme richiesto non è stato trovato o l'ID non è valido.</p>
-            {!isPublicMode && ( // Only show button if not in public mode
+            {!isPublicMode && (
               <Button onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')} className="mt-4">
                 Torna agli Eventi in Gestione
               </Button>
@@ -338,15 +341,26 @@ const EditAlarmEventPage = () => {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleziona un punto servizio..." />
+                          <SelectValue placeholder="Seleziona un punto servizio...">
+                            {field.value
+                              ? puntiServizioList.find(p =>
+                                  p.codice_sicep === field.value ||
+                                  p.codice_cliente === field.value ||
+                                  p.nome_punto_servizio === field.value
+                                )?.nome_punto_servizio || field.value
+                              : "Seleziona un punto servizio..."}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {servicePointsData.map(point => (
-                          <SelectItem key={point.code} value={point.code}>
-                            {point.name}
-                          </SelectItem>
-                        ))}
+                        {puntiServizioList.map(point => {
+                          const valueToUse = point.codice_sicep || point.codice_cliente || point.nome_punto_servizio || point.id;
+                          return (
+                            <SelectItem key={point.id} value={valueToUse}>
+                              {point.nome_punto_servizio}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -488,7 +502,7 @@ const EditAlarmEventPage = () => {
               />
 
               <div className="flex justify-end gap-2">
-                {!isPublicMode && ( // Only show "Annulla" button if not in public mode
+                {!isPublicMode && (
                   <Button type="button" variant="outline" onClick={() => navigate('/centrale-operativa?tab=eventi-in-gestione')}>
                     Annulla
                   </Button>

@@ -20,11 +20,10 @@ import { it } from 'date-fns/locale';
 import { Printer, RefreshCcw, Edit, MessageSquareText } from 'lucide-react';
 import { showInfo, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { findServicePointByCode } from '@/lib/centrale-data';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
-import { fetchPersonale } from '@/lib/data-fetching';
-import { Personale } from '@/lib/anagrafiche-data';
+import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
+import { Personale, PuntoServizio } from '@/lib/anagrafiche-data';
 
 interface AllarmeIntervento {
   id: string;
@@ -43,7 +42,7 @@ interface AllarmeIntervento {
 
 export function AlarmEventsInProgressTable() {
   console.count("AlarmEventsInProgressTable render");
-  console.log("VITE_PUBLIC_BASE_URL:", import.meta.env.VITE_PUBLIC_BASE_URL); // Debugging line
+  console.log("VITE_PUBLIC_BASE_URL:", import.meta.env.VITE_PUBLIC_BASE_URL);
 
   const navigate = useNavigate();
   const [data, setData] = useState<AllarmeIntervento[]>([]);
@@ -51,6 +50,7 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map()); // New state for service points map
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
@@ -76,10 +76,23 @@ export function AlarmEventsInProgressTable() {
     setPattugliaPersonnelMap(map);
   }, []);
 
+  const fetchPuntiServizioData = useCallback(async () => {
+    const fetchedPuntiServizio = await fetchPuntiServizio();
+    const map = new Map<string, PuntoServizio>();
+    fetchedPuntiServizio.forEach(p => {
+      if (p.codice_sicep) map.set(p.codice_sicep, p);
+      if (p.codice_cliente) map.set(p.codice_cliente, p);
+      if (p.nome_punto_servizio) map.set(p.nome_punto_servizio, p);
+      map.set(p.id, p); // Also map by ID for robustness
+    });
+    setPuntiServizioMap(map);
+  }, []);
+
   useEffect(() => {
     fetchInProgressEvents();
     fetchPattugliaPersonnel();
-  }, [fetchInProgressEvents, fetchPattugliaPersonnel]);
+    fetchPuntiServizioData(); // Fetch service points on mount
+  }, [fetchInProgressEvents, fetchPattugliaPersonnel, fetchPuntiServizioData]);
 
   const handleEdit = useCallback((event: AllarmeIntervento) => {
     navigate(`/centrale-operativa/edit/${event.id}`);
@@ -92,7 +105,6 @@ export function AlarmEventsInProgressTable() {
       if (personnel && personnel.telefono) {
         const cleanedPhoneNumber = personnel.telefono.replace(/\D/g, '');
         
-        // Use environment variable for the public base URL
         const publicBaseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
         const publicEditUrl = `${publicBaseUrl}/public/alarm-event/edit/${event.id}`;
         
@@ -110,7 +122,8 @@ export function AlarmEventsInProgressTable() {
 
   const filteredData = useMemo(() => {
     return data.filter(report => {
-      const servicePointName = findServicePointByCode(report.service_point_code)?.name || report.service_point_code;
+      const servicePoint = puntiServizioMap.get(report.service_point_code);
+      const servicePointName = servicePoint?.nome_punto_servizio || report.service_point_code;
       const matchesSearch = searchTerm === '' ||
         servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,7 +138,7 @@ export function AlarmEventsInProgressTable() {
 
       return matchesSearch && matchesDate;
     });
-  }, [data, searchTerm, filterDate, pattugliaPersonnelMap]);
+  }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap]);
 
   const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
     {
@@ -144,7 +157,10 @@ export function AlarmEventsInProgressTable() {
     {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
-      cell: ({ row }) => findServicePointByCode(row.original.service_point_code)?.name || row.original.service_point_code,
+      cell: ({ row }) => {
+        const servicePoint = puntiServizioMap.get(row.original.service_point_code);
+        return servicePoint?.nome_punto_servizio || row.original.service_point_code;
+      },
     },
     {
       accessorKey: 'request_type',
@@ -179,7 +195,7 @@ export function AlarmEventsInProgressTable() {
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, pattugliaPersonnelMap]);
+  ], [handleEdit, handleWhatsAppMessage, pattugliaPersonnelMap, puntiServizioMap]);
 
   const table = useReactTable({
     data: filteredData,

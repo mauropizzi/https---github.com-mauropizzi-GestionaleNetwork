@@ -13,7 +13,6 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
 import {
-  servicePointsData,
   requestTypeOptions,
   coOperatorOptions,
   serviceOutcomeOptions,
@@ -26,8 +25,8 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchPersonale, fetchOperatoriNetwork } from '@/lib/data-fetching';
-import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data';
+import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio } from '@/lib/data-fetching';
+import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -36,7 +35,7 @@ import { cn } from "@/lib/utils";
 export function InterventionForm() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    servicePoint: '',
+    servicePoint: '', // This will now store the ID of the selected service point
     requestType: '',
     coOperator: '',
     requestTime: '',
@@ -44,8 +43,8 @@ export function InterventionForm() {
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '', // This will store the ID of the selected operator
-    gpgIntervention: '', // This will now be a personnel ID
+    operatorClient: '',
+    gpgIntervention: '',
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
     delay: undefined as 'si' | 'no' | undefined,
@@ -57,19 +56,22 @@ export function InterventionForm() {
   });
   const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
-  const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false); // State for combobox popover
-  const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false); // State for GPG combobox popover
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]); // New state for service points
+  const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
+  const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
 
   useEffect(() => {
-    const loadPersonnelData = async () => {
+    const loadData = async () => {
       const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
       setOperatoriNetworkList(fetchedOperatoriNetwork);
 
       const fetchedPattuglia = await fetchPersonale('Pattuglia');
-      console.log("Fetched 'Pattuglia' personnel for G.P.G. Intervention:", fetchedPattuglia);
       setPattugliaPersonale(fetchedPattuglia);
+
+      const fetchedPuntiServizio = await fetchPuntiServizio(); // Fetch service points
+      setPuntiServizioList(fetchedPuntiServizio);
     };
-    loadPersonnelData();
+    loadData();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -140,10 +142,13 @@ export function InterventionForm() {
       y += 10;
 
       doc.setFontSize(10);
-      const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
+      const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+      const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+      const interventionTime = selectedServicePoint?.tempo_intervento || 'N/A';
+
       doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
-      doc.text(`Intervento da effettuarsi ENTRO: ${servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime || 'N/A'} minuti`, 14, y);
+      doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
       y += 7;
       doc.text(`Tipologia Servizio Richiesto: ${formData.requestType}`, 14, y);
       y += 7;
@@ -163,7 +168,6 @@ export function InterventionForm() {
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      // Find the full name for the PDF
       const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorClient);
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
@@ -177,7 +181,7 @@ export function InterventionForm() {
         const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${formData.anomalyDescription}`, 180);
         doc.text(splitAnomalyDesc, 18, y);
         y += (splitAnomalyDesc.length * 4);
-        doc.setFontSize(10); // Reset font size
+        doc.setFontSize(10);
       }
       y += 7;
       doc.text(`Ritardo: ${formData.delay?.toUpperCase() || 'N/A'}`, 14, y);
@@ -187,7 +191,7 @@ export function InterventionForm() {
         const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${formData.delayNotes}`, 180);
         doc.text(splitDelayNotes, 18, y);
         y += (splitDelayNotes.length * 4);
-        doc.setFontSize(10); // Reset font size
+        doc.setFontSize(10);
       }
       y += 7;
       doc.text(`Esito Evento: ${formData.serviceOutcome || 'N/A'}`, 14, y);
@@ -198,8 +202,8 @@ export function InterventionForm() {
         if (barcodeDataURL) {
           doc.text(`Barcode: ${formData.barcode}`, 14, y);
           y += 5;
-          doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20); // x, y, width, height
-          y += 25; // Adjust y for image height
+          doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20);
+          y += 25;
         } else {
           doc.text(`Barcode: ${formData.barcode} (Impossibile generare immagine)`, 14, y);
           y += 7;
@@ -227,7 +231,8 @@ export function InterventionForm() {
   };
 
   const handleEmail = async () => {
-    const servicePointName = servicePointsData.find(p => p.code === formData.servicePoint)?.name || formData.servicePoint || 'N/A';
+    const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
     const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
     
@@ -238,7 +243,7 @@ export function InterventionForm() {
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
       reader.onloadend = () => {
-        const base64data = reader.result?.toString().split(',')[1]; // Get base64 part
+        const base64data = reader.result?.toString().split(',')[1];
         if (base64data) {
           sendEmail(subject, textBody, false, {
             filename: `Rapporto_Intervento_Centrale_Operativa_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
@@ -259,7 +264,7 @@ export function InterventionForm() {
 
   const saveIntervention = async (isFinal: boolean) => {
     const {
-      servicePoint,
+      servicePoint, // This is the ID
       requestType,
       coOperator,
       requestTime,
@@ -267,7 +272,7 @@ export function InterventionForm() {
       endTime,
       fullAccess,
       vaultAccess,
-      operatorClient, // This is now the ID
+      operatorClient,
       gpgIntervention,
       anomalies,
       anomalyDescription,
@@ -312,14 +317,18 @@ export function InterventionForm() {
       notesCombined.push(`GPS: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
     }
 
+    // Determine the service_point_code to save based on the selected servicePoint ID
+    const selectedServicePoint = puntiServizioList.find(p => p.id === servicePoint);
+    const servicePointCodeToSave = selectedServicePoint?.codice_sicep || selectedServicePoint?.codice_cliente || selectedServicePoint?.nome_punto_servizio || servicePoint;
+
     const payload = {
       report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
       report_time: format(new Date(requestTime), 'HH:mm:ss'),
-      service_point_code: servicePoint,
+      service_point_code: servicePointCodeToSave, // Store the code/name, not the ID
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorClient || null, // This is now the ID
-      gpg_intervention: gpgIntervention || null, // Now stores the ID of the selected personnel
+      operator_client: operatorClient || null,
+      gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
       latitude: latitude || null,
@@ -361,13 +370,15 @@ export function InterventionForm() {
 
   const handleCloseEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    saveIntervention(true); // Final save
+    saveIntervention(true);
   };
 
   const handleRegisterEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    saveIntervention(false); // In-progress save
+    saveIntervention(false);
   };
+
+  const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
 
   return (
     <form onSubmit={handleCloseEvent} className="space-y-4">
@@ -381,9 +392,9 @@ export function InterventionForm() {
             <SelectValue placeholder="Seleziona un punto servizio..." />
           </SelectTrigger>
           <SelectContent>
-            {servicePointsData.map(point => (
-              <SelectItem key={point.code} value={point.code}>
-                {point.name}
+            {puntiServizioList.map(point => (
+              <SelectItem key={point.id} value={point.id}>
+                {point.nome_punto_servizio}
               </SelectItem>
             ))}
           </SelectContent>
@@ -393,8 +404,8 @@ export function InterventionForm() {
       <div className="space-y-2">
         <Label>Intervento da effettuarsi ENTRO:</Label>
         <div className="p-2 border rounded-md">
-          {formData.servicePoint ? 
-            servicePointsData.find(p => p.code === formData.servicePoint)?.interventionTime + " minuti" : 
+          {selectedServicePoint?.tempo_intervento !== undefined && selectedServicePoint?.tempo_intervento !== null ? 
+            `${selectedServicePoint.tempo_intervento} minuti` : 
             "N/A"}
         </div>
       </div>
@@ -458,7 +469,6 @@ export function InterventionForm() {
         </div>
       </div>
 
-      {/* GPS Acquisition Button and Display */}
       <div className="space-y-2">
         <Button 
           type="button" 
