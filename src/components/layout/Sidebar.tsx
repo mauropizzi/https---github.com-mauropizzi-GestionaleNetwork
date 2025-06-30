@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat, FileTextIcon, MailOpen } from "lucide-react"; // Import MailOpen for Incoming Emails
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat, FileTextIcon, MailOpen, BarChart2 } from "lucide-react"; // Import BarChart2 for Analisi Contabile
 
 interface NavItem {
   title: string;
@@ -69,6 +69,11 @@ const navItems: NavItem[] = [
     title: "Email in Arrivo", // New top-level item
     href: "/incoming-emails",
     icon: MailOpen,
+  },
+  {
+    title: "Analisi Contabile", // New top-level item
+    href: "/analisi-contabile",
+    icon: BarChart2, // Using BarChart2 icon
   },
 ];
 

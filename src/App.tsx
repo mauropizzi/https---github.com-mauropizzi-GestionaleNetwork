@@ -25,6 +25,7 @@ import PublicSuccessPage from "./pages/PublicSuccessPage";
 import Login from "./pages/Login";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
 import IncomingEmailsPage from "./pages/IncomingEmails";
+import AnalisiContabile from "./pages/AnalisiContabile"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
                   <Route path="servizi-a-canone" element={<ServiziCanone />} />
                   <Route path="incoming-emails" element={<IncomingEmailsPage />} />
+                  <Route path="analisi-contabile" element={<AnalisiContabile />} /> {/* New route */}
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Route>
