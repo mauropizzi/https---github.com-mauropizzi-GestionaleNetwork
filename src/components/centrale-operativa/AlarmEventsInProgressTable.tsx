@@ -17,13 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2 } from 'lucide-react';
+import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText } from 'lucide-react'; // Import FileText icon
 import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
-import { Personale, PuntoServizio } from '@/lib/anagrafiche-data';
+import { Personale, PuntoServizio, Procedure } from '@/lib/anagrafiche-data'; // Import Procedure
+import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog'; // Import the dialog
 
 interface AllarmeIntervento {
   id: string;
@@ -42,6 +43,10 @@ interface AllarmeIntervento {
   end_longitude?: number;  // Rinomina da longitude
 }
 
+interface PuntoServizioExtended extends PuntoServizio {
+  procedure?: Procedure | null; // Ensure procedure details are available
+}
+
 export function AlarmEventsInProgressTable() {
   console.count("AlarmEventsInProgressTable render");
   console.log("VITE_PUBLIC_BASE_URL:", import.meta.env.VITE_PUBLIC_BASE_URL);
@@ -52,8 +57,11 @@ export function AlarmEventsInProgressTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map());
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizioExtended>>(new Map()); // Use PuntoServizioExtended
   const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map());
+
+  const [isProcedureDetailsDialogOpen, setIsProcedureDetailsDialogOpen] = useState(false);
+  const [selectedProcedureForDetails, setSelectedProcedureForDetails] = useState<Procedure | null>(null);
 
   const fetchInProgressEvents = useCallback(async () => {
     setLoading(true);
@@ -87,8 +95,8 @@ export function AlarmEventsInProgressTable() {
   }, []);
 
   const fetchPuntiServizioData = useCallback(async () => {
-    const fetchedPuntiServizio = await fetchPuntiServizio();
-    const map = new Map<string, PuntoServizio>();
+    const fetchedPuntiServizio = await fetchPuntiServizio(); // This now fetches procedure(*)
+    const map = new Map<string, PuntoServizioExtended>();
     fetchedPuntiServizio.forEach(p => {
       map.set(p.id, p);
       if (p.codice_sicep) map.set(p.codice_sicep, p);
@@ -130,6 +138,16 @@ export function AlarmEventsInProgressTable() {
       showError("Nessun G.P.G. associato a questo intervento.");
     }
   }, [pattugliaPersonnelMap]);
+
+  const handleViewProcedure = useCallback((servicePointCode: string) => {
+    const servicePoint = puntiServizioMap.get(servicePointCode);
+    if (servicePoint && servicePoint.procedure) {
+      setSelectedProcedureForDetails(servicePoint.procedure);
+      setIsProcedureDetailsDialogOpen(true);
+    } else {
+      showInfo("Nessuna procedura associata a questo punto servizio o dettagli non disponibili.");
+    }
+  }, [puntiServizioMap]);
 
   const handleDelete = async (eventId: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare l'evento di allarme con ID ${eventId}?`)) {
@@ -227,13 +245,21 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleViewProcedure(row.original.service_point_code)} 
+            title="Visualizza Procedura"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
           <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, handleDelete, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
+  ], [handleEdit, handleWhatsAppMessage, handleDelete, handleViewProcedure, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -312,6 +338,14 @@ export function AlarmEventsInProgressTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedProcedureForDetails && (
+        <ProcedureDetailsDialog
+          isOpen={isProcedureDetailsDialogOpen}
+          onClose={() => setIsProcedureDetailsDialogOpen(false)}
+          procedure={selectedProcedureForDetails}
+        />
+      )}
     </div>
   );
 }
