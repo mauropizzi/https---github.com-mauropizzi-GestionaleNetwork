@@ -51,10 +51,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <> {/* Added React Fragment here */}
-        <Toaster />
-        <Sonner />
+    <>
+      <Toaster />
+      <Sonner />
+      <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SessionContextProvider>
             <Routes>
@@ -90,8 +90,8 @@ const App = () => (
             </Routes>
           </SessionContextProvider>
         </BrowserRouter>
-      </> {/* Closing React Fragment */}
-    </TooltipProvider>
+      </TooltipProvider>
+    </>
   </QueryClientProvider>
 );
 
