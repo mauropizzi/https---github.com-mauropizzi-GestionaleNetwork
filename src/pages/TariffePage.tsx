@@ -16,7 +16,7 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const TariffePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuova-tariffa";
+  const currentTab = searchParams.get("tab") || "lista-tariffe"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
 
@@ -26,7 +26,7 @@ const TariffePage = () => {
 
   useEffect(() => {
     if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "nuova-tariffa" });
+      setSearchParams({ tab: "lista-tariffe" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
 

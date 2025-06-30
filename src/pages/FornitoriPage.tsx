@@ -16,7 +16,7 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const FornitoriPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuovo-fornitore";
+  const currentTab = searchParams.get("tab") || "lista-fornitori"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
 
@@ -26,7 +26,7 @@ const FornitoriPage = () => {
 
   useEffect(() => {
     if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "nuovo-fornitore" });
+      setSearchParams({ tab: "lista-fornitori" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
 

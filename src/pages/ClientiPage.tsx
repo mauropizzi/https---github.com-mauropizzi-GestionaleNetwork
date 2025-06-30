@@ -16,7 +16,7 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const ClientiPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuovo-cliente";
+  const currentTab = searchParams.get("tab") || "lista-clienti"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
 
@@ -26,7 +26,7 @@ const ClientiPage = () => {
 
   useEffect(() => {
     if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "nuovo-cliente" });
+      setSearchParams({ tab: "lista-clienti" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
 

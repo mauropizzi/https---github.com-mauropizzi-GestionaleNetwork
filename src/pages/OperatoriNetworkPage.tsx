@@ -16,7 +16,7 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const OperatoriNetworkPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuovo-operatore-network";
+  const currentTab = searchParams.get("tab") || "lista-operatori-network"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
 
@@ -26,7 +26,7 @@ const OperatoriNetworkPage = () => {
 
   useEffect(() => {
     if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "nuovo-operatore-network" });
+      setSearchParams({ tab: "lista-operatori-network" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
 

@@ -16,7 +16,7 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const PuntiServizioPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuovo-punto-servizio";
+  const currentTab = searchParams.get("tab") || "lista-punti-servizio"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
 
@@ -26,7 +26,7 @@ const PuntiServizioPage = () => {
 
   useEffect(() => {
     if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "nuovo-punto-servizio" });
+      setSearchParams({ tab: "lista-punti-servizio" }); // Changed default tab
     }
   }, [searchParams, setSearchParams]);
 
