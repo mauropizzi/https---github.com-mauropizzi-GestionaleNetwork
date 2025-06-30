@@ -11,7 +11,7 @@ interface PuntoServizioDetailsDialogProps {
   puntoServizio: PuntoServizio | null;
 }
 
-export function PuntoServizioDetailsDialog({ isOpen, onClose, puntoServizio }: PuntoServizioDetailsDialogProps) {
+export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: PuntoServizioDetailsDialogProps) {
   if (!puntoServizio) return null;
 
   return (

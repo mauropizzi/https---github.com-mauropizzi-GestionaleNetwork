@@ -236,7 +236,7 @@ export function PuntiServizioTable() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowodel(),
+    getCoreRowModel: getCoreRowModel(),
   });
 
   return (
