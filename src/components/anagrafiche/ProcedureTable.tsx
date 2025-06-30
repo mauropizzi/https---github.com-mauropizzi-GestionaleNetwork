@@ -17,11 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Edit, Trash2, RefreshCcw, ExternalLink } from "lucide-react";
+import { Edit, Trash2, RefreshCcw, ExternalLink, Eye } from "lucide-react"; // Import Eye icon
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Procedure } from "@/lib/anagrafiche-data";
 import { ProcedureEditDialog } from "./ProcedureEditDialog";
+import { ProcedureDetailsDialog } from "./ProcedureDetailsDialog"; // Import the new dialog
 
 export function ProcedureTable() {
   const [data, setData] = useState<Procedure[]>([]);
@@ -29,6 +30,8 @@ export function ProcedureTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedProcedureForEdit, setSelectedProcedureForEdit] = useState<Procedure | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // New state for details dialog
+  const [selectedProcedureForDetails, setSelectedProcedureForDetails] = useState<Procedure | null>(null); // New state for details dialog
 
   const fetchProcedureData = useCallback(async () => {
     setLoading(true);
@@ -50,6 +53,11 @@ export function ProcedureTable() {
     fetchProcedureData();
   }, [fetchProcedureData]);
 
+  const handleView = useCallback((procedure: Procedure) => {
+    setSelectedProcedureForDetails(procedure);
+    setIsDetailsDialogOpen(true);
+  }, []);
+
   const handleEdit = useCallback((procedure: Procedure) => {
     setSelectedProcedureForEdit(procedure);
     setIsEditDialogOpen(true);
@@ -66,9 +74,14 @@ export function ProcedureTable() {
     setSelectedProcedureForEdit(null);
   }, [fetchProcedureData]);
 
-  const handleCloseDialog = useCallback(() => {
+  const handleCloseEditDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedProcedureForEdit(null);
+  }, []);
+
+  const handleCloseDetailsDialog = useCallback(() => {
+    setIsDetailsDialogOpen(false);
+    setSelectedProcedureForDetails(null);
   }, []);
 
   const handleDelete = async (procedureId: string, nomeProcedura: string) => {
@@ -141,6 +154,9 @@ export function ProcedureTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleView(row.original)} title="Visualizza Dettagli">
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
@@ -150,7 +166,7 @@ export function ProcedureTable() {
         </div>
       ),
     },
-  ], [handleEdit, handleDelete]);
+  ], [handleEdit, handleDelete, handleView]);
 
   const table = useReactTable({
     data: filteredData,
@@ -224,9 +240,17 @@ export function ProcedureTable() {
       {selectedProcedureForEdit && (
         <ProcedureEditDialog
           isOpen={isEditDialogOpen}
-          onClose={handleCloseDialog}
+          onClose={handleCloseEditDialog}
           procedure={selectedProcedureForEdit}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {selectedProcedureForDetails && (
+        <ProcedureDetailsDialog
+          isOpen={isDetailsDialogOpen}
+          onClose={handleCloseDetailsDialog}
+          procedure={selectedProcedureForDetails}
         />
       )}
     </div>
