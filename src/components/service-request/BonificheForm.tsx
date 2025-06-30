@@ -27,11 +27,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
-import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
-
-// Rimosso BASE_RATE_BONIFICA
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -56,14 +54,14 @@ const formSchema = z.object({
 });
 
 export function BonificheForm() {
-  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]); // Changed from clienti
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio(); // Changed from fetchClienti
+      const fetchedPuntiServizio = await fetchPuntiServizio();
       const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio); // Changed from setClienti
+      setPuntiServizio(fetchedPuntiServizio);
       setFornitori(fetchedFornitori);
     };
     loadData();
@@ -72,7 +70,7 @@ export function BonificheForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      servicePointId: "", // Changed from clienteId
+      servicePointId: "",
       fornitoreId: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -80,30 +78,41 @@ export function BonificheForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Rimosso il calcolo del costo
-    console.log("Bonifiche Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
-    console.log("Punto Servizio ID:", values.servicePointId); // Changed from Cliente ID
-    console.log("Fornitore ID:", values.fornitoreId);
-
-    // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
-    // Prepare data for Supabase insertion
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio.");
+      return;
+    }
+
+    const costDetails = {
+      type: "Bonifiche",
+      client_id: clientId,
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId,
+      start_date: values.startDate,
+      end_date: values.endDate,
+      start_time: values.startTime,
+      end_time: values.endTime,
+    };
+
+    const calculatedCost = await calculateServiceCost(costDetails);
+
     const payload = {
-      type: "Bonifiche", // Fixed type for this form
-      client_id: clientId, // Now correctly setting client_id
+      type: "Bonifiche",
+      client_id: clientId,
       service_point_id: values.servicePointId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
-      status: "Pending", // Default status
-      // calculated_cost: cost, // Rimosso il campo calculated_cost
-      num_agents: null, // Not applicable for Bonifiche
-      cadence_hours: null, // Not applicable for Bonifiche
-      inspection_type: null, // Not applicable for Bonifiche
-      daily_hours_config: null, // Not applicable for Bonifiche
+      status: "Pending",
+      calculated_cost: calculatedCost, // Now including the calculated cost
+      num_agents: null,
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
     };
 
     const { data, error } = await supabase
@@ -116,7 +125,7 @@ export function BonificheForm() {
     } else {
       showSuccess("Richiesta di bonifica registrata con successo!");
       console.log("Service request saved successfully:", data);
-      form.reset(); // Reset form after successful submission
+      form.reset();
     }
   };
 
@@ -126,20 +135,20 @@ export function BonificheForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="servicePointId" // Changed from clienteId
+            name="servicePointId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Punto Servizio</FormLabel> {/* Changed label */}
+                <FormLabel>Punto Servizio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un punto servizio" /> {/* Changed placeholder */}
+                      <SelectValue placeholder="Seleziona un punto servizio" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {puntiServizio.map((punto) => ( // Changed from clienti.map
+                    {puntiServizio.map((punto) => (
                       <SelectItem key={punto.id} value={punto.id}>
-                        {punto.nome_punto_servizio} {/* Changed display field */}
+                        {punto.nome_punto_servizio}
                       </SelectItem>
                     ))}
                   </SelectContent>

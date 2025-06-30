@@ -28,11 +28,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
-import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
-
-// Rimosso BASE_RATE_CHIAVI
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -57,7 +55,6 @@ const formSchema = z.object({
 });
 
 export function GestioneChiaviForm() {
-  // Rimosso lo stato calculatedCost
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
 
@@ -82,31 +79,41 @@ export function GestioneChiaviForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Rimosso il calcolo del costo
-    // setCalculatedCost(cost); // Rimosso l'aggiornamento dello stato
-    console.log("Gestione Chiavi Service Period:", format(values.startDate, "PPP", { locale: it }), values.startTime, "to", format(values.endDate, "PPP", { locale: it }), values.endTime);
-    console.log("Punto Servizio ID:", values.servicePointId);
-    console.log("Fornitore ID:", values.fornitoreId);
-
-    // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
-    // Prepare data for Supabase insertion
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio.");
+      return;
+    }
+
+    const costDetails = {
+      type: "Gestione Chiavi",
+      client_id: clientId,
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId,
+      start_date: values.startDate,
+      end_date: values.endDate,
+      start_time: values.startTime,
+      end_time: values.endTime,
+    };
+
+    const calculatedCost = await calculateServiceCost(costDetails);
+
     const payload = {
-      type: "Gestione Chiavi", // Fixed type for this form
-      client_id: clientId, // Now correctly setting client_id
+      type: "Gestione Chiavi",
+      client_id: clientId,
       service_point_id: values.servicePointId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
-      status: "Pending", // Default status
-      // calculated_cost: cost, // Rimosso il campo calculated_cost
-      num_agents: null, // Not applicable for Gestione Chiavi
-      cadence_hours: null, // Not applicable for Gestione Chiavi
-      inspection_type: null, // Not applicable for Gestione Chiavi
-      daily_hours_config: null, // Not applicable for Gestione Chiavi
+      status: "Pending",
+      calculated_cost: calculatedCost, // Now including the calculated cost
+      num_agents: null,
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
     };
 
     const { data, error } = await supabase
@@ -119,8 +126,7 @@ export function GestioneChiaviForm() {
     } else {
       showSuccess("Richiesta di gestione chiavi registrata con successo!");
       console.log("Service request saved successfully:", data);
-      form.reset(); // Reset form after successful submission
-      // setCalculatedCost(null); // Rimosso il reset dello stato
+      form.reset();
     }
   };
 

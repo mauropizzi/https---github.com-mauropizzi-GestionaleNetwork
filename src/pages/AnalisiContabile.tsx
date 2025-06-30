@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchPuntiServizio, fetchServiceRequestsForAnalysis, fetchAllTariffe } from "@/lib/data-fetching";
+import { fetchClienti, fetchPuntiServizio, fetchServiceRequestsForAnalysis, fetchAllTariffe, calculateServiceCost } from "@/lib/data-fetching";
 import { showError } from "@/utils/toast";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -88,9 +88,29 @@ const AnalisiContabile = () => {
 
       const summary: { [key: string]: ServiceSummary } = {};
 
-      rawServices.forEach(service => {
+      for (const service of rawServices) {
         const servicePoint = puntiServizioMap.get(service.service_point_id);
         if (servicePoint) {
+          const serviceStartDate = parseISO(service.start_date);
+          const serviceEndDate = parseISO(service.end_date);
+
+          const costDetails = {
+            type: service.type,
+            client_id: service.client_id,
+            service_point_id: service.service_point_id,
+            fornitore_id: service.fornitore_id, // Assuming fornitore_id is available in service object if needed
+            start_date: serviceStartDate,
+            end_date: serviceEndDate,
+            start_time: service.start_time,
+            end_time: service.end_time,
+            num_agents: service.num_agents,
+            cadence_hours: service.cadence_hours,
+            daily_hours_config: service.daily_hours_config,
+            inspection_type: service.inspection_type,
+          };
+
+          const calculatedCost = await calculateServiceCost(costDetails);
+
           if (!summary[servicePoint.id]) {
             summary[servicePoint.id] = {
               servicePointId: servicePoint.id,
@@ -100,11 +120,11 @@ const AnalisiContabile = () => {
             };
           }
           summary[servicePoint.id].totalServices += 1;
-          if (service.calculated_cost) {
-            summary[servicePoint.id].totalCost += service.calculated_cost;
+          if (calculatedCost !== null) {
+            summary[servicePoint.id].totalCost += calculatedCost;
           }
         }
-      });
+      }
 
       setSummaryData(Object.values(summary));
     } catch (err) {
@@ -125,61 +145,40 @@ const AnalisiContabile = () => {
         startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined,
         endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined
       );
-      const allTariffe = await fetchAllTariffe();
       const allClients = await fetchClienti(); // Re-fetch clients for names
-      const allPuntiServizio = await fetchPuntiServizio(); // Re-fetch service points for names
 
       const clientNameMap = new Map(allClients.map(c => [c.id, c.nome_cliente]));
-      const servicePointNameMap = new Map(allPuntiServizio.map(ps => [ps.id, ps.nome_punto_servizio]));
+      const servicePointNameMap = new Map(Array.from(puntiServizioMap.values()).map(ps => [ps.id, ps.nome_punto_servizio]));
 
       const identifiedMissingTariffs: MissingTariffEntry[] = [];
 
       for (const service of allServices) {
         const serviceStartDate = parseISO(service.start_date);
-        const serviceClientId = service.client_id;
-        const servicePointId = service.service_point_id;
-        const serviceType = service.type;
+        const serviceEndDate = parseISO(service.end_date);
 
-        let tariffFound = false;
+        const costDetails = {
+          type: service.type,
+          client_id: service.client_id,
+          service_point_id: service.service_point_id,
+          fornitore_id: service.fornitore_id,
+          start_date: serviceStartDate,
+          end_date: serviceEndDate,
+          start_time: service.start_time,
+          end_time: service.end_time,
+          num_agents: service.num_agents,
+          cadence_hours: service.cadence_hours,
+          daily_hours_config: service.daily_hours_config,
+          inspection_type: service.inspection_type,
+        };
 
-        // Prioritize tariffs specific to a service point
-        if (servicePointId) {
-          const matchingTariffsForPoint = allTariffe.filter(tariff =>
-            tariff.client_id === serviceClientId &&
-            tariff.service_type === serviceType &&
-            tariff.punto_servizio_id === servicePointId &&
-            isWithinInterval(serviceStartDate, {
-              start: parseISO(tariff.data_inizio_validita),
-              end: tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(), // If no end date, assume ongoing
-            })
-          );
-          if (matchingTariffsForPoint.length > 0) {
-            tariffFound = true;
-          }
-        }
+        const calculatedCost = await calculateServiceCost(costDetails);
 
-        // If no specific service point tariff found, check for general client tariffs
-        if (!tariffFound) {
-          const matchingGeneralTariffs = allTariffe.filter(tariff =>
-            tariff.client_id === serviceClientId &&
-            tariff.service_type === serviceType &&
-            tariff.punto_servizio_id === null && // General tariff for the client
-            isWithinInterval(serviceStartDate, {
-              start: parseISO(tariff.data_inizio_validita),
-              end: tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(),
-            })
-          );
-          if (matchingGeneralTariffs.length > 0) {
-            tariffFound = true;
-          }
-        }
-
-        if (!tariffFound) {
+        if (calculatedCost === null) {
           identifiedMissingTariffs.push({
             serviceId: service.id,
-            serviceType: serviceType,
-            clientName: clientNameMap.get(serviceClientId) || 'Cliente Sconosciuto',
-            servicePointName: servicePointNameMap.get(servicePointId) || 'Punto Servizio Sconosciuto',
+            serviceType: service.type,
+            clientName: clientNameMap.get(service.client_id) || 'Cliente Sconosciuto',
+            servicePointName: servicePointNameMap.get(service.service_point_id) || 'Punto Servizio Sconosciuto',
             startDate: format(serviceStartDate, 'PPP', { locale: it }),
             reason: "Nessuna tariffa corrispondente trovata per il periodo e il tipo di servizio.",
           });

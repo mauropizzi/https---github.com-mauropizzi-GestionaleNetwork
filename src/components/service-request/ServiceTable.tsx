@@ -22,7 +22,7 @@ import { Eye, Edit, Trash2, RefreshCcw, CalendarIcon } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 import { ServiceEditDialog } from "./ServiceEditDialog";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
-import { fetchClienti, fetchPuntiServizio } from "@/lib/data-fetching"; // Import data fetching utilities
+import { fetchClienti, fetchPuntiServizio, calculateServiceCost } from "@/lib/data-fetching"; // Import data fetching utilities
 import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data"; // Import interfaces
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -45,6 +45,7 @@ interface ServiceRequest {
   cadence_hours?: number | null; // New field
   inspection_type?: string | null; // New field
   daily_hours_config?: any | null; // New field for JSONB
+  fornitore_id?: string | null; // Added fornitore_id for cost calculation
 
   // Joined fields for display
   clienti?: { nome_cliente: string } | null;
@@ -84,7 +85,29 @@ export function ServiceTable() {
       console.error("Error fetching services:", error);
       setData([]);
     } else {
-      setData(servicesData || []);
+      // Recalculate cost for each service
+      const servicesWithCalculatedCost = await Promise.all(servicesData.map(async (service) => {
+        const serviceStartDate = parseISO(service.start_date);
+        const serviceEndDate = parseISO(service.end_date);
+
+        const costDetails = {
+          type: service.type,
+          client_id: service.client_id,
+          service_point_id: service.service_point_id,
+          fornitore_id: service.fornitore_id,
+          start_date: serviceStartDate,
+          end_date: serviceEndDate,
+          start_time: service.start_time,
+          end_time: service.end_time,
+          num_agents: service.num_agents,
+          cadence_hours: service.cadence_hours,
+          daily_hours_config: service.daily_hours_config,
+          inspection_type: service.inspection_type,
+        };
+        const calculatedCost = await calculateServiceCost(costDetails);
+        return { ...service, calculated_cost: calculatedCost };
+      }));
+      setData(servicesWithCalculatedCost || []);
     }
     setLoading(false);
   }, [startDateFilter, endDateFilter]);
@@ -164,7 +187,7 @@ export function ServiceTable() {
       end_date: format(new Date(selectedService.end_date), 'yyyy-MM-dd'), // Keep original dates for now
       end_time: selectedService.end_time,
       status: updatedService.status,
-      // calculated_cost: updatedService.cost, // Rimosso il campo calculated_cost
+      calculated_cost: selectedService.calculated_cost, // Keep original calculated cost or recalculate if needed
       num_agents: selectedService.num_agents,
       cadence_hours: selectedService.cadence_hours,
       inspection_type: selectedService.inspection_type,

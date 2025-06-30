@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
@@ -113,55 +113,29 @@ export function ServiziFiduciariForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const start = values.startDate;
-    const end = values.endDate;
-    const numAgents = values.numAgents;
-    const dailyHoursConfig = values.dailyHours;
-
-    let totalHours = 0;
-    let currentDate = new Date(start);
-
-    while (currentDate <= end) {
-      const dayOfWeek = format(currentDate, 'EEEE', { locale: it }); // e.g., "lunedì"
-      const isCurrentDayHoliday = isDateHoliday(currentDate);
-      const isCurrentDayWeekend = isWeekend(currentDate);
-
-      let dayConfig;
-      if (isCurrentDayHoliday) {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Festivi");
-      } else if (dayOfWeek === "sabato") {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Sabato");
-      } else if (dayOfWeek === "domenica") {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Domenica");
-      } else {
-        dayConfig = dailyHoursConfig.find(d => d.day === dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1));
-      }
-
-      if (dayConfig) {
-        if (dayConfig.is24h) {
-          totalHours += 24;
-        } else if (dayConfig.startTime && dayConfig.endTime) {
-          const startOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.startTime + ':00');
-          const endOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.endTime + ':00');
-          
-          if (isValid(startOfDay) && isValid(endOfDay)) {
-            let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-            if (dailyDiffMs < 0) { // Handle overnight shifts
-              dailyDiffMs += 24 * 60 * 60 * 1000;
-            }
-            totalHours += dailyDiffMs / (1000 * 60 * 60);
-          }
-        }
-      }
-      currentDate = addDays(currentDate, 1);
-    }
-
-    const finalCalculatedHours = totalHours * numAgents;
-    console.log("Calculated Hours (for saving):", finalCalculatedHours);
-
     // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
+
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio.");
+      return;
+    }
+
+    const costDetails = {
+      type: "Servizi Fiduciari",
+      client_id: clientId,
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId,
+      start_date: values.startDate,
+      end_date: values.endDate,
+      start_time: values.startTime,
+      end_time: values.endTime,
+      num_agents: values.numAgents,
+      daily_hours_config: values.dailyHours,
+    };
+
+    const calculatedCost = await calculateServiceCost(costDetails);
 
     // Prepare data for Supabase insertion
     const payload = {
@@ -173,11 +147,11 @@ export function ServiziFiduciariForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
       status: "Pending", // Default status
-      // calculated_cost: finalCalculatedHours, // Rimosso il calcolo del costo stimato
+      calculated_cost: calculatedCost, // Now including the calculated cost
       num_agents: values.numAgents,
       cadence_hours: null, // Not applicable for Servizi Fiduciari
       inspection_type: null, // Not applicable for Servizi Fiduciari
-      daily_hours_config: dailyHoursConfig, // Save the daily hours configuration
+      daily_hours_config: values.dailyHours, // Save the daily hours configuration
     };
 
     const { data, error } = await supabase

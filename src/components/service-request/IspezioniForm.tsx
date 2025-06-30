@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
-import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
@@ -109,61 +109,28 @@ export function IspezioniForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const start = values.startDate;
-    const end = values.endDate;
-    const cadenceHours = values.cadenceHours;
-    const dailyHoursConfig = values.dailyHours;
-
-    let totalOperationalHours = 0;
-    let currentDate = new Date(start);
-
-    while (currentDate <= end) {
-      const dayOfWeek = format(currentDate, 'EEEE', { locale: it }); // e.g., "lunedì"
-      const isCurrentDayHoliday = isDateHoliday(currentDate);
-      const isCurrentDayWeekend = isWeekend(currentDate);
-
-      let dayConfig;
-      if (isCurrentDayHoliday) {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Festivi");
-      } else if (dayOfWeek === "sabato") {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Sabato");
-      } else if (dayOfWeek === "domenica") {
-        dayConfig = dailyHoursConfig.find(d => d.day === "Domenica");
-      } else {
-        dayConfig = dailyHoursConfig.find(d => d.day === dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1));
-      }
-
-      if (dayConfig) {
-        if (dayConfig.is24h) {
-          totalOperationalHours += 24;
-        } else if (dayConfig.startTime && dayConfig.endTime) {
-          const startOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.startTime + ':00');
-          const endOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.endTime + ':00');
-          
-          if (isValid(startOfDay) && isValid(endOfDay)) {
-            let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-            if (dailyDiffMs < 0) { // Handle overnight shifts
-              dailyDiffMs += 24 * 60 * 60 * 1000;
-            }
-            totalOperationalHours += dailyDiffMs / (1000 * 60 * 60);
-          }
-        }
-      }
-      currentDate = addDays(currentDate, 1);
-    }
-
-    if (cadenceHours <= 0) {
-      showError("La cadenza oraria deve essere maggiore di zero per calcolare le ispezioni.");
-      return;
-    }
-
-    // Calculation: (Total operational hours over the period) / Cadenza + 1 (for the initial inspection)
-    const numInspections = Math.floor(totalOperationalHours / cadenceHours) + 1;
-    console.log("Calculated Inspections (for saving):", numInspections);
-
     // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
+
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio.");
+      return;
+    }
+
+    const costDetails = {
+      type: "Ispezioni",
+      client_id: clientId,
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId,
+      start_date: values.startDate,
+      end_date: values.endDate,
+      cadence_hours: values.cadenceHours,
+      inspection_type: values.inspectionType,
+      daily_hours_config: values.dailyHours,
+    };
+
+    const calculatedCost = await calculateServiceCost(costDetails);
 
     // Prepare data for Supabase insertion
     const payload = {
@@ -175,11 +142,11 @@ export function IspezioniForm() {
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: null, // Detailed times are in daily_hours_config
       status: "Pending", // Default status
-      // calculated_cost: numInspections, // Rimosso il calcolo del costo stimato
+      calculated_cost: calculatedCost, // Now including the calculated cost
       num_agents: null, // Not applicable for Ispezioni
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
-      daily_hours_config: dailyHoursConfig, // Save the daily hours configuration
+      daily_hours_config: values.dailyHours, // Save the daily hours configuration
     };
 
     const { data, error } = await supabase
