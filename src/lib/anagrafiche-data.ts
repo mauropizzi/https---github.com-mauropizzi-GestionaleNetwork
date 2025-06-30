@@ -68,4 +68,5 @@ export const serviceTypeRateOptions: string[] = [
   "Bonifiche",
   "Gestione Chiavi",
   "Apertura/Chiusura",
+  "Intervento", // Added 'Intervento'
 ];
