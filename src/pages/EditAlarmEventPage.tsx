@@ -50,10 +50,10 @@ interface AllarmeIntervento {
   gpg_intervention?: string | null;
   service_outcome?: string | null;
   notes?: string | null;
-  start_latitude?: number | null; // Nuovo campo
-  start_longitude?: number | null; // Nuovo campo
-  end_latitude?: number | null;   // Rinomina da latitude
-  end_longitude?: number | null;  // Rinomina da longitude
+  start_latitude?: number | null;
+  start_longitude?: number | null;
+  end_latitude?: number | null;
+  end_longitude?: number | null;
 }
 
 const formSchema = z.object({
@@ -67,10 +67,10 @@ const formSchema = z.object({
   operator_client: z.string().optional().nullable(),
   gpg_intervention: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  start_latitude: z.coerce.number().optional().nullable(), // Nuovo campo
-  start_longitude: z.coerce.number().optional().nullable(), // Nuovo campo
-  end_latitude: z.coerce.number().optional().nullable(),   // Rinomina
-  end_longitude: z.coerce.number().optional().nullable(),  // Rinomina
+  start_latitude: z.coerce.number().optional().nullable(),
+  start_longitude: z.coerce.number().optional().nullable(),
+  end_latitude: z.coerce.number().optional().nullable(),
+  end_longitude: z.coerce.number().optional().nullable(),
   service_outcome: z.string().optional().nullable(),
 });
 
@@ -97,10 +97,10 @@ const EditAlarmEventPage = () => {
       operator_client: null,
       gpg_intervention: null,
       notes: null,
-      start_latitude: null, // Default per nuovo campo
-      start_longitude: null, // Default per nuovo campo
-      end_latitude: null,   // Default per rinominato
-      end_longitude: null,  // Default per rinominato
+      start_latitude: null,
+      start_longitude: null,
+      end_latitude: null,
+      end_longitude: null,
       service_outcome: null,
     },
   });
@@ -141,10 +141,10 @@ const EditAlarmEventPage = () => {
             operator_client: event.operator_client || null,
             gpg_intervention: event.gpg_intervention || null,
             notes: event.notes || null,
-            start_latitude: event.start_latitude || null, // Popola nuovo campo
-            start_longitude: event.start_longitude || null, // Popola nuovo campo
-            end_latitude: event.end_latitude || null,     // Popola rinominato
-            end_longitude: event.end_longitude || null,    // Popola rinominato
+            start_latitude: event.start_latitude || null,
+            start_longitude: event.start_longitude || null,
+            end_latitude: event.end_latitude || null,
+            end_longitude: event.end_longitude || null,
             service_outcome: event.service_outcome || null,
           });
         } else {
@@ -226,10 +226,10 @@ const EditAlarmEventPage = () => {
       gpg_intervention: values.gpg_intervention,
       service_outcome: values.service_outcome,
       notes: values.notes,
-      start_latitude: values.start_latitude, // Includi nuovo campo
-      start_longitude: values.start_longitude, // Includi nuovo campo
-      end_latitude: values.end_latitude,     // Includi rinominato
-      end_longitude: values.end_longitude,    // Includi rinominato
+      start_latitude: values.start_latitude,
+      start_longitude: values.start_longitude,
+      end_latitude: values.end_latitude,
+      end_longitude: values.end_longitude,
     };
 
     try {
@@ -358,7 +358,13 @@ const EditAlarmEventPage = () => {
                   </FormItem>
                 )}
               />
-              
+              <Button 
+                type="button" 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={handleStartGpsTracking}
+              >
+                ACQUISIZIONE POSIZIONE DA RICHIESTA DA C.O.
+              </Button>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -387,9 +393,7 @@ const EditAlarmEventPage = () => {
                   )}
                 />
               </div>
-              <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleStartGpsTracking}>
-                ACQUISIZIONE POSIZIONE GPS INIZIO INTERVENTO
-              </Button>
+              
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField

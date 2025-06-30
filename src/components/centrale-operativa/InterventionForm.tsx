@@ -51,10 +51,10 @@ export function InterventionForm() {
     delayNotes: '',
     serviceOutcome: '',
     barcode: '',
-    startLatitude: undefined as number | undefined, // Nuovo campo
-    startLongitude: undefined as number | undefined, // Nuovo campo
-    endLatitude: undefined as number | undefined,   // Rinomina da latitude
-    endLongitude: undefined as number | undefined,  // Rinomina da longitude
+    startLatitude: undefined as number | undefined,
+    startLongitude: undefined as number | undefined,
+    endLatitude: undefined as number | undefined,
+    endLongitude: undefined as number | undefined,
   });
   const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
   const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
@@ -361,10 +361,10 @@ export function InterventionForm() {
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
-      start_latitude: startLatitude || null, // Nuovo campo
-      start_longitude: startLongitude || null, // Nuovo campo
-      end_latitude: endLatitude || null,     // Rinomina
-      end_longitude: endLongitude || null,    // Rinomina
+      start_latitude: startLatitude || null,
+      start_longitude: startLongitude || null,
+      end_latitude: endLatitude || null,
+      end_longitude: endLongitude || null,
     };
 
     const { data, error } = await supabase
@@ -553,6 +553,18 @@ export function InterventionForm() {
             Ora Attuale
           </Button>
         </div>
+        <Button 
+          type="button" 
+          className="w-full bg-blue-600 hover:bg-blue-700" 
+          onClick={handleStartGpsTracking}
+        >
+          ACQUISIZIONE POSIZIONE DA RICHIESTA DA C.O.
+        </Button>
+        {formData.startLatitude !== undefined && formData.startLongitude !== undefined && (
+          <p className="text-sm text-gray-500 mt-1 text-center">
+            Latitudine: {formData.startLatitude?.toFixed(6)}, Longitudine: {formData.startLongitude?.toFixed(6)}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -575,18 +587,6 @@ export function InterventionForm() {
               Ora Attuale
             </Button>
           </div>
-          <Button 
-            type="button" 
-            className="w-full bg-blue-600 hover:bg-blue-700" 
-            onClick={handleStartGpsTracking}
-          >
-            ACQUISIZIONE POSIZIONE GPS INIZIO INTERVENTO
-          </Button>
-          {formData.startLatitude !== undefined && formData.startLongitude !== undefined && (
-            <p className="text-sm text-gray-500 mt-1 text-center">
-              Latitudine: {formData.startLatitude?.toFixed(6)}, Longitudine: {formData.startLongitude?.toFixed(6)}
-            </p>
-          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="endTime">Orario Fine Intervento</Label>
