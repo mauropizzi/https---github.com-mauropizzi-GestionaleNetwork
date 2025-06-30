@@ -108,7 +108,7 @@ export async function fetchProcedure(): Promise<Procedure[]> {
 export async function fetchServiceRequestsForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
   let query = supabase
     .from('servizi_richiesti')
-    .select('id, type, client_id, service_point_id, start_date, end_date, start_time, end_time, num_agents, cadence_hours, inspection_type, daily_hours_config'); // Fetch all relevant fields
+    .select('id, type, client_id, service_point_id, fornitore_id, start_date, end_date, start_time, end_time, num_agents, cadence_hours, inspection_type, daily_hours_config'); // Fetch all relevant fields, including fornitore_id
 
   if (clientId) {
     query = query.eq('client_id', clientId);
