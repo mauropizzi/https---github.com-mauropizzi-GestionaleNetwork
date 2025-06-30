@@ -45,8 +45,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Login />;
   }
 
-  // Restituisci direttamente i figli quando l'utente è autenticato
-  return <>{children}</>;
+  // Restituisci direttamente i figli quando l'utente è autenticato.
+  // Poiché sappiamo che `children` in questo caso è sempre un singolo elemento (<DashboardLayout />),
+  // possiamo restituirlo direttamente per evitare problemi con `React.Children.only`.
+  return children;
 };
 
 const App = () => (
