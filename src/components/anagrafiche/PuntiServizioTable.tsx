@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel,
+  getCoreRowodel,
   useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -109,11 +109,11 @@ export function PuntiServizioTable() {
     const filtered = data.filter(punto => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        punto.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (punto.nome_cliente?.toLowerCase().includes(searchLower)) ||
-        (punto.indirizzo?.toLowerCase().includes(searchLower)) ||
-        (punto.citta?.toLowerCase().includes(searchLower)) ||
-        (punto.referente?.toLowerCase().includes(searchLower))
+        punto.nome_punto_servizio.toLowerCase().trim().includes(searchLower) || // Added .trim() here
+        (punto.nome_cliente?.toLowerCase().trim().includes(searchLower)) ||
+        (punto.indirizzo?.toLowerCase().trim().includes(searchLower)) ||
+        (punto.citta?.toLowerCase().trim().includes(searchLower)) ||
+        (punto.referente?.toLowerCase().trim().includes(searchLower))
       );
     });
     console.log("Filtered data for table:", filtered); // Log the filtered data
