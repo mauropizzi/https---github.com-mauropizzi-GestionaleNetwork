@@ -27,7 +27,14 @@ const Login = () => {
           localization={{
             variables: {
               common: {
-                missing_email_or_phone: 'Email o telefono mancanti', // Aggiunta questa riga
+                missing_email_or_phone: 'Email o telefono mancanti',
+                loading: 'Caricamento...', // Added
+                confirm_password_label: 'Conferma Password', // Added
+                confirm_password_input_placeholder: 'Conferma la tua password', // Added
+                full_name_label: 'Nome completo', // Added
+                full_name_input_placeholder: 'Il tuo nome completo', // Added
+                social_continue_with: 'Continua con {{provider}}', // Added
+                back_to_sign_in: 'Torna all\'accesso', // Added
               },
               sign_in: {
                 email_label: 'Indirizzo Email',
