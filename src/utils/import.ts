@@ -8,7 +8,7 @@ interface ImportResult {
   message: string;
   details?: {
     newRecordsCount: number;
-    duplicateRecords: any[];
+    updatedRecordsCount: number;
     invalidRecords: any[];
     errors?: string[];
   };
@@ -19,7 +19,7 @@ const tableConfigs: {
   [key: string]: {
     tableName: string;
     requiredFields: string[];
-    uniqueFields: string[]; // Fields that together form a unique identifier
+    uniqueFields: string[]; // Fields that together form a unique identifier for upsert
     fieldMapping?: { [formKey: string]: string }; // Optional: if form field name differs from DB column name
     typeConversion?: { [dbKey: string]: (value: any) => any }; // Optional: for date, boolean, number conversion
   };
@@ -33,8 +33,8 @@ const tableConfigs: {
   },
   "punti-servizio": {
     tableName: "punti_servizio",
-    requiredFields: ["nome_punto_servizio", "indirizzo", "citta"], // id_cliente removed from requiredFields
-    uniqueFields: ["nome_punto_servizio"], // Changed to only nome_punto_servizio for uniqueness
+    requiredFields: ["nome_punto_servizio", "indirizzo", "citta"],
+    uniqueFields: ["nome_punto_servizio"],
     fieldMapping: { nomePuntoServizio: "nome_punto_servizio", idCliente: "id_cliente", telefonoReferente: "telefono_referente", tempoIntervento: "tempo_intervento", codiceCliente: "codice_cliente", codiceSicep: "codice_sicep", codiceFatturazione: "codice_fatturazione", fornitoreId: "fornitore_id" },
     typeConversion: {
       tempo_intervento: (val: any) => val ? parseInt(val, 10) : null,
@@ -45,7 +45,7 @@ const tableConfigs: {
   "personale": {
     tableName: "personale",
     requiredFields: ["nome", "cognome", "ruolo"],
-    uniqueFields: ["codice_fiscale"], // Prefer codice_fiscale if present
+    uniqueFields: ["nome", "cognome"], // Changed to nome, cognome for upsert identification
     fieldMapping: { codiceFiscale: "codice_fiscale", data_nascita: "data_nascita", data_assunzione: "data_assunzione", data_cessazione: "data_cessazione" },
     typeConversion: {
       data_nascita: (val: any) => val ? format(new Date(val), 'yyyy-MM-dd') : null,
@@ -56,10 +56,9 @@ const tableConfigs: {
   },
   "operatori-network": {
     tableName: "operatori_network",
-    requiredFields: ["nome"], // Updated required field
-    uniqueFields: ["nome", "cognome"], // Updated unique fields
-    fieldMapping: { clienteId: "client_id" }, // New mapping
-    // Removed 'referente' and 'tipo_servizio' from mapping as they are dropped
+    requiredFields: ["nome"],
+    uniqueFields: ["nome", "cognome"],
+    fieldMapping: { clienteId: "client_id" },
   },
   "fornitori": {
     tableName: "fornitori",
@@ -105,9 +104,10 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
 
         const { tableName, requiredFields, uniqueFields, fieldMapping, typeConversion } = config;
 
+        // Fetch existing data to identify records for update
         const { data: existingData, error: fetchError } = await supabase
           .from(tableName)
-          .select(uniqueFields.join(','));
+          .select(`id, ${uniqueFields.join(',')}`); // Select ID and unique fields
 
         if (fetchError) {
           showError(`Errore nel recupero dei dati esistenti da Supabase: ${fetchError.message}`);
@@ -115,12 +115,15 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
           return;
         }
 
-        const existingUniqueValues = new Set(existingData?.map(row =>
-          uniqueFields.map(field => row[field]).join('|')
-        ));
+        const existingRecordsMap = new Map<string, string>(); // Map: uniqueKey -> id
+        existingData?.forEach(row => {
+          const uniqueKey = uniqueFields.map(field => row[field]).join('|');
+          if (uniqueFields.every(field => row[field] !== null && row[field] !== undefined)) { // Only map if all unique fields are present
+            existingRecordsMap.set(uniqueKey, row.id);
+          }
+        });
 
-        const newRecords: any[] = [];
-        const duplicateRecords: any[] = [];
+        const recordsToUpsert: any[] = [];
         const invalidRecords: any[] = [];
         const errors: string[] = [];
 
@@ -149,60 +152,74 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
             }
           });
 
-          // Check for unique fields
-          const uniqueIdentifier = uniqueFields.map(field => processedRow[field]).join('|');
-          if (uniqueFields.every(field => processedRow[field]) && existingUniqueValues.has(uniqueIdentifier)) {
-            isValidRow = false;
-            duplicateRecords.push({ row: index + 2, data: row, reason: `Dato duplicato per: ${uniqueFields.map(f => `${f}: ${processedRow[f]}`)}` });
-          }
-
           if (isValidRow) {
-            newRecords.push(processedRow);
+            const uniqueIdentifier = uniqueFields.map(field => processedRow[field]).join('|');
+            const existingId = existingRecordsMap.get(uniqueIdentifier);
+
+            if (existingId) {
+              // Record exists, add ID for update
+              recordsToUpsert.push({ ...processedRow, id: existingId });
+            } else {
+              // New record, no ID needed for insert
+              recordsToUpsert.push(processedRow);
+            }
           } else {
             invalidRecords.push({ row: index + 2, data: row, errors: rowErrors });
             errors.push(`Riga ${index + 2}: ${rowErrors.join(', ')}`);
           }
         });
 
-        if (newRecords.length > 0) {
-          const { error: insertError } = await supabase
-            .from(tableName)
-            .insert(newRecords);
+        let newRecordsCount = 0;
+        let updatedRecordsCount = 0;
 
-          if (insertError) {
-            showError(`Errore durante l'inserimento dei nuovi record: ${insertError.message}`);
-            resolve({ success: false, message: `Errore durante l'inserimento: ${insertError.message}`, details: { newRecordsCount: 0, duplicateRecords, invalidRecords, errors } });
+        if (recordsToUpsert.length > 0) {
+          const { data: upsertedData, error: upsertError } = await supabase
+            .from(tableName)
+            .upsert(recordsToUpsert, { onConflict: uniqueFields.join(',') }) // Use uniqueFields for conflict resolution
+            .select('id'); // Select ID to count new vs updated
+
+          if (upsertError) {
+            showError(`Errore durante l'inserimento/aggiornamento dei record: ${upsertError.message}`);
+            resolve({ success: false, message: `Errore durante l'inserimento/aggiornamento: ${upsertError.message}`, details: { newRecordsCount: 0, updatedRecordsCount: 0, invalidRecords, errors } });
             return;
           }
+
+          // Count new vs updated records
+          upsertedData?.forEach(upsertedRow => {
+            const uniqueKey = uniqueFields.map(field => upsertedRow[field]).join('|');
+            if (existingRecordsMap.has(uniqueKey)) {
+              updatedRecordsCount++;
+            } else {
+              newRecordsCount++;
+            }
+          });
         }
 
         let finalMessage = `Importazione completata per ${currentTab}.`;
-        if (newRecords.length > 0) {
-          finalMessage += ` ${newRecords.length} nuovi record inseriti.`;
+        if (newRecordsCount > 0) {
+          finalMessage += ` ${newRecordsCount} nuovi record inseriti.`;
         }
-        if (duplicateRecords.length > 0) {
-          finalMessage += ` ${duplicateRecords.length} record duplicati ignorati.`;
+        if (updatedRecordsCount > 0) {
+          finalMessage += ` ${updatedRecordsCount} record aggiornati.`;
         }
         if (invalidRecords.length > 0) {
           finalMessage += ` ${invalidRecords.length} record non validi ignorati.`;
         }
 
-        if (newRecords.length > 0 && duplicateRecords.length === 0 && invalidRecords.length === 0) {
+        if (newRecordsCount > 0 || updatedRecordsCount > 0) {
           showSuccess(finalMessage);
-        } else if (newRecords.length > 0 && (duplicateRecords.length > 0 || invalidRecords.length > 0)) {
-          showInfo(finalMessage);
-        } else if (newRecords.length === 0 && (duplicateRecords.length > 0 || invalidRecords.length > 0)) {
+        } else if (invalidRecords.length > 0) {
           showError(finalMessage);
         } else {
-          showInfo("Nessun record da importare o tutti i record erano duplicati/non validi.");
+          showInfo("Nessun record da importare o tutti i record erano non validi.");
         }
 
         resolve({
-          success: newRecords.length > 0,
+          success: newRecordsCount > 0 || updatedRecordsCount > 0,
           message: finalMessage,
           details: {
-            newRecordsCount: newRecords.length,
-            duplicateRecords,
+            newRecordsCount,
+            updatedRecordsCount,
             invalidRecords,
             errors,
           },
