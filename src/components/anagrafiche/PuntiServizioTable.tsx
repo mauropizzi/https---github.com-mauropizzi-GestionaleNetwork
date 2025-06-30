@@ -36,6 +36,7 @@ export function PuntiServizioTable() {
 
   const fetchPuntiServizioData = useCallback(async () => {
     setLoading(true);
+    console.log("Fetching punti_servizio data from Supabase...");
     const { data: puntiServizioData, error: puntiServizioError } = await supabase
       .from('punti_servizio')
       .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
@@ -45,12 +46,14 @@ export function PuntiServizioTable() {
       console.error("Error fetching punti_servizio:", puntiServizioError);
       setData([]);
     } else {
+      console.log("Raw fetched punti_servizio data:", puntiServizioData); // Log raw data
       const mappedData = puntiServizioData.map(ps => ({
         ...ps,
         nome_cliente: ps.clienti?.nome_cliente || 'N/A',
         nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
       }));
       setData(mappedData || []);
+      console.log("Mapped punti_servizio data for table:", mappedData); // Log mapped data
     }
     setLoading(false);
   }, []);
@@ -102,16 +105,48 @@ export function PuntiServizioTable() {
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(punto => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (punto.nome_punto_servizio || '').toLowerCase().includes(searchLower) ||
-        (punto.nome_cliente || '').toLowerCase().includes(searchLower) ||
-        (punto.indirizzo || '').toLowerCase().includes(searchLower) ||
-        (punto.citta || '').toLowerCase().includes(searchLower) ||
-        (punto.referente || '').toLowerCase().includes(searchLower)
-      );
+    console.log("Current search term:", searchTerm);
+    const searchLower = searchTerm.toLowerCase().trim(); // Also trim the search term
+    const filtered = data.filter(punto => {
+      const nomePuntoServizioLower = (punto.nome_punto_servizio || '').toLowerCase().trim();
+      const nomeClienteLower = (punto.nome_cliente || '').toLowerCase().trim();
+      const indirizzoLower = (punto.indirizzo || '').toLowerCase().trim();
+      const cittaLower = (punto.citta || '').toLowerCase().trim();
+      const referenteLower = (punto.referente || '').toLowerCase().trim();
+
+      const matches =
+        nomePuntoServizioLower.includes(searchLower) ||
+        nomeClienteLower.includes(searchLower) ||
+        indirizzoLower.includes(searchLower) ||
+        cittaLower.includes(searchLower) ||
+        referenteLower.includes(searchLower);
+
+      // Detailed logging for each item when there's an active search term
+      if (searchTerm.length > 0) {
+        console.log(`--- Checking item: ${punto.nome_punto_servizio} (ID: ${punto.id}) ---`);
+        console.log(`  Search term (trimmed, lower): "${searchLower}"`);
+        console.log(`  nome_punto_servizio (raw): "${punto.nome_punto_servizio}"`);
+        console.log(`  nome_punto_servizio (processed): "${nomePuntoServizioLower}"`);
+        console.log(`  nome_punto_servizio match: ${nomePuntoServizioLower.includes(searchLower)}`);
+        console.log(`  nome_cliente (raw): "${punto.nome_cliente}"`);
+        console.log(`  nome_cliente (processed): "${nomeClienteLower}"`);
+        console.log(`  nome_cliente match: ${nomeClienteLower.includes(searchLower)}`);
+        console.log(`  indirizzo (raw): "${punto.indirizzo}"`);
+        console.log(`  indirizzo (processed): "${indirizzoLower}"`);
+        console.log(`  indirizzo match: ${indirizzoLower.includes(searchLower)}`);
+        console.log(`  citta (raw): "${punto.citta}"`);
+        console.log(`  citta (processed): "${cittaLower}"`);
+        console.log(`  citta match: ${cittaLower.includes(searchLower)}`);
+        console.log(`  referente (raw): "${punto.referente}"`);
+        console.log(`  referente (processed): "${referenteLower}"`);
+        console.log(`  referente match: ${referenteLower.includes(searchLower)}`);
+        console.log(`  Overall match for ${punto.nome_punto_servizio}: ${matches}`);
+        console.log("----------------------------------------------------");
+      }
+      return matches;
     });
+    console.log("Filtered data for table:", filtered);
+    return filtered;
   }, [data, searchTerm]);
 
   const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
