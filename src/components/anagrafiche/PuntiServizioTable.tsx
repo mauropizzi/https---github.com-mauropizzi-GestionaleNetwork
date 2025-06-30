@@ -20,6 +20,7 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog"; // Import the new dialog
 
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;
@@ -30,8 +31,8 @@ export function PuntiServizioTable() {
   const [data, setData] = useState<PuntoServizioExtended[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [clientiMap, setClientiMap] = useState<Map<string, string>>(new Map());
-  const [fornitoriMap, setFornitoriMap] = useState<Map<string, string>>(new Map());
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPuntoServizioForEdit, setSelectedPuntoServizioForEdit] = useState<PuntoServizioExtended | null>(null);
 
   const fetchPuntiServizioData = useCallback(async () => {
     setLoading(true);
@@ -58,10 +59,28 @@ export function PuntiServizioTable() {
     fetchPuntiServizioData();
   }, [fetchPuntiServizioData]);
 
-  const handleEdit = (puntoServizio: PuntoServizioExtended) => {
-    showInfo(`Modifica punto servizio: ${puntoServizio.nome_punto_servizio} (ID: ${puntoServizio.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((puntoServizio: PuntoServizioExtended) => {
+    setSelectedPuntoServizioForEdit(puntoServizio);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedPuntoServizio: PuntoServizio) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(p =>
+        p.id === updatedPuntoServizio.id ? { ...p, ...updatedPuntoServizio } : p
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    fetchPuntiServizioData(); // Re-fetch to get updated client/supplier names if they changed
+    setIsEditDialogOpen(false);
+    setSelectedPuntoServizioForEdit(null);
+  }, [fetchPuntiServizioData]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedPuntoServizioForEdit(null);
+  }, []);
 
   const handleDelete = async (puntoServizioId: string, nomePuntoServizio: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il punto servizio "${nomePuntoServizio}"?`)) {
@@ -216,6 +235,15 @@ export function PuntiServizioTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedPuntoServizioForEdit && (
+        <PuntiServizioEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          puntoServizio={selectedPuntoServizioForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
