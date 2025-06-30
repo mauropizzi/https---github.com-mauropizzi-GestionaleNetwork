@@ -426,10 +426,12 @@ export function InterventionForm() {
               aria-expanded={isServicePointOpen}
               className="w-full justify-between"
             >
-              {formData.servicePoint
-                ? puntiServizioList.find(point => point.id === formData.servicePoint)?.nome_punto_servizio
-                : "Seleziona un punto servizio..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <span> {/* Wrap content in a span */}
+                {formData.servicePoint
+                  ? puntiServizioList.find(point => point.id === formData.servicePoint)?.nome_punto_servizio
+                  : "Seleziona un punto servizio..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -499,10 +501,12 @@ export function InterventionForm() {
               aria-expanded={isCoOperatorOpen}
               className="w-full justify-between"
             >
-              {formData.coOperator
-                ? coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.nome + " " + coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.cognome
-                : "Seleziona operatore C.O...."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <span> {/* Wrap content in a span */}
+                {formData.coOperator
+                  ? coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.nome + " " + coOperatorsPersonnel.find(op => op.id === formData.coOperator)?.cognome
+                  : "Seleziona operatore C.O...."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -668,10 +672,12 @@ export function InterventionForm() {
               aria-expanded={isOperatorNetworkOpen}
               className="w-full justify-between"
             >
-              {formData.operatorClient
-                ? operatoriNetworkList.find(op => op.id === formData.operatorClient)?.nome + " " + operatoriNetworkList.find(op => op.id === formData.operatorClient)?.cognome
-                : "Seleziona operatore network..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <span> {/* Wrap content in a span */}
+                {formData.operatorClient
+                  ? operatoriNetworkList.find(op => op.id === formData.operatorClient)?.nome + " " + operatoriNetworkList.find(op => op.id === formData.operatorClient)?.cognome
+                  : "Seleziona operatore network..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
@@ -713,10 +719,12 @@ export function InterventionForm() {
               aria-expanded={isGpgInterventionOpen}
               className="w-full justify-between"
             >
-              {formData.gpgIntervention
-                ? pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.nome + " " + pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.cognome
-                : "Seleziona G.P.G. intervento..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <span> {/* Wrap content in a span */}
+                {formData.gpgIntervention
+                  ? pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.nome + " " + pattugliaPersonale.find(p => p.id === formData.gpgIntervention)?.cognome
+                  : "Seleziona G.P.G. intervento..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
