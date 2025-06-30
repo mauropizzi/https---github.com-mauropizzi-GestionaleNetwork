@@ -9,7 +9,7 @@ import { TariffeTable } from "@/components/anagrafiche/TariffeTable";
 import { useSearchParams } from "react-router-dom";
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,11 @@ const TariffePage = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["client_id", "tipo_servizio", "importo", "supplier_rate", "unita_misura", "punto_servizio_id", "fornitore_id", "data_inizio_validita", "data_fine_validita", "note"];
+    exportTemplateToExcel(headers, "Template_Tariffe", "Tariffe");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
@@ -83,6 +88,9 @@ const TariffePage = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end space-x-2 mb-4">
+            <Button onClick={handleDownloadTemplate} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Scarica Template
+            </Button>
             <Button onClick={handleExport} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Esporta Excel
             </Button>

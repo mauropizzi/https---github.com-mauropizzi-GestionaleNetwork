@@ -9,7 +9,7 @@ import { OperatoriNetworkTable } from "@/components/anagrafiche/OperatoriNetwork
 import { useSearchParams } from "react-router-dom";
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,6 +75,11 @@ const OperatoriNetworkPage = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["nome", "cognome", "clienteId", "telefono", "email"];
+    exportTemplateToExcel(headers, "Template_OperatoriNetwork", "OperatoriNetwork");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
@@ -84,6 +89,9 @@ const OperatoriNetworkPage = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end space-x-2 mb-4">
+            <Button onClick={handleDownloadTemplate} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Scarica Template
+            </Button>
             <Button onClick={handleExport} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Esporta Excel
             </Button>

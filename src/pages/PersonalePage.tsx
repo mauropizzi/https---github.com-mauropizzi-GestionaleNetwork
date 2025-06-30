@@ -9,12 +9,12 @@ import { PersonaleTable } from "@/components/anagrafiche/PersonaleTable";
 import { useSearchParams } from "react-router-dom";
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
 
 const PersonalePage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = new URLSearchParams();
   const currentTab = searchParams.get("tab") || "nuovo-personale";
 
   const handleTabChange = (value: string) => {
@@ -74,6 +74,11 @@ const PersonalePage = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["nome", "cognome", "codiceFiscale", "ruolo", "telefono", "email", "data_nascita", "luogo_nascita", "indirizzo", "cap", "citta", "provincia", "data_assunzione", "data_cessazione", "attivo", "note"];
+    exportTemplateToExcel(headers, "Template_Personale", "Personale");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
@@ -83,6 +88,9 @@ const PersonalePage = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end space-x-2 mb-4">
+            <Button onClick={handleDownloadTemplate} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Scarica Template
+            </Button>
             <Button onClick={handleExport} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Esporta Excel
             </Button>

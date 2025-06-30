@@ -9,7 +9,7 @@ import { PuntiServizioTable } from "@/components/anagrafiche/PuntiServizioTable"
 import { useSearchParams } from "react-router-dom";
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,11 @@ const PuntiServizioPage = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente", "telefono", "email", "note", "tempoIntervento", "fornitoreId", "codiceCliente", "codiceSicep", "codiceFatturazione", "latitude", "longitude"];
+    exportTemplateToExcel(headers, "Template_PuntiServizio", "PuntiServizio");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
@@ -83,6 +88,9 @@ const PuntiServizioPage = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end space-x-2 mb-4">
+            <Button onClick={handleDownloadTemplate} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Scarica Template
+            </Button>
             <Button onClick={handleExport} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Esporta Excel
             </Button>

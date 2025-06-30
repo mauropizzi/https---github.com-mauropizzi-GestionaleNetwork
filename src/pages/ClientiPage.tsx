@@ -9,7 +9,7 @@ import { ClientiTable } from "@/components/anagrafiche/ClientiTable";
 import { useSearchParams } from "react-router-dom";
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -76,6 +76,11 @@ const ClientiPage = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["ragione_sociale", "codice_fiscale", "partita_iva", "indirizzo", "citta", "cap", "provincia", "telefono", "email", "pec", "sdi", "attivo", "note"];
+    exportTemplateToExcel(headers, "Template_Clienti", "Clienti");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
@@ -85,6 +90,9 @@ const ClientiPage = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end space-x-2 mb-4">
+            <Button onClick={handleDownloadTemplate} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Scarica Template
+            </Button>
             <Button onClick={handleExport} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Esporta Excel
             </Button>
