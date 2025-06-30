@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,13 @@ import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
+import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialog"; // Import the new dialog
 
 const PuntiServizioPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "nuovo-punto-servizio";
+  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const [importSummary, setImportSummary] = useState<any>(null);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -56,18 +59,13 @@ const PuntiServizioPage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per i Punti Servizio...`);
       const result = await importDataFromExcel(file, "punti-servizio");
 
+      setImportSummary(result.details);
+      setIsSummaryDialogOpen(true); // Always open dialog to show summary
+
       if (result.success) {
-        showSuccess(result.message);
+        // showSuccess(result.message); // Handled by dialog
       } else {
-        showError(result.message);
-        if (result.details) {
-          if (result.details.invalidRecords.length > 0) {
-            console.error("Record non validi ignorati:", result.details.invalidRecords);
-          }
-          if (result.details.errors && result.details.errors.length > 0) {
-            console.error("Errori di importazione:", result.details.errors);
-          }
-        }
+        // showError(result.message); // Handled by dialog
       }
       event.target.value = '';
     }
@@ -115,6 +113,11 @@ const PuntiServizioPage = () => {
           </Tabs>
         </CardContent>
       </Card>
+      <ImportSummaryDialog
+        isOpen={isSummaryDialogOpen}
+        onClose={() => setIsSummaryDialogOpen(false)}
+        summary={importSummary}
+      />
     </div>
   );
 };
