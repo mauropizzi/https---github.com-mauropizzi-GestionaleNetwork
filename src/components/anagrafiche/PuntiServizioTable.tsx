@@ -25,6 +25,7 @@ import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog"; // Import t
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;
   nome_fornitore?: string;
+  procedure?: { nome_procedura: string } | null; // Aggiunto per il nome della procedura
 }
 
 export function PuntiServizioTable() {
@@ -39,7 +40,7 @@ export function PuntiServizioTable() {
     console.log("Fetching punti_servizio data from Supabase...");
     const { data: puntiServizioData, error: puntiServizioError } = await supabase
       .from('punti_servizio')
-      .select('*, clienti(nome_cliente), fornitori(nome_fornitore)'); // Fetch related client and supplier names
+      .select('*, clienti(nome_cliente), fornitori(nome_fornitore), procedure(nome_procedura)'); // Fetch related client, supplier, and procedure names
 
     if (puntiServizioError) {
       showError(`Errore nel recupero dei punti servizio: ${puntiServizioError.message}`);
@@ -53,6 +54,7 @@ export function PuntiServizioTable() {
           ...ps,
           nome_cliente: ps.clienti?.nome_cliente || 'N/A',
           nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
+          procedure: ps.procedure || null, // Mappa la procedura
         };
       });
       setData(mappedData || []);
@@ -78,7 +80,7 @@ export function PuntiServizioTable() {
       )
     );
     // Optionally, refetch all data to ensure consistency with backend
-    fetchPuntiServizioData(); // Re-fetch to get updated client/supplier names if they changed
+    fetchPuntiServizioData(); // Re-fetch to get updated client/supplier/procedure names if they changed
     setIsEditDialogOpen(false);
     setSelectedPuntoServizioForEdit(null);
   }, [fetchPuntiServizioData]);
@@ -116,13 +118,15 @@ export function PuntiServizioTable() {
       const indirizzoLower = (punto.indirizzo || '').toLowerCase().trim();
       const cittaLower = (punto.citta || '').toLowerCase().trim();
       const referenteLower = (punto.referente || '').toLowerCase().trim();
+      const nomeProceduraLower = (punto.procedure?.nome_procedura || '').toLowerCase().trim(); // Nuovo campo
 
       const matches =
         nomePuntoServizioLower.includes(searchLower) ||
         nomeClienteLower.includes(searchLower) ||
         indirizzoLower.includes(searchLower) ||
         cittaLower.includes(searchLower) ||
-        referenteLower.includes(searchLower);
+        referenteLower.includes(searchLower) ||
+        nomeProceduraLower.includes(searchLower); // Includi la ricerca per nome procedura
 
       // Detailed logging for each item when there's an active search term
       if (searchTerm.length > 0) {
@@ -143,6 +147,9 @@ export function PuntiServizioTable() {
         console.log(`  referente (raw): "${punto.referente}"`);
         console.log(`  referente (processed): "${referenteLower}"`);
         console.log(`  referente match: ${referenteLower.includes(searchLower)}`);
+        console.log(`  nome_procedura (raw): "${punto.procedure?.nome_procedura}"`); // Log nuovo campo
+        console.log(`  nome_procedura (processed): "${nomeProceduraLower}"`); // Log nuovo campo
+        console.log(`  nome_procedura match: ${nomeProceduraLower.includes(searchLower)}`); // Log nuovo campo
         console.log(`  Overall match for ${punto.nome_punto_servizio}: ${matches}`);
         console.log("----------------------------------------------------");
       }
@@ -188,6 +195,11 @@ export function PuntiServizioTable() {
     {
       accessorKey: "nome_fornitore",
       header: "Fornitore",
+    },
+    {
+      accessorKey: "procedure.nome_procedura", // Nuovo accessorKey per il nome della procedura
+      header: "Procedura Associata",
+      cell: ({ row }) => row.original.procedure?.nome_procedura || 'N/A',
     },
     {
       id: "actions",

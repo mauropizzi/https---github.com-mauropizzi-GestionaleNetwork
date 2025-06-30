@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess, showInfo } from "@/utils/toast";
 import { format } from 'date-fns';
+import { fetchProcedure } from "@/lib/data-fetching"; // Import fetchProcedure
 
 interface ImportResult {
   success: boolean;
@@ -22,6 +23,7 @@ const tableConfigs: {
     uniqueFields: string[]; // Fields that together form a unique identifier for upsert
     fieldMapping?: { [formKey: string]: string }; // Optional: if form field name differs from DB column name
     typeConversion?: { [dbKey: string]: (value: any) => any }; // Optional: for date, boolean, number conversion
+    preProcess?: (row: any, context: any) => Promise<any>; // New: for async lookups like procedure_id
   };
 } = {
   "clienti": {
@@ -35,11 +37,24 @@ const tableConfigs: {
     tableName: "punti_servizio",
     requiredFields: ["nome_punto_servizio", "indirizzo", "citta"],
     uniqueFields: ["nome_punto_servizio"],
-    fieldMapping: { nomePuntoServizio: "nome_punto_servizio", idCliente: "id_cliente", telefonoReferente: "telefono_referente", tempoIntervento: "tempo_intervento", codiceCliente: "codice_cliente", codiceSicep: "codice_sicep", codiceFatturazione: "codice_fatturazione", fornitoreId: "fornitore_id" },
+    fieldMapping: { nomePuntoServizio: "nome_punto_servizio", idCliente: "id_cliente", telefonoReferente: "telefono_referente", tempoIntervento: "tempo_intervento", codiceCliente: "codice_cliente", codiceSicep: "codice_sicep", codiceFatturazione: "codice_fatturazione", fornitoreId: "fornitore_id", procedureId: "procedure_id" }, // Aggiunto procedureId
     typeConversion: {
       tempo_intervento: (val: any) => val ? parseInt(val, 10) : null,
       latitude: (val: any) => val ? parseFloat(val) : null,
       longitude: (val: any) => val ? parseFloat(val) : null,
+    },
+    preProcess: async (row: any, context: { procedureMap: Map<string, string> }) => {
+      if (row.nomeProcedura && context.procedureMap) { // Assuming 'nomeProcedura' is the column in Excel
+        const procedureId = context.procedureMap.get(row.nomeProcedura);
+        if (procedureId) {
+          row.procedureId = procedureId; // Map the name to the ID
+        } else {
+          // Handle case where procedure name is not found (e.g., log error, set to null)
+          console.warn(`Procedura '${row.nomeProcedura}' non trovata per il punto servizio.`);
+          row.procedureId = null;
+        }
+      }
+      return row;
     },
   },
   "personale": {
@@ -112,7 +127,17 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
           return;
         }
 
-        const { tableName, requiredFields, uniqueFields, fieldMapping, typeConversion } = config;
+        const { tableName, requiredFields, uniqueFields, fieldMapping, typeConversion, preProcess } = config;
+
+        // Context for preProcess, e.g., for lookups
+        const context: { procedureMap?: Map<string, string> } = {};
+        if (currentTab === "punti-servizio") {
+          const procedures = await fetchProcedure();
+          context.procedureMap = new Map(procedures.map(p => [p.nome_procedura, p.id]));
+        }
+
+        // Process rows with preProcess if defined
+        const preProcessedRows = preProcess ? await Promise.all(importedRows.map(row => preProcess(row, context))) : importedRows;
 
         // Fetch existing data to identify records for update
         const { data: existingData, error: fetchError } = await supabase
@@ -137,7 +162,7 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
         const invalidRecords: any[] = [];
         const errors: string[] = [];
 
-        importedRows.forEach((row, index) => {
+        preProcessedRows.forEach((row, index) => {
           const processedRow: any = {};
           let isValidRow = true;
           let rowErrors: string[] = [];

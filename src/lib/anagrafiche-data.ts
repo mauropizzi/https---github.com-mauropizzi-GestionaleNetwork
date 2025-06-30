@@ -10,6 +10,7 @@ export interface PuntoServizio {
   tempo_intervento?: number; // Added tempo_intervento
   codice_sicep?: string; // Added for mapping in InterventionForm
   codice_cliente?: string; // Added for mapping in InterventionForm
+  procedure_id?: string | null; // Nuovo campo per l'associazione con la procedura
 }
 
 export interface Fornitore {

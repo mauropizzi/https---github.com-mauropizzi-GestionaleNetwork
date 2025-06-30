@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
-import { PuntoServizio, Cliente, Fornitore } from '@/lib/anagrafiche-data';
-import { fetchClienti, fetchFornitori } from '@/lib/data-fetching';
+import { PuntoServizio, Cliente, Fornitore, Procedure } from '@/lib/anagrafiche-data'; // Import Procedure interface
+import { fetchClienti, fetchFornitori, fetchProcedure } from '@/lib/data-fetching'; // Import fetchProcedure
 
 interface PuntoServizioEditDialogProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const formSchema = z.object({
   nome_punto_servizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
   id_cliente: z.string().uuid("Seleziona un cliente valido.").optional().nullable(),
   indirizzo: z.string().min(2, "L'indirizzo è richiesto."),
-  citta: z.string().min(2, "La città è richiesta."),
+  citta: z.string().min(2, "La città è richiesto."),
   cap: z.string().optional().nullable(),
   provincia: z.string().optional().nullable(),
   referente: z.string().optional().nullable(),
@@ -53,11 +53,13 @@ const formSchema = z.object({
   codice_fatturazione: z.string().optional().nullable(),
   latitude: z.coerce.number().optional().nullable(),
   longitude: z.coerce.number().optional().nullable(),
+  procedure_id: z.string().uuid("Seleziona una procedura valida.").optional().nullable(), // Nuovo campo
 });
 
 export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave }: PuntoServizioEditDialogProps) {
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
+  const [procedureList, setProcedureList] = useState<Procedure[]>([]); // Nuovo stato per le procedure
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,6 +82,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
       codice_fatturazione: null,
       latitude: null,
       longitude: null,
+      procedure_id: null, // Default per nuovo campo
     },
   });
 
@@ -87,8 +90,10 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
     const loadData = async () => {
       const fetchedClienti = await fetchClienti();
       const fetchedFornitori = await fetchFornitori();
+      const fetchedProcedure = await fetchProcedure(); // Carica le procedure
       setClienti(fetchedClienti);
       setFornitori(fetchedFornitori);
+      setProcedureList(fetchedProcedure); // Imposta le procedure
     };
     loadData();
   }, []);
@@ -114,6 +119,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
         codice_fatturazione: puntoServizio.codice_fatturazione || null,
         latitude: puntoServizio.latitude || null,
         longitude: puntoServizio.longitude || null,
+        procedure_id: puntoServizio.procedure_id || null, // Popola il nuovo campo
       });
     }
   }, [puntoServizio, form]);
@@ -144,6 +150,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
       codice_fatturazione: values.codice_fatturazione,
       latitude: values.latitude,
       longitude: values.longitude,
+      procedure_id: values.procedure_id, // Includi il nuovo campo
     };
 
     const { data, error } = await supabase
@@ -410,7 +417,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
                 name="codice_fatturazione"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Codice Fatturazione</FormLabel>
+                    <FormLabel>Codice Fatturazione</FormBabel>
                     <FormControl>
                       <Input placeholder="Codice Fatturazione" {...field} value={field.value || ''} />
                     </FormControl>
@@ -447,6 +454,35 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
                 )}
               />
             </div>
+            {/* Nuovo campo per la procedura */}
+            <FormField
+              control={form.control}
+              name="procedure_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Procedura Associata (Opzionale)</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? null : value)}
+                    value={field.value || "DYAD_EMPTY_VALUE"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleziona una procedura" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="DYAD_EMPTY_VALUE">Nessuna Procedura</SelectItem>
+                      {procedureList.map((procedure) => (
+                        <SelectItem key={procedure.id} value={procedure.id}>
+                          {procedure.nome_procedura}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="submit">Salva Modifiche</Button>
             </DialogFooter>

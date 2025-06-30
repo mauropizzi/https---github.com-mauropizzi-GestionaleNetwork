@@ -31,7 +31,7 @@ export async function fetchFornitori(): Promise<Fornitore[]> {
 export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
   const { data, error } = await supabase
     .from('punti_servizio')
-    .select('id, nome_punto_servizio, id_cliente, tempo_intervento, codice_sicep, codice_cliente'); // Include tempo_intervento and codes
+    .select('*, procedure(nome_procedura)'); // Include tempo_intervento, codes, and procedure name
 
   if (error) {
     showError(`Errore nel recupero dei punti servizio: ${error.message}`);
@@ -92,7 +92,7 @@ export async function fetchMonthlyTariffe(): Promise<{ id: string; service_type:
 export async function fetchProcedure(): Promise<Procedure[]> {
   const { data, error } = await supabase
     .from('procedure')
-    .select('*');
+    .select('id, nome_procedura'); // Only need ID and name for select options
 
   if (error) {
     showError(`Errore nel recupero delle procedure: ${error.message}`);

@@ -20,41 +20,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Cliente, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
+import { Cliente, Fornitore, Procedure } from "@/lib/anagrafiche-data"; // Import Procedure interface
+import { fetchClienti, fetchFornitori, fetchProcedure } from "@/lib/data-fetching"; // Import fetchProcedure
 import { showError, showSuccess } from "@/utils/toast";
 
 const formSchema = z.object({
   nomePuntoServizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
   idCliente: z.string().uuid("Seleziona un cliente valido.").nonempty("Seleziona un cliente."),
   indirizzo: z.string().min(2, "L'indirizzo è richiesto."),
-  citta: z.string().min(2, "La città è richiesta."),
+  citta: z.string().min(2, "La città è richiesto."),
   cap: z.string().optional(),
   provincia: z.string().optional(),
   referente: z.string().optional(),
   telefonoReferente: z.string().optional(),
-  telefono: z.string().optional(), // Nuovo campo
-  email: z.string().email("Formato email non valido.").optional().or(z.literal("")), // Nuovo campo
-  note: z.string().optional(), // Nuovo campo
-  tempoIntervento: z.coerce.number().min(0, "Il tempo di intervento deve essere un numero valido.").optional(), // Nuovo campo
-  fornitoreId: z.string().uuid("Seleziona un fornitore valido.").optional().or(z.literal("")), // Nuovo campo
-  codiceCliente: z.string().optional(), // Nuovo campo
-  codiceSicep: z.string().optional(), // Nuovo campo
-  codiceFatturazione: z.string().optional(), // Nuovo campo
-  latitude: z.coerce.number().optional(), // Nuovo campo
-  longitude: z.coerce.number().optional(), // Nuovo campo
+  telefono: z.string().optional(),
+  email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
+  note: z.string().optional(),
+  tempoIntervento: z.coerce.number().min(0, "Il tempo di intervento deve essere un numero valido.").optional(),
+  fornitoreId: z.string().uuid("Seleziona un fornitore valido.").optional().or(z.literal("")),
+  codiceCliente: z.string().optional(),
+  codiceSicep: z.string().optional(),
+  codiceFatturazione: z.string().optional(),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
+  procedureId: z.string().uuid("Seleziona una procedura valida.").optional().or(z.literal("")), // Nuovo campo
 });
 
 export function PuntiServizioForm() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
-  const [fornitori, setFornitori] = useState<Fornitore[]>([]); // Stato per i fornitori
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
+  const [procedureList, setProcedureList] = useState<Procedure[]>([]); // Nuovo stato per le procedure
 
   useEffect(() => {
     const loadData = async () => {
       const fetchedClienti = await fetchClienti();
-      const fetchedFornitori = await fetchFornitori(); // Carica i fornitori
+      const fetchedFornitori = await fetchFornitori();
+      const fetchedProcedure = await fetchProcedure(); // Carica le procedure
       setClienti(fetchedClienti);
-      setFornitori(fetchedFornitori); // Imposta i fornitori
+      setFornitori(fetchedFornitori);
+      setProcedureList(fetchedProcedure); // Imposta le procedure
     };
     loadData();
   }, []);
@@ -70,16 +74,17 @@ export function PuntiServizioForm() {
       provincia: "",
       referente: "",
       telefonoReferente: "",
-      telefono: "", // Default per nuovo campo
-      email: "", // Default per nuovo campo
-      note: "", // Default per nuovo campo
-      tempoIntervento: undefined, // Default per nuovo campo
-      fornitoreId: "", // Default per nuovo campo
-      codiceCliente: "", // Default per nuovo campo
-      codiceSicep: "", // Default per nuovo campo
-      codiceFatturazione: "", // Default per nuovo campo
-      latitude: undefined, // Default per nuovo campo
-      longitude: undefined, // Default per nuovo campo
+      telefono: "",
+      email: "",
+      note: "",
+      tempoIntervento: undefined,
+      fornitoreId: "",
+      codiceCliente: "",
+      codiceSicep: "",
+      codiceFatturazione: "",
+      latitude: undefined,
+      longitude: undefined,
+      procedureId: "", // Default per nuovo campo
     },
   });
 
@@ -368,6 +373,35 @@ export function PuntiServizioForm() {
             )}
           />
         </div>
+        {/* Nuovo campo per la procedura */}
+        <FormField
+          control={form.control}
+          name="procedureId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Procedura Associata (Opzionale)</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
+                value={field.value || "DYAD_EMPTY_VALUE"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona una procedura" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="DYAD_EMPTY_VALUE">Nessuna Procedura</SelectItem>
+                  {procedureList.map((procedure) => (
+                    <SelectItem key={procedure.id} value={procedure.id}>
+                      {procedure.nome_procedura}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" className="w-full">Salva Punto Servizio</Button>
       </form>
     </Form>

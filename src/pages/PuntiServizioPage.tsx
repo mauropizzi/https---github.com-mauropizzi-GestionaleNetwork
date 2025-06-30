@@ -32,7 +32,7 @@ const PuntiServizioPage = () => {
 
   const handleExport = async () => {
     const tableName = "punti_servizio";
-    const columnsToSelect = ["id", "created_at", "nome_punto_servizio", "id_cliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefono_referente", "telefono", "email", "note", "tempo_intervento", "fornitore_id", "codice_cliente", "codice_sicep", "codice_fatturazione", "latitude", "longitude"];
+    const columnsToSelect = ["id", "created_at", "nome_punto_servizio", "id_cliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefono_referente", "telefono", "email", "note", "tempo_intervento", "fornitore_id", "codice_cliente", "codice_sicep", "codice_fatturazione", "latitude", "longitude", "procedure_id"];
 
     const { data, error } = await supabase
       .from(tableName)
@@ -72,7 +72,7 @@ const PuntiServizioPage = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente", "telefono", "email", "note", "tempoIntervento", "fornitoreId", "codiceCliente", "codiceSicep", "codiceFatturazione", "latitude", "longitude"];
+    const headers = ["nomePuntoServizio", "idCliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefonoReferente", "telefono", "email", "note", "tempoIntervento", "fornitoreId", "codiceCliente", "codiceSicep", "codiceFatturazione", "latitude", "longitude", "nomeProcedura"]; // Aggiunto nomeProcedura
     exportTemplateToExcel(headers, "Template_PuntiServizio", "PuntiServizio");
   };
 
