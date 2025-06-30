@@ -22,17 +22,37 @@ serve(async (req) => {
       }
     );
 
-    const payload = await req.json();
-    console.log('Received email webhook payload:', payload);
+    // SendGrid sends data as multipart/form-data
+    const formData = await req.formData();
 
-    // This parsing logic might need to be adjusted based on your email provider's webhook format.
-    // This example assumes a basic Mailjet Inbound Parse format or similar.
-    const senderEmail = payload.From || 'unknown@example.com';
-    const senderName = payload.FromName || null;
-    const subject = payload.Subject || 'No Subject';
-    const bodyText = payload['Text-part'] || null;
-    const bodyHtml = payload['Html-part'] || null;
-    const attachments = payload.Attachments ? JSON.parse(payload.Attachments) : null; // Mailjet sends attachments as JSON string
+    // Extract sender email and name from the 'from' field (e.g., "Name <email@example.com>")
+    const senderEmailRaw = formData.get('from')?.toString() || 'unknown@example.com';
+    const match = senderEmailRaw.match(/(.*)<(.*)>/);
+    const senderName = match ? match[1].trim() : null;
+    const senderEmail = match ? match[2].trim() : senderEmailRaw;
+
+    const subject = formData.get('subject')?.toString() || 'No Subject';
+    const bodyText = formData.get('text')?.toString() || null;
+    const bodyHtml = formData.get('html')?.toString() || null;
+
+    const attachments: { filename: string; contentType: string; size: number }[] = [];
+    // SendGrid sends attachments as 'attachment1', 'attachment2', etc.
+    // The 'attachments' field in formData is usually a count of attachments.
+    const attachmentCount = parseInt(formData.get('attachments')?.toString() || '0', 10);
+
+    for (let i = 1; i <= attachmentCount; i++) {
+      const file = formData.get(`attachment${i}`);
+      if (file instanceof File) {
+        attachments.push({
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        });
+        // Nota: Per allegati di grandi dimensioni, è consigliabile caricarli su Supabase Storage
+        // e salvare solo il loro URL nel database, anziché il contenuto Base64.
+        // Per semplicità, qui salviamo solo i metadati.
+      }
+    }
 
     const { data, error } = await supabaseClient
       .from('incoming_emails')
@@ -42,8 +62,8 @@ serve(async (req) => {
         subject: subject,
         body_text: bodyText,
         body_html: bodyHtml,
-        attachments: attachments,
-        raw_email: JSON.stringify(payload), // Store raw payload for debugging
+        attachments: attachments.length > 0 ? attachments : null,
+        raw_email: JSON.stringify(Object.fromEntries(formData)), // Store raw payload for debugging
       });
 
     if (error) {
