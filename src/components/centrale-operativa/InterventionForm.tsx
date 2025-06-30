@@ -16,7 +16,7 @@ import {
   requestTypeOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-options';
-import { format } => 'date-fns';
+import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
@@ -588,7 +588,7 @@ export function InterventionForm() {
             </Button>
           </div>
         </div>
-        <div className="space-y-2"> {/* Wrapped the second button and its coordinates */}
+        <div className="space-y-2">
           <Label htmlFor="endTime">Orario Fine Intervento</Label>
           <div className="flex gap-2">
             <Input
