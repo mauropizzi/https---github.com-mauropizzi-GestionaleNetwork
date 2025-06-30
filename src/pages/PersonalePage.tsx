@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PersonaleForm } from "@/components/anagrafiche/PersonaleForm";
 import { PersonaleTable } from "@/components/anagrafiche/PersonaleTable";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom"; // Importa correttamente useSearchParams
 import { Download, Upload } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export"; // Import exportTemplateToExcel
+import { exportTableToExcel, exportTemplateToExcel } from "@/utils/export";
 import { importDataFromExcel } from "@/utils/import";
 import { supabase } from "@/integrations/supabase/client";
-import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialog"; // Import the new dialog
+import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialog";
 
 const PersonalePage = () => {
-  const [searchParams, setSearchParams] = new URLSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams(); // Correzione qui
   const currentTab = searchParams.get("tab") || "lista-personale"; // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
