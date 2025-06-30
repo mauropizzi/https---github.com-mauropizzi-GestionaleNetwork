@@ -152,9 +152,9 @@ const IncomingEmailsPage: React.FC = () => {
                             )}
                       </TableHead>
                     ))}
-                  </TableHead>
+                  </TableRow>
                 ))}
-              </TableHeader>
+              </TableHeader> {/* Added missing closing tag here */}
               <TableBody>
                 {loading ? (
                   <TableRow>
