@@ -41,8 +41,10 @@ const ClientiPage = () => {
       return;
     }
 
-    if (data && data.length > 0) {
-      exportTableToExcel(data, `Anagrafiche_Clienti`, `Clienti`);
+    const fetchedData = data || []; // Ensure data is an array
+
+    if (fetchedData.length > 0) {
+      exportTableToExcel(fetchedData, `Anagrafiche_Clienti`, `Clienti`);
     } else {
       showInfo("Nessun dato da esportare per i Clienti.");
     }
@@ -61,9 +63,6 @@ const ClientiPage = () => {
       } else {
         showError(result.message);
         if (result.details) {
-          if (result.details.duplicateRecords.length > 0) {
-            console.warn("Record duplicati ignorati:", result.details.duplicateRecords);
-          }
           if (result.details.invalidRecords.length > 0) {
             console.error("Record non validi ignorati:", result.details.invalidRecords);
           }

@@ -41,8 +41,10 @@ const PersonalePage = () => {
       return;
     }
 
-    if (data && data.length > 0) {
-      exportTableToExcel(data, `Anagrafiche_Personale`, `Personale`);
+    const fetchedData = data || []; // Ensure data is an array
+
+    if (fetchedData.length > 0) {
+      exportTableToExcel(fetchedData, `Anagrafiche_Personale`, `Personale`);
     } else {
       showInfo("Nessun dato da esportare per il Personale.");
     }
@@ -59,9 +61,6 @@ const PersonalePage = () => {
       } else {
         showError(result.message);
         if (result.details) {
-          if (result.details.duplicateRecords.length > 0) {
-            console.warn("Record duplicati ignorati:", result.details.duplicateRecords);
-          }
           if (result.details.invalidRecords.length > 0) {
             console.error("Record non validi ignorati:", result.details.invalidRecords);
           }

@@ -42,8 +42,10 @@ const OperatoriNetworkPage = () => {
       return;
     }
 
-    if (data && data.length > 0) {
-      exportTableToExcel(data, `Anagrafiche_OperatoriNetwork`, `OperatoriNetwork`);
+    const fetchedData = data || []; // Ensure data is an array
+
+    if (fetchedData.length > 0) {
+      exportTableToExcel(fetchedData, `Anagrafiche_OperatoriNetwork`, `OperatoriNetwork`);
     } else {
       showInfo("Nessun dato da esportare per gli Operatori Network.");
     }
@@ -60,9 +62,6 @@ const OperatoriNetworkPage = () => {
       } else {
         showError(result.message);
         if (result.details) {
-          if (result.details.duplicateRecords.length > 0) {
-            console.warn("Record duplicati ignorati:", result.details.duplicateRecords);
-          }
           if (result.details.invalidRecords.length > 0) {
             console.error("Record non validi ignorati:", result.details.invalidRecords);
           }
