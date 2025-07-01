@@ -109,11 +109,11 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
   // Apply prefill data when available and dropdown data is loaded
   useEffect(() => {
     console.log("TariffeForm - prefillData effect. prefillData:", prefillData);
-    console.log("TariffeForm - Dropdown data loaded status: clients.length", clienti.length, "ps.length", puntiServizio.length, "fornitori.length", fornitori.length);
+    console.log("TariffeForm - Dropdown data loaded status: clienti.length", clienti.length, "ps.length", puntiServizio.length, "fornitori.length", fornitori.length);
     console.log("TariffeForm - hasAppliedPrefill:", hasAppliedPrefill);
 
     // Only attempt to reset if prefillData exists AND dropdowns are populated AND prefill hasn't been applied yet
-    if (prefillData && !hasAppliedPrefill && clients.length > 0 && puntiServizio.length > 0 && fornitori.length > 0) {
+    if (prefillData && !hasAppliedPrefill && clienti.length > 0 && puntiServizio.length > 0 && fornitori.length > 0) {
       const resetValues = {
         cliente_id: prefillData.cliente_id || "",
         tipo_servizio: prefillData.tipo_servizio || "",
