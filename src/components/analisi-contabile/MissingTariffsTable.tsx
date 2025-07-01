@@ -33,26 +33,32 @@ export const MissingTariffsTable: React.FC<MissingTariffsTableProps> = ({ data, 
     {
       accessorKey: "serviceId",
       header: "ID Servizio",
+      cell: ({ row }) => <span>{row.original.serviceId}</span>,
     },
     {
       accessorKey: "serviceType",
       header: "Tipo Servizio",
+      cell: ({ row }) => <span>{row.original.serviceType}</span>,
     },
     {
       accessorKey: "clientName",
       header: "Cliente",
+      cell: ({ row }) => <span>{row.original.clientName}</span>,
     },
     {
       accessorKey: "servicePointName",
       header: "Punto Servizio",
+      cell: ({ row }) => <span>{row.original.servicePointName}</span>,
     },
     {
       accessorKey: "startDate",
       header: "Data Inizio Servizio",
+      cell: ({ row }) => <span>{row.original.startDate}</span>,
     },
     {
       accessorKey: "reason",
       header: "Motivo",
+      cell: ({ row }) => <span>{row.original.reason}</span>,
     },
   ], []);
 

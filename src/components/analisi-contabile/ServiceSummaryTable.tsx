@@ -34,25 +34,27 @@ export const ServiceSummaryTable: React.FC<ServiceSummaryTableProps> = ({ data, 
     {
       accessorKey: "servicePointName",
       header: "Punto Servizio",
+      cell: ({ row }) => <span>{row.original.servicePointName}</span>,
     },
     {
       accessorKey: "totalServices",
       header: "Totale Servizi",
+      cell: ({ row }) => <span>{row.original.totalServices}</span>,
     },
     {
       accessorKey: "totalHours",
       header: "Ore/Interventi Totali",
-      cell: ({ row }) => row.original.totalHours.toFixed(2),
+      cell: ({ row }) => <span>{row.original.totalHours.toFixed(2)}</span>,
     },
     {
       accessorKey: "totalClientCost",
       header: "Costo Cliente (€)",
-      cell: ({ row }) => `${row.original.totalClientCost.toFixed(2)} €`,
+      cell: ({ row }) => <span>{`${row.original.totalClientCost.toFixed(2)} €`}</span>,
     },
     {
       accessorKey: "totalSupplierCost",
       header: "Costo Fornitore (€)",
-      cell: ({ row }) => `${row.original.totalSupplierCost.toFixed(2)} €`,
+      cell: ({ row }) => <span>{`${row.original.totalSupplierCost.toFixed(2)} €`}</span>,
     },
     {
       accessorKey: "costDelta",
