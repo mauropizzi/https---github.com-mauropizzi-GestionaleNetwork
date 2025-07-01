@@ -254,16 +254,23 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endLongitude,
     } = formData;
 
-    // Basic validation for both save types
-    if (!servicePoint || !requestType || !requestTime) {
-      showError("Punto Servizio, Tipologia Servizio Richiesto e Orario Richiesta sono obbligatori.");
+    // 1. Validate and parse requestTime first and early exit if invalid
+    let parsedRequestDateTime: Date;
+    if (requestTime) {
+      const tempParsed = parseISO(requestTime);
+      if (!isValid(tempParsed)) {
+        showError("Formato data/ora richiesta non valido. Assicurati che sia completo (YYYY-MM-DDTHH:MM).");
+        return;
+      }
+      parsedRequestDateTime = tempParsed;
+    } else {
+      showError("Orario Richiesta è obbligatorio.");
       return;
     }
 
-    // Ensure requestTime is a valid date string before parsing
-    const parsedRequestDateTime = parseISO(requestTime);
-    if (!isValid(parsedRequestDateTime)) {
-      showError("Formato data/ora richiesta non valido.");
+    // Basic validation for other required fields
+    if (!servicePoint || !requestType) {
+      showError("Punto Servizio e Tipologia Servizio Richiesto sono obbligatori.");
       return;
     }
 
@@ -290,6 +297,16 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     if (delay === 'si' && delayNotes) {
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
+
+    // Ensure times are always HH:mm:ss strings for DB
+    // If formData.startTime is empty, use the time from parsedRequestDateTime
+    const finalStartTime = startTime ? `${startTime}:00` : format(parsedRequestDateTime, 'HH:mm:ss');
+    // If formData.endTime is empty, use finalStartTime
+    const finalEndTime = endTime ? `${endTime}:00` : finalStartTime;
+
+    // Use parsedRequestDateTime for serviceStartDate and serviceEndDate
+    const serviceStartDate = parsedRequestDateTime;
+    const serviceEndDate = parsedRequestDateTime; // Assuming single-day intervention for now
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
@@ -346,15 +363,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       showError("Impossibile determinare il cliente associato al punto servizio per l'analisi contabile.");
       return;
     }
-
-    // Derive times for DB, ensuring they are always valid HH:mm:ss strings
-    // If formData.startTime is empty, use the time from parsedRequestDateTime
-    const finalStartTime = formData.startTime ? `${formData.startTime}:00` : format(parsedRequestDateTime, 'HH:mm:ss');
-    // If formData.endTime is empty, use finalStartTime
-    const finalEndTime = formData.endTime ? `${formData.endTime}:00` : finalStartTime;
-
-    const serviceStartDate = parsedRequestDateTime;
-    const serviceEndDate = parsedRequestDateTime; // Assuming single-day intervention for now
 
     const costDetails = {
       type: "Intervento", // Fixed type for this service
