@@ -31,13 +31,15 @@ import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
+const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
+
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
+  startTime: z.string().regex(timeRegex, "Formato ora inizio non valido (HH:MM o HH.MM)."),
 });
 
 interface BonificheFormProps {
@@ -112,6 +114,9 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
       return;
     }
 
+    // Normalize time input
+    const normalizedStartTime = values.startTime.replace('.', ':');
+
     const costDetails = {
       type: "Bonifiche",
       client_id: clientId,
@@ -119,8 +124,8 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
       fornitore_id: values.fornitoreId,
       start_date: values.startDate,
       end_date: values.startDate, // End date is same as start date for one-off
-      start_time: values.startTime,
-      end_time: values.startTime, // End time is same as start time for one-off
+      start_time: normalizedStartTime,
+      end_time: normalizedStartTime, // End time is same as start time for one-off
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);
@@ -131,9 +136,9 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
-      start_time: values.startTime,
+      start_time: normalizedStartTime,
       end_date: format(values.startDate, 'yyyy-MM-dd'), // Set end_date to start_date
-      end_time: values.startTime, // Set end_time to start_time
+      end_time: normalizedStartTime, // Set end_time to start_time
       status: "Pending",
       calculated_cost: calculatedCost,
       num_agents: null,

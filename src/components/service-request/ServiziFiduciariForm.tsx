@@ -35,10 +35,12 @@ import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
+const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
+
 const dailyHoursSchema = z.object({
   day: z.string(),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").or(z.literal("")),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").or(z.literal("")),
+  startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
+  endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
 }).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
   message: "Inserisci orari o seleziona H24.",
@@ -54,16 +56,18 @@ const formSchema = z.object({
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM)."),
   endDate: z.date({
     required_error: "La data di fine è richiesta.",
   }),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
+  endTime: z.string().regex(timeRegex, "Formato ora fine non valido (HH:MM o HH.MM)."),
   numAgents: z.coerce.number().min(1, "Il numero di agenti deve essere almeno 1."),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
 }).refine(data => {
-  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${data.startTime}:00`;
-  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${data.endTime}:00`;
+  const normalizedStartTime = data.startTime.replace('.', ':');
+  const normalizedEndTime = data.endTime.replace('.', ':');
+  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
+  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
   const start = parseISO(startDateTimeStr);
   const end = parseISO(endDateTimeStr);
   return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
@@ -175,6 +179,15 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       return;
     }
 
+    // Normalize time inputs
+    const normalizedStartTime = values.startTime.replace('.', ':');
+    const normalizedEndTime = values.endTime.replace('.', ':');
+    const normalizedDailyHours = values.dailyHours.map(dh => ({
+      ...dh,
+      startTime: dh.startTime.replace('.', ':'),
+      endTime: dh.endTime.replace('.', ':'),
+    }));
+
     const costDetails = {
       type: "Servizi Fiduciari",
       client_id: clientId,
@@ -182,10 +195,10 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       fornitore_id: values.fornitoreId,
       start_date: values.startDate,
       end_date: values.endDate,
-      start_time: values.startTime,
-      end_time: values.endTime,
+      start_time: normalizedStartTime,
+      end_time: normalizedEndTime,
       num_agents: values.numAgents,
-      daily_hours_config: values.dailyHours,
+      daily_hours_config: normalizedDailyHours,
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);
@@ -196,15 +209,15 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
       start_date: format(values.startDate, 'yyyy-MM-dd'),
-      start_time: values.startTime,
+      start_time: normalizedStartTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
-      end_time: values.endTime,
+      end_time: normalizedEndTime,
       status: "Pending", // Default status
       calculated_cost: calculatedCost, // Now including the calculated cost
       num_agents: values.numAgents,
       cadence_hours: null, // Not applicable for Servizi Fiduciari
       inspection_type: null, // Not applicable for Servizi Fiduciari
-      daily_hours_config: values.dailyHours, // Save the daily hours configuration
+      daily_hours_config: normalizedDailyHours, // Save the daily hours configuration
     };
 
     let result;

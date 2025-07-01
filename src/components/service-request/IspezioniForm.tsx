@@ -35,10 +35,12 @@ import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
+const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
+
 const dailyHoursSchema = z.object({
   day: z.string(),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").or(z.literal("")),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").or(z.literal("")),
+  startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
+  endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
 }).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
   message: "Inserisci orari o seleziona H24.",
@@ -170,10 +172,16 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       return;
     }
 
+    const normalizedDailyHours = values.dailyHours.map(dh => ({
+      ...dh,
+      startTime: dh.startTime.replace('.', ':'),
+      endTime: dh.endTime.replace('.', ':'),
+    }));
+
     let effectiveStartTime = "00:00";
     let effectiveEndTime = "23:59";
 
-    const firstValidDayConfig = values.dailyHours.find(d => d.is24h || (d.startTime && d.endTime));
+    const firstValidDayConfig = normalizedDailyHours.find(d => d.is24h || (d.startTime && d.endTime));
     if (firstValidDayConfig) {
         if (firstValidDayConfig.is24h) {
             effectiveStartTime = "00:00";
@@ -193,7 +201,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       end_date: values.endDate,
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
-      daily_hours_config: values.dailyHours,
+      daily_hours_config: normalizedDailyHours,
       start_time: effectiveStartTime, // Pass to cost calculation
       end_time: effectiveEndTime, // Pass to cost calculation
     };
@@ -214,7 +222,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       num_agents: null,
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
-      daily_hours_config: values.dailyHours,
+      daily_hours_config: normalizedDailyHours,
     };
 
     let result;
