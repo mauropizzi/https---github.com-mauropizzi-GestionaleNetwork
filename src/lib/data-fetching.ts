@@ -45,7 +45,6 @@ export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
 }
 
 export async function fetchPersonale(role?: string): Promise<Personale[]> {
-  console.log(`Attempting to fetch personnel with role: '${role}'`);
   let query = supabase
     .from('personale')
     .select('id, nome, cognome, ruolo, telefono'); // Added 'telefono' here
@@ -61,7 +60,6 @@ export async function fetchPersonale(role?: string): Promise<Personale[]> {
     console.error("Error fetching personale:", error);
     return [];
   }
-  console.log(`Successfully fetched personnel for role '${role}':`, data);
   return data || [];
 }
 
@@ -159,12 +157,7 @@ interface ServiceDetailsForCost {
 }
 
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<number | null> {
-  console.log("--- calculateServiceCost: Dettagli Servizio Ricevuti ---");
-  console.log("Details:", JSON.stringify(details, null, 2));
-
   const allTariffe = await fetchAllTariffe();
-  console.log("--- calculateServiceCost: Tutte le Tariffe Recuperate ---");
-  console.log("All Tariffe:", JSON.stringify(allTariffe, null, 2));
 
   const serviceStartDate = details.start_date;
 
@@ -182,24 +175,12 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
       (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)
     );
 
-    console.log(`  Checking Tariff ID: ${tariff.id || 'N/A'}`);
-    console.log(`    Client ID Match: ${tariff.client_id === details.client_id} (Tariff: ${tariff.client_id}, Details: ${details.client_id})`);
-    console.log(`    Service Type Match: ${tariff.service_type === details.type} (Tariff: '${tariff.service_type}', Details: '${details.type}')`);
-    console.log(`    Date Active: ${isTariffActive} (Service Date: ${format(serviceStartDate, 'yyyy-MM-dd')}, Tariff Start: ${format(tariffStartDate, 'yyyy-MM-dd')}, Tariff End: ${format(tariffEndDate, 'yyyy-MM-dd')})`);
-    console.log(`    Punto Servizio Match: ${(tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null)} (Tariff: ${tariff.punto_servizio_id}, Details: ${details.service_point_id})`);
-    console.log(`    Fornitore Match: ${(tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)} (Tariff: ${tariff.fornitore_id}, Details: ${details.fornitore_id})`);
-    console.log(`    Overall Match: ${match}`);
-
     return match;
   });
 
   if (matchingTariffs.length === 0) {
-    console.warn(`--- calculateServiceCost: Nessuna tariffa corrispondente trovata per il servizio. ---`);
     return null;
   }
-
-  console.log("--- calculateServiceCost: Tariffe Corrispondenti Trovate ---");
-  console.log("Matching Tariffs:", JSON.stringify(matchingTariffs, null, 2));
 
   // Prioritize tariffs: specific service point > specific supplier > general client
   // Then, if multiple, pick the one with the latest start date (most recent)
@@ -219,8 +200,6 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   });
 
   const selectedTariff = sortedTariffs[0];
-  console.log("--- calculateServiceCost: Tariffa Selezionata ---");
-  console.log("Selected Tariff:", JSON.stringify(selectedTariff, null, 2));
 
   let calculatedCost: number | null = null;
 
@@ -267,7 +246,6 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
         }
         calculatedCost = totalHours * (details.num_agents || 1) * selectedTariff.client_rate;
       } else {
-        console.warn(`Unità di misura '${selectedTariff.unita_misura}' non supportata per ${details.type}.`);
         calculatedCost = null;
       }
       break;
@@ -316,11 +294,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           const numInspections = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
           calculatedCost = numInspections * selectedTariff.client_rate;
         } else {
-          console.warn("Cadenza oraria non valida per il calcolo delle ispezioni.");
           calculatedCost = null;
         }
       } else {
-        console.warn(`Unità di misura '${selectedTariff.unita_misura}' non supportata per ${details.type}.`);
         calculatedCost = null;
       }
       break;
@@ -332,17 +308,13 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
       if (selectedTariff.unita_misura === "intervento") {
         calculatedCost = selectedTariff.client_rate; // Fixed cost per intervention
       } else {
-        console.warn(`Unità di misura '${selectedTariff.unita_misura}' non supportata per ${details.type}.`);
         calculatedCost = null;
       }
       break;
     }
     default:
-      console.warn(`Tipo di servizio '${details.type}' non riconosciuto per il calcolo del costo.`);
       calculatedCost = null;
   }
 
-  console.log("--- calculateServiceCost: Costo Calcolato Finale ---");
-  console.log("Calculated Cost:", calculatedCost);
   return calculatedCost;
 }

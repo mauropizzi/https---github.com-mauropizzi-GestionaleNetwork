@@ -103,6 +103,7 @@ export function AperturaChiusuraForm() {
       type: "Apertura/Chiusura",
       client_id: clientId,
       service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),

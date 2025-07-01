@@ -142,6 +142,7 @@ export function PiantonamentoForm() {
       type: "Piantonamento", // Fixed type for this form
       client_id: clientId, // Now correctly setting client_id
       service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
