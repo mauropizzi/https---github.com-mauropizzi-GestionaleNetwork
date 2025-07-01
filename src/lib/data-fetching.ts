@@ -181,6 +181,7 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     endDate: format(details.end_date, 'yyyy-MM-dd'),
     cadence_hours: details.cadence_hours,
     daily_hours_config_present: !!details.daily_hours_config,
+    daily_hours_config_value: details.daily_hours_config, // Log the actual value
   });
 
   const serviceStartDate = details.start_date;
@@ -193,7 +194,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
 
     const clientMatch = tariff.client_id === details.client_id;
     const typeMatch = tariff.service_type === details.type;
+    // Prioritize specific service point match, then null (general)
     const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
+    // Prioritize specific fornitore match, then null (general)
     const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
 
     const match = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
@@ -202,7 +205,7 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     console.log(`    Tariff Data: { type: "${tariff.service_type}", client_id: "${tariff.client_id}", sp_id: "${tariff.punto_servizio_id}", forn_id: "${tariff.fornitore_id}", start_date: "${tariff.data_inizio_validita}", end_date: "${tariff.data_fine_validita}" }`);
     console.log(`    Match Criteria: Active: ${isTariffActive} (ServiceDate: ${format(serviceStartDate, 'yyyy-MM-dd')} vs TariffDates: ${format(tariffStartDate, 'yyyy-MM-dd')} - ${format(tariffEndDate, 'yyyy-MM-dd')})`);
     console.log(`                    Client: ${clientMatch}, Type: ${typeMatch}, ServicePoint: ${servicePointMatch}, Fornitore: ${fornitoreMatch}`);
-    console.log(`    Overall Tariff Match: ${match}`);
+    console.log(`    Overall Tariff Match for ID ${tariff.id}: ${match}`);
 
     return match;
   });
@@ -218,11 +221,11 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   // Prioritize tariffs: specific service point > specific supplier > general client
   // Then, if multiple, pick the one with the latest start date (most recent)
   const sortedTariffs = matchingTariffs.sort((a, b) => {
-    // Prioritize by service point specificity
+    // Prioritize by service point specificity (non-null comes first)
     if (a.punto_servizio_id && !b.punto_servizio_id) return -1;
     if (!a.punto_servizio_id && b.punto_servizio_id) return 1;
 
-    // Then by supplier specificity
+    // Then by supplier specificity (non-null comes first)
     if (a.fornitore_id && !b.fornitore_id) return -1;
     if (!a.fornitore_id && b.fornitore_id) return 1;
 
@@ -233,7 +236,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   });
 
   const selectedTariff = sortedTariffs[0];
-  console.log("Selected Tariff:", selectedTariff);
+  console.log("Selected Tariff (after sorting):", selectedTariff);
+  console.log("Selected Tariff unita_misura:", selectedTariff.unita_misura);
+
 
   let multiplier: number | null = null;
 
@@ -244,6 +249,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
         let totalHours = 0;
         let currentDate = new Date(details.start_date);
         const endDate = details.end_date;
+
+        console.log(`Calculating hours for ${details.type} from ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+        console.log("Daily hours config:", details.daily_hours_config);
 
         while (currentDate <= endDate) {
           const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
@@ -257,12 +265,17 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           } else if (dayOfWeek === "domenica") {
             dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
           } else {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1));
+            // Map Italian day names to English for consistency with stored config if needed, or ensure stored config uses Italian
+            const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+            dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
           }
+          
+          console.log(`  Day: ${format(currentDate, 'yyyy-MM-dd')} (${dayOfWeek}), Holiday: ${isCurrentDayHoliday}, Found config:`, dayConfig);
 
           if (dayConfig) {
             if (dayConfig.is24h) {
               totalHours += 24;
+              console.log(`    Added 24h. Current totalHours: ${totalHours}`);
             } else if (dayConfig.startTime && dayConfig.endTime) {
               const startOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.startTime + ':00');
               const endOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.endTime + ':00');
@@ -272,14 +285,22 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
                 if (dailyDiffMs < 0) { // Handle overnight shifts
                   dailyDiffMs += 24 * 60 * 60 * 1000;
                 }
-                totalHours += dailyDiffMs / (1000 * 60 * 60);
+                const dailyHours = dailyDiffMs / (1000 * 60 * 60);
+                totalHours += dailyHours;
+                console.log(`    Added ${dailyHours.toFixed(2)}h. Current totalHours: ${totalHours}`);
+              } else {
+                console.warn(`    Invalid start/end times for ${dayConfig.day}: ${dayConfig.startTime} - ${dayConfig.endTime}`);
               }
             }
+          } else {
+            console.log(`    No specific config found for ${dayOfWeek}.`);
           }
           currentDate = addDays(currentDate, 1);
         }
         multiplier = totalHours * (details.num_agents || 1);
+        console.log(`Final totalHours: ${totalHours}, num_agents: ${details.num_agents || 1}, Multiplier: ${multiplier}`);
       } else {
+        console.log(`Tariff unit of measure is not 'ora' (${selectedTariff.unita_misura}), setting multiplier to null.`);
         multiplier = null;
       }
       break;
@@ -305,7 +326,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           } else if (dayOfWeek === "domenica") {
             dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
           } else {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1));
+            const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+            dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
           }
           
           console.log(`  Day: ${format(currentDate, 'yyyy-MM-dd')} (${dayOfWeek}), Holiday: ${isCurrentDayHoliday}, Found config:`, dayConfig);
