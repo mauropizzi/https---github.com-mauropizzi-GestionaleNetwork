@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
-import { showError } from "@/utils/toast"; // Correzione qui
+import { showError } from "@/utils/toast";
 import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes } from "date-fns";
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
