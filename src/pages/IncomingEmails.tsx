@@ -23,7 +23,7 @@ import { RefreshCcw, Eye, Folder, Filter } from 'lucide-react';
 import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -161,7 +161,7 @@ const IncomingEmailsPage = () => {
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
@@ -261,15 +261,38 @@ const IncomingEmailsPage = () => {
                 Da: {selectedEmail.sender_name || selectedEmail.sender_email} - Ricevuto il: {format(new Date(selectedEmail.received_at), 'PPP HH:mm', { locale: it })}
               </DialogDescription>
             </DialogHeader>
-            <React.Fragment> {/* Added explicit React.Fragment here */}
+            {/* Sostituito React.Fragment con un singolo div per l'area del contenuto principale */}
+            <div className="flex-1 overflow-y-auto p-4">
               <div>
-                <p>Contenuto semplificato per il debug.</p>
-                <p>Oggetto: {selectedEmail.subject}</p>
+                <p className="font-semibold mb-2">Oggetto: {selectedEmail.subject}</p>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setIsDetailsDialogOpen(false)}>Chiudi</Button>
-              </div>
-            </React.Fragment>
+              {selectedEmail.body_text && (
+                <div className="mt-4 p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-sm whitespace-pre-wrap">
+                  <h4 className="font-semibold mb-2">Testo Email:</h4>
+                  <p>{selectedEmail.body_text}</p>
+                </div>
+              )}
+              {selectedEmail.body_html && (
+                <div className="mt-4 p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-sm">
+                  <h4 className="font-semibold mb-2">HTML Email (parziale):</h4>
+                  {/* Render HTML content, but be cautious with untrusted HTML */}
+                  <div dangerouslySetInnerHTML={{ __html: selectedEmail.body_html.substring(0, 500) + (selectedEmail.body_html.length > 500 ? '...' : '') }} />
+                </div>
+              )}
+              {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold mb-2">Allegati:</h4>
+                  <ul className="list-disc list-inside text-sm">
+                    {selectedEmail.attachments.map((att: any, idx: number) => (
+                      <li key={idx}>{att.filename} ({att.contentType}, {Math.round(att.size / 1024)} KB)</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <DialogFooter> {/* Utilizzato DialogFooter per il pulsante */}
+              <Button onClick={() => setIsDetailsDialogOpen(false)}>Chiudi</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
