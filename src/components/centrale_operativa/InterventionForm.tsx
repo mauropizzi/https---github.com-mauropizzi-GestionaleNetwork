@@ -107,19 +107,24 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
-          const formatDbTime = (dbTime: string | null | undefined) => {
+          // Helper to safely format DB time (HH:mm:ss) to form time (HH:mm)
+          const formatDbTimeToForm = (dbTime: string | null | undefined): string => {
             if (!dbTime) return '';
-            try {
-              const parsed = parseISO(`2000-01-01T${dbTime}`);
-              return isValid(parsed) ? format(parsed, 'HH:mm') : '';
-            } catch (e) {
-              return '';
-            }
+            // The time from DB is HH:mm:ss, we just need HH:mm
+            return dbTime.substring(0, 5);
           };
 
-          const requestTimeString = (event.report_date && event.report_time) ? `${event.report_date}T${formatDbTime(event.report_time)}` : '';
-          const startTimeString = (service?.start_date && service?.start_time) ? `${service.start_date}T${formatDbTime(service.start_time)}` : '';
-          const endTimeString = (service?.end_date && service?.end_time) ? `${service.end_date}T${formatDbTime(service.end_time)}` : '';
+          // Helper to safely construct a datetime-local string
+          const createDateTimeString = (date: string | null | undefined, time: string | null | undefined): string => {
+            if (!date || !time) return '';
+            const formattedTime = formatDbTimeToForm(time);
+            if (!formattedTime) return '';
+            return `${date}T${formattedTime}`;
+          };
+
+          const requestTimeString = createDateTimeString(event.report_date, event.report_time);
+          const startTimeString = createDateTimeString(service?.start_date, service?.start_time);
+          const endTimeString = createDateTimeString(service?.end_date, service?.end_time);
 
           let anomalyDescription = '';
           let delayNotes = '';

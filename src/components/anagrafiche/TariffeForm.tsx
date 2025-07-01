@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { Cliente, PuntoServizio, Fornitore, serviceTypeRateOptions } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchPuntiServizio, fetchFornitori, cachedTariffe, lastTariffeFetchTime } from "@/lib/data-fetching"; // Import cachedTariffe and lastTariffeFetchTime
+import { fetchClienti, fetchPuntiServizio, fetchFornitori, invalidateTariffeCache } from "@/lib/data-fetching"; // Import invalidateTariffeCache
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const unitaMisuraOptions = ["ora", "intervento", "km", "mese"];
@@ -221,8 +221,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
       setHasAppliedPrefill(false); // Reset prefill flag after successful submission
 
       // Invalidate the cache for tariffs to force a re-fetch next time
-      cachedTariffe = null;
-      lastTariffeFetchTime = 0;
+      invalidateTariffeCache();
     }
   };
 

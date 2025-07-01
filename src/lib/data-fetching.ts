@@ -5,9 +5,15 @@ import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, diffe
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 
-export let cachedTariffe: any[] | null = null;
-export let lastTariffeFetchTime: number = 0;
+let cachedTariffe: any[] | null = null;
+let lastTariffeFetchTime: number = 0;
 const TARIFEE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export function invalidateTariffeCache() {
+  cachedTariffe = null;
+  lastTariffeFetchTime = 0;
+  console.log("Tariffs cache invalidated.");
+}
 
 export async function fetchClienti(): Promise<Cliente[]> {
   const { data, error } = await supabase
