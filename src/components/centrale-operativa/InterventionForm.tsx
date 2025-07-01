@@ -24,7 +24,7 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio } from '@/lib/data-fetching';
+import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio, calculateServiceCost } from '@/lib/data-fetching';
 import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -433,7 +433,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
-    const payload = {
+    // --- Save to allarme_interventi ---
+    const allarmeInterventoPayload = {
       report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
       report_time: format(new Date(requestTime), 'HH:mm:ss'),
       service_point_code: servicePoint,
@@ -449,50 +450,137 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       end_longitude: endLongitude || null,
     };
 
-    let result;
+    let allarmeResult;
+    let currentEventId = eventId;
+
     if (eventId) {
-      // Update existing record
-      result = await supabase
+      allarmeResult = await supabase
         .from('allarme_interventi')
-        .update(payload)
+        .update(allarmeInterventoPayload)
         .eq('id', eventId);
     } else {
-      // Insert new record
-      result = await supabase
+      allarmeResult = await supabase
         .from('allarme_interventi')
-        .insert([payload]);
+        .insert([allarmeInterventoPayload])
+        .select('id'); // Select the ID of the newly inserted row
+      if (allarmeResult.data && allarmeResult.data.length > 0) {
+        currentEventId = allarmeResult.data[0].id;
+      }
     }
 
-    if (result.error) {
-      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} dell'evento: ${result.error.message}`);
-      console.error(`Error ${eventId ? 'updating' : 'inserting'} alarm event:`, result.error);
-    } else {
-      showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} con successo!`);
-      console.log(`Event ${eventId ? 'updated' : 'saved'} successfully:`, result.data);
-      setFormData({ // Reset form
-        servicePoint: '',
-        requestType: '',
-        coOperator: '',
-        requestTime: '',
-        startTime: '',
-        endTime: '',
-        fullAccess: undefined,
-        vaultAccess: undefined,
-        operatorClient: '',
-        gpgIntervention: '',
-        anomalies: undefined,
-        anomalyDescription: '',
-        delay: undefined,
-        delayNotes: '',
-        serviceOutcome: '',
-        barcode: '',
-        startLatitude: undefined,
-        startLongitude: undefined,
-        endLatitude: undefined,
-        endLongitude: undefined,
-      });
-      onSaveSuccess?.(); // Call success callback
+    if (allarmeResult.error) {
+      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} dell'evento di allarme: ${allarmeResult.error.message}`);
+      console.error(`Error ${eventId ? 'updating' : 'inserting'} alarm event:`, allarmeResult.error);
+      return;
     }
+
+    // --- Also save/update in servizi_richiesti for accounting analysis ---
+    if (!currentEventId) {
+      showError("Impossibile ottenere l'ID dell'evento per la registrazione del servizio.");
+      return;
+    }
+
+    const selectedServicePoint = puntiServizioList.find(p => p.id === servicePoint);
+    const clientId = selectedServicePoint?.id_cliente || null;
+    const fornitoreId = selectedServicePoint?.fornitore_id || null;
+
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio per l'analisi contabile.");
+      return;
+    }
+
+    const serviceStartDate = parseISO(format(new Date(requestTime), 'yyyy-MM-dd'));
+    const serviceEndDate = parseISO(format(new Date(endTime || requestTime), 'yyyy-MM-dd')); // Use end time date if available, else request time
+
+    const costDetails = {
+      type: "Intervento", // Fixed type for this service
+      client_id: clientId,
+      service_point_id: servicePoint,
+      fornitore_id: fornitoreId,
+      start_date: serviceStartDate,
+      end_date: serviceEndDate,
+      start_time: startTime || null,
+      end_time: endTime || null,
+      num_agents: 1, // Assuming 1 agent for an intervention
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
+    };
+
+    const calculatedCostResult = await calculateServiceCost(costDetails);
+    const calculatedCost = calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null;
+
+    let serviceStatus: "Pending" | "Approved" | "Rejected" | "Completed" = "Pending";
+    if (isFinal) {
+      switch (serviceOutcome) {
+        case "Intervento Concluso":
+        case "Falso Allarme":
+        case "Anomalia Riscontrata":
+          serviceStatus = "Completed";
+          break;
+        case "Intervento Annullato":
+          serviceStatus = "Rejected";
+          break;
+        case "Intervento in Corso": // Should not be final, but for completeness
+        default:
+          serviceStatus = "Pending";
+          break;
+      }
+    }
+
+    const serviziRichiestiPayload = {
+      id: currentEventId, // Use the same ID to link records
+      type: "Intervento",
+      client_id: clientId,
+      service_point_id: servicePoint,
+      fornitore_id: fornitoreId,
+      start_date: format(serviceStartDate, 'yyyy-MM-dd'),
+      start_time: startTime || null,
+      end_date: format(serviceEndDate, 'yyyy-MM-dd'),
+      end_time: endTime || null,
+      status: serviceStatus,
+      calculated_cost: calculatedCost,
+      num_agents: 1, // Assuming 1 agent for an intervention
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
+    };
+
+    const { error: serviziError } = await supabase
+      .from('servizi_richiesti')
+      .upsert([serviziRichiestiPayload], { onConflict: 'id' }); // Use upsert to create or update
+
+    if (serviziError) {
+      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} del servizio per analisi contabile: ${serviziError.message}`);
+      console.error(`Error ${eventId ? 'updating' : 'inserting'} servizi_richiesti:`, serviziError);
+      // Decide if you want to roll back allarme_interventi or just log this as a partial success/failure
+      return;
+    }
+
+    showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} e servizio per analisi contabile aggiornato con successo!`);
+    setFormData({ // Reset form
+      servicePoint: '',
+      requestType: '',
+      coOperator: '',
+      requestTime: '',
+      startTime: '',
+      endTime: '',
+      fullAccess: undefined,
+      vaultAccess: undefined,
+      operatorClient: '',
+      gpgIntervention: '',
+      anomalies: undefined,
+      anomalyDescription: '',
+      delay: undefined,
+      delayNotes: '',
+      serviceOutcome: '',
+      barcode: '',
+      startLatitude: undefined,
+      startLongitude: undefined,
+      endLatitude: undefined,
+      endLongitude: undefined,
+    });
+    onSaveSuccess?.(); // Call success callback
   };
 
   const handleCloseEvent = (e: React.FormEvent) => {
