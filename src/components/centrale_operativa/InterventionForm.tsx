@@ -107,7 +107,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
-          const formatDbTime = (dbTime: string | null | undefined) => {
+          const formatDbTime = (dbTime: string | null | undefined): string => {
             if (!dbTime) return '';
             try {
               const parsed = parseISO(`2000-01-01T${dbTime}`);
@@ -117,11 +117,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             }
           };
 
-          const requestTimeString = event.report_date && event.report_time ? `${event.report_date}T${formatDbTime(event.report_time)}` : '';
-          const startTimeString = service?.start_date && service?.start_time ? `${service.start_date}T${formatDbTime(service.start_time)}` : '';
-          const endTimeString = service?.end_date && service?.end_time 
-            ? `${service.end_date}T${formatDbTime(service.end_time)}` 
-            : (startTimeString || requestTimeString);
+          const requestTimeString = (event.report_date && event.report_time) ? `${event.report_date}T${formatDbTime(event.report_time)}` : '';
+          const startTimeString = (service?.start_date && service?.start_time) ? `${service.start_date}T${formatDbTime(service.start_time)}` : '';
+          const endTimeString = (service?.end_date && service?.end_time) ? `${service.end_date}T${formatDbTime(service.end_time)}` : '';
 
           let anomalyDescription = '';
           let delayNotes = '';
@@ -156,7 +154,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             coOperator: event.co_operator || '',
             requestTime: requestTimeString,
             startTime: startTimeString || requestTimeString,
-            endTime: endTimeString,
+            endTime: endTimeString || startTimeString || requestTimeString,
             fullAccess: undefined,
             vaultAccess: undefined,
             operatorClient: event.operator_client || '',
@@ -268,27 +266,22 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     if (requestTime && isValid(parseISO(requestTime))) {
       parsedRequestDateTime = parseISO(requestTime);
     } else {
-      showError("Orario Richiesta è obbligatorio e deve essere un valore valido.");
+      showError("Orario Richiesta è obbligatorio e deve essere valido.");
       return;
     }
 
-    // 2. Validate and parse startTime and endTime
-    let parsedStartTime: Date | null = startTime ? parseISO(startTime) : null;
-    if (startTime && !isValid(parsedStartTime)) {
-      showError("Formato Orario Inizio Intervento non valido.");
-      return;
-    }
+    // 2. Parse other times, they can be null if empty/invalid
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
 
-    let parsedEndTime: Date | null = endTime ? parseISO(endTime) : null;
-    if (endTime && !isValid(parsedEndTime)) {
-      showError("Formato Orario Fine Intervento non valido.");
-      return;
-    }
+    // 3. Determine final dates, falling back to request time
+    const finalStartDate = (parsedStartTime && isValid(parsedStartTime)) ? parsedStartTime : parsedRequestDateTime;
+    const finalEndDate = (parsedEndTime && isValid(parsedEndTime)) ? parsedEndTime : finalStartDate; // Fallback to final start date
 
-    // 3. Additional validation for final submission
+    // 4. Additional validation for final submission
     if (isFinal) {
-      if (!parsedStartTime || !parsedEndTime) {
-        showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
+      if (!startTime || !endTime || !isValid(parsedStartTime) || !isValid(parsedEndTime)) {
+        showError("Orario Inizio e Fine Intervento sono obbligatori e devono essere validi per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
@@ -313,15 +306,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
 
-    // Determine final dates and times for the payload
-    // Use request time as a fallback for start time.
-    // Use start time (or its fallback) as a fallback for end time.
-    const finalStartDate = parsedStartTime || parsedRequestDateTime;
-    const finalEndDate = parsedEndTime || finalStartDate;
-
     const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
     const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ss');
-
+    
     const finalEndDateForDb = format(finalEndDate, 'yyyy-MM-dd');
     const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ss');
 
