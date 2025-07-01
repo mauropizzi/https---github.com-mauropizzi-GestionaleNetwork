@@ -19,6 +19,7 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OperatoreNetwork } from "@/lib/anagrafiche-data";
+import { OperatoreNetworkEditDialog } from "./OperatoriNetworkEditDialog"; // Import the new dialog
 
 interface OperatoreNetworkExtended extends OperatoreNetwork {
   nome_cliente?: string; // To display the client name
@@ -28,6 +29,8 @@ export function OperatoriNetworkTable() {
   const [data, setData] = useState<OperatoreNetworkExtended[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedOperatoreForEdit, setSelectedOperatoreForEdit] = useState<OperatoreNetworkExtended | null>(null);
 
   const fetchOperatoriNetworkData = useCallback(async () => {
     setLoading(true);
@@ -53,10 +56,28 @@ export function OperatoriNetworkTable() {
     fetchOperatoriNetworkData();
   }, [fetchOperatoriNetworkData]);
 
-  const handleEdit = (operatore: OperatoreNetworkExtended) => {
-    showInfo(`Modifica operatore network: ${operatore.nome} ${operatore.cognome || ''} (ID: ${operatore.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((operatore: OperatoreNetworkExtended) => {
+    setSelectedOperatoreForEdit(operatore);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedOperatore: OperatoreNetwork) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(op =>
+        op.id === updatedOperatore.id ? { ...op, ...updatedOperatore } : op
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    fetchOperatoriNetworkData(); // Re-fetch to get updated client name if it changed
+    setIsEditDialogOpen(false);
+    setSelectedOperatoreForEdit(null);
+  }, [fetchOperatoriNetworkData]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedOperatoreForEdit(null);
+  }, []);
 
   const handleDelete = async (operatoreId: string, nomeOperatore: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare l'operatore network "${nomeOperatore}"?`)) {
@@ -200,6 +221,15 @@ export function OperatoriNetworkTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedOperatoreForEdit && (
+        <OperatoreNetworkEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          operatore={selectedOperatoreForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }

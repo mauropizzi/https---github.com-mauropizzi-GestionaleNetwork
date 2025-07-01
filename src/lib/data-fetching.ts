@@ -5,6 +5,10 @@ import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, diffe
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 
+let cachedTariffe: any[] | null = null;
+let lastTariffeFetchTime: number = 0;
+const TARIFEE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export async function fetchClienti(): Promise<Cliente[]> {
   const { data, error } = await supabase
     .from('clienti')
@@ -129,6 +133,12 @@ export async function fetchServiceRequestsForAnalysis(clientId?: string, startDa
 }
 
 export async function fetchAllTariffe(): Promise<any[]> {
+  const now = Date.now();
+  if (cachedTariffe && (now - lastTariffeFetchTime < TARIFEE_CACHE_DURATION)) {
+    console.log("Using cached tariffs.");
+    return cachedTariffe;
+  }
+
   const { data, error } = await supabase
     .from('tariffe')
     .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita, client_rate, supplier_rate, unita_misura'); // Fetch client_rate and unita_misura
@@ -138,7 +148,10 @@ export async function fetchAllTariffe(): Promise<any[]> {
     console.error("Error fetching all tariffe:", error);
     return [];
   }
-  return data || [];
+  cachedTariffe = data || [];
+  lastTariffeFetchTime = now;
+  console.log("Fetched and cached tariffs.");
+  return cachedTariffe;
 }
 
 interface ServiceDetailsForCost {

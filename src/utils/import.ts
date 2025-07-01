@@ -60,7 +60,7 @@ const tableConfigs: {
   "personale": {
     tableName: "personale",
     requiredFields: ["nome", "cognome", "ruolo"],
-    uniqueFields: ["nome", "cognome"], // Changed to nome, cognome for upsert identification
+    uniqueFields: ["nome", "cognome", "codice_fiscale"], // Added codice_fiscale for better uniqueness
     fieldMapping: { codiceFiscale: "codice_fiscale", data_nascita: "data_nascita", data_assunzione: "data_assunzione", data_cessazione: "data_cessazione" },
     typeConversion: {
       data_nascita: (val: any) => val ? format(new Date(val), 'yyyy-MM-dd') : null,
@@ -72,7 +72,7 @@ const tableConfigs: {
   "operatori-network": {
     tableName: "operatori_network",
     requiredFields: ["nome"],
-    uniqueFields: ["nome"], // Changed to nome only, as cognome is nullable
+    uniqueFields: ["nome", "cognome", "email"], // Added cognome and email for better uniqueness
     fieldMapping: { clienteId: "client_id" },
   },
   "fornitori": {
@@ -145,8 +145,8 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
           .select(`id, ${uniqueFields.join(',')}`); // Select ID and unique fields
 
         if (fetchError) {
-          showError(`Errore nel recupero dei dati esistenti da Supabase: ${fetchError.message}`);
-          resolve({ success: false, message: `Errore nel recupero dei dati esistenti: ${fetchError.message}` });
+          // Removed direct toast, will be handled by dialog
+          resolve({ success: false, message: `Errore nel recupero dei dati esistenti: ${fetchError.message}`, details: { newRecordsCount: 0, updatedRecordsCount: 0, invalidRecords: [], errors: [`Errore nel recupero dei dati esistenti: ${fetchError.message}`] } });
           return;
         }
 
@@ -214,8 +214,8 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
             .select('id'); // Select ID to count new vs updated
 
           if (upsertError) {
-            showError(`Errore durante l'inserimento/aggiornamento dei record: ${upsertError.message}`);
-            resolve({ success: false, message: `Errore durante l'inserimento/aggiornamento: ${upsertError.message}`, details: { newRecordsCount: 0, updatedRecordsCount: 0, invalidRecords, errors } });
+            // Removed direct toast, will be handled by dialog
+            resolve({ success: false, message: `Errore durante l'inserimento/aggiornamento: ${upsertError.message}`, details: { newRecordsCount: 0, updatedRecordsCount: 0, invalidRecords, errors: [...errors, `Errore durante l'inserimento/aggiornamento: ${upsertError.message}`] } });
             return;
           }
 
@@ -241,14 +241,7 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
           finalMessage += ` ${invalidRecords.length} record non validi ignorati.`;
         }
 
-        if (newRecordsCount > 0 || updatedRecordsCount > 0) {
-          showSuccess(finalMessage);
-        } else if (invalidRecords.length > 0) {
-          showError(finalMessage);
-        } else {
-          showInfo("Nessun record da importare o tutti i record erano non validi.");
-        }
-
+        // Removed direct toasts, now relying on the dialog
         resolve({
           success: newRecordsCount > 0 || updatedRecordsCount > 0,
           message: finalMessage,
@@ -261,8 +254,8 @@ export async function importDataFromExcel(file: File, currentTab: string): Promi
         });
 
       } catch (error: any) {
-        showError(`Errore durante la lettura del file: ${error.message}`);
-        resolve({ success: false, message: `Errore durante la lettura del file: ${error.message}` });
+        // Removed direct toast, will be handled by dialog
+        resolve({ success: false, message: `Errore durante la lettura del file: ${error.message}`, details: { newRecordsCount: 0, updatedRecordsCount: 0, invalidRecords: [], errors: [`Errore durante la lettura del file: ${error.message}`] } });
       }
     };
 

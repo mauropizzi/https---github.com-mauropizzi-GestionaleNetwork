@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -17,140 +17,155 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Mail, Printer, RotateCcw, Search } from "lucide-react";
-import { showInfo } from "@/utils/toast";
+import { Mail, Printer, RotateCcw, RefreshCcw } from "lucide-react";
+import { showInfo, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CantiereReport {
   id: string;
-  reportDate: Date;
-  cliente: string;
-  cantiere: string;
-  addetto: string;
-  servizio: string;
-  oreServizio: number;
-  descrizioneLavori: string;
+  report_date: string; // Changed to string to match DB
+  report_time: string; // Changed to string to match DB
+  client_id: string;
+  site_name: string;
+  employee_id: string;
+  service_provided: string;
+  service_hours: number;
+  work_description: string;
+  notes?: string;
   automezziCount: number;
   attrezziCount: number;
+  // Joined fields
+  nome_cliente?: string;
+  nome_addetto?: string;
 }
 
-// Mock data for demonstration
-const mockCantiereReports: CantiereReport[] = [
-  {
-    id: "CR001",
-    reportDate: new Date(2024, 6, 20),
-    cliente: "AEROVIAGGI SPA",
-    cantiere: "Cantiere Palermo Centro",
-    addetto: "639 ABBATE EMANUELE",
-    servizio: "Guardia Particolare Giurata",
-    oreServizio: 8,
-    descrizioneLavori: "Sorveglianza perimetrale e controllo accessi.",
-    automezziCount: 1,
-    attrezziCount: 0,
-  },
-  {
-    id: "CR002",
-    reportDate: new Date(2024, 6, 21),
-    cliente: "COSEDIL SPA",
-    cantiere: "Nuova Costruzione Catania",
-    addetto: "2 GRASSO DAVIDE",
-    servizio: "Addetto Servizi Fiduciari con Auto",
-    oreServizio: 10,
-    descrizioneLavori: "Ronda interna e verifica impianti.",
-    automezziCount: 1,
-    attrezziCount: 2,
-  },
-  {
-    id: "CR003",
-    reportDate: new Date(2024, 6, 22),
-    cliente: "F.LLI MAMMANA SRL",
-    cantiere: "Ristrutturazione Agrigento",
-    addetto: "14 BALISTRERI GIOVANNI",
-    servizio: "Guardia Particolare Giurata",
-    oreServizio: 6,
-    descrizioneLavori: "Controllo materiali in entrata/uscita.",
-    automezziCount: 0,
-    attrezziCount: 1,
-  },
-];
-
-const columns: ColumnDef<CantiereReport>[] = [
-  {
-    accessorKey: "reportDate",
-    header: "Data Rapporto",
-    cell: ({ row }) => <span>{format(row.original.reportDate, "PPP", { locale: it })}</span>,
-  },
-  {
-    accessorKey: "cliente",
-    header: "Cliente",
-    cell: ({ row }) => <span>{row.original.cliente}</span>,
-  },
-  {
-    accessorKey: "cantiere",
-    header: "Cantiere",
-    cell: ({ row }) => <span>{row.original.cantiere}</span>,
-  },
-  {
-    accessorKey: "addetto",
-    header: "Addetto",
-    cell: ({ row }) => <span>{row.original.addetto}</span>,
-  },
-  {
-    accessorKey: "servizio",
-    header: "Servizio",
-    cell: ({ row }) => <span>{row.original.servizio}</span>,
-  },
-  {
-    accessorKey: "oreServizio",
-    header: "Ore",
-    cell: ({ row }) => <span>{row.original.oreServizio}</span>,
-  },
-  {
-    accessorKey: "automezziCount",
-    header: "Automezzi",
-    cell: ({ row }) => <span>{row.original.automezziCount}</span>,
-  },
-  {
-    accessorKey: "attrezziCount",
-    header: "Attrezzi",
-    cell: ({ row }) => <span>{row.original.attrezziCount}</span>,
-  },
-  {
-    id: "actions",
-    header: "Azioni",
-    cell: ({ row }) => (
-      <div className="flex space-x-2">
-        <Button variant="outline" size="sm" onClick={() => showInfo(`Invio email per CR${row.original.id}`)}>
-          <Mail className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => showInfo(`Stampa PDF per CR${row.original.id}`)}>
-          <Printer className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => showInfo(`Ripristino dati per CR${row.original.id}`)}>
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-      </div>
-    ),
-  },
-];
-
 export function CantiereHistoryTable() {
-  const [data, setData] = useState<CantiereReport[]>(mockCantiereReports);
+  const [data, setData] = useState<CantiereReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState<string>("");
 
-  const filteredData = data.filter(report => {
-    const matchesSearch = searchTerm === "" ||
-      report.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.cantiere.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.addetto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.servizio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.descrizioneLavori.toLowerCase().includes(searchTerm.toLowerCase());
+  const fetchCantiereReports = useCallback(async () => {
+    setLoading(true);
+    const { data: reportsData, error } = await supabase
+      .from('registri_cantiere')
+      .select('*, clienti(nome_cliente), personale(nome, cognome)'); // Join clients and personale
 
-    const matchesDate = filterDate === "" ||
-      format(report.reportDate, "yyyy-MM-dd") === filterDate;
+    if (error) {
+      showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
+      console.error("Error fetching registri_cantiere:", error);
+      setData([]);
+      setLoading(false);
+      return;
+    }
 
-    return matchesSearch && matchesDate;
-  });
+    // Fetch counts for automezzi and attrezzi for each report
+    const reportsWithCounts = await Promise.all(reportsData.map(async (report) => {
+      const { count: automezziCount, error: automezziError } = await supabase
+        .from('automezzi_utilizzati')
+        .select('id', { count: 'exact', head: true })
+        .eq('registro_cantiere_id', report.id);
+
+      const { count: attrezziCount, error: attrezziError } = await supabase
+        .from('attrezzi_utilizzati')
+        .select('id', { count: 'exact', head: true })
+        .eq('registro_cantiere_id', report.id);
+
+      if (automezziError) console.error("Error fetching automezzi count:", automezziError);
+      if (attrezziError) console.error("Error fetching attrezzi count:", attrezziError);
+
+      return {
+        ...report,
+        nome_cliente: report.clienti?.nome_cliente || 'N/A',
+        nome_addetto: report.personale ? `${report.personale.nome} ${report.personale.cognome}` : 'N/A',
+        automezziCount: automezziCount || 0,
+        attrezziCount: attrezziCount || 0,
+      };
+    }));
+
+    setData(reportsWithCounts || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchCantiereReports();
+  }, [fetchCantiereReports]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(report => {
+      const matchesSearch = searchTerm === "" ||
+        report.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.nome_addetto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.service_provided.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.work_description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesDate = filterDate === "" ||
+        report.report_date === filterDate;
+
+      return matchesSearch && matchesDate;
+    });
+  }, [data, searchTerm, filterDate]);
+
+  const columns: ColumnDef<CantiereReport>[] = useMemo(() => [
+    {
+      accessorKey: "report_date",
+      header: "Data Rapporto",
+      cell: ({ row }) => <span>{format(new Date(row.original.report_date), "PPP", { locale: it })}</span>,
+    },
+    {
+      accessorKey: "nome_cliente",
+      header: "Cliente",
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
+    },
+    {
+      accessorKey: "site_name",
+      header: "Cantiere",
+      cell: ({ row }) => <span>{row.original.site_name}</span>,
+    },
+    {
+      accessorKey: "nome_addetto",
+      header: "Addetto",
+      cell: ({ row }) => <span>{row.original.nome_addetto}</span>,
+    },
+    {
+      accessorKey: "service_provided",
+      header: "Servizio",
+      cell: ({ row }) => <span>{row.original.service_provided}</span>,
+    },
+    {
+      accessorKey: "service_hours",
+      header: "Ore",
+      cell: ({ row }) => <span>{row.original.service_hours}</span>,
+    },
+    {
+      accessorKey: "automezziCount",
+      header: "Automezzi",
+      cell: ({ row }) => <span>{row.original.automezziCount}</span>,
+    },
+    {
+      accessorKey: "attrezziCount",
+      header: "Attrezzi",
+      cell: ({ row }) => <span>{row.original.attrezziCount}</span>,
+    },
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => showInfo(`Invio email per CR${row.original.id}`)}>
+            <Mail className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showInfo(`Stampa PDF per CR${row.original.id}`)}>
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showInfo(`Ripristino dati per CR${row.original.id}`)}>
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
 
   const table = useReactTable({
     data: filteredData,
@@ -176,6 +191,9 @@ export function CantiereHistoryTable() {
         <Button variant="outline" onClick={() => { setSearchTerm(""); setFilterDate(""); }}>
           Reset Filtri
         </Button>
+        <Button variant="outline" onClick={fetchCantiereReports} disabled={loading}>
+          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        </Button>
       </div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -198,7 +216,13 @@ export function CantiereHistoryTable() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Caricamento rapporti di cantiere...
+                </TableCell>
+              </TableRow>
+            ) : (table && table.getRowModel().rows?.length) ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -214,7 +238,7 @@ export function CantiereHistoryTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun risultato.
+                  Nessun rapporto di cantiere trovato.
                 </TableCell>
               </TableRow>
             )}

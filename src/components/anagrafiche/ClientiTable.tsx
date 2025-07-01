@@ -21,11 +21,14 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
+import { ClientiEditDialog } from "./ClientiEditDialog"; // Import the new dialog
 
 export function ClientiTable() {
   const [data, setData] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
 
   const fetchClientiData = useCallback(async () => {
     setLoading(true);
@@ -47,10 +50,28 @@ export function ClientiTable() {
     fetchClientiData();
   }, [fetchClientiData]);
 
-  const handleEdit = (cliente: Cliente) => {
-    showInfo(`Modifica cliente: ${cliente.nome_cliente} (ID: ${cliente.id})`);
-    // Qui potresti aprire un dialog di modifica o navigare a una pagina di modifica
-  };
+  const handleEdit = useCallback((cliente: Cliente) => {
+    setSelectedClienteForEdit(cliente);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedCliente: Cliente) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(c =>
+        c.id === updatedCliente.id ? updatedCliente : c
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    // fetchClientiData(); // Uncomment if you prefer a full re-fetch
+    setIsEditDialogOpen(false);
+    setSelectedClienteForEdit(null);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedClienteForEdit(null);
+  }, []);
 
   const handleDelete = async (clienteId: string, nomeCliente: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il cliente "${nomeCliente}"?`)) {
@@ -204,6 +225,15 @@ export function ClientiTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedClienteForEdit && (
+        <ClientiEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          cliente={selectedClienteForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }

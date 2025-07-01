@@ -23,6 +23,7 @@ import {
 import { Cliente, Fornitore, Procedure } from "@/lib/anagrafiche-data"; // Import Procedure interface
 import { fetchClienti, fetchFornitori, fetchProcedure } from "@/lib/data-fetching"; // Import fetchProcedure
 import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   nomePuntoServizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
@@ -88,10 +89,42 @@ export function PuntiServizioForm() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Punto Servizio:", values);
-    showSuccess("Punto servizio salvato con successo!");
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      nome_punto_servizio: values.nomePuntoServizio,
+      id_cliente: values.idCliente || null,
+      indirizzo: values.indirizzo,
+      citta: values.citta,
+      cap: values.cap || null,
+      provincia: values.provincia || null,
+      referente: values.referente || null,
+      telefono_referente: values.telefonoReferente || null,
+      telefono: values.telefono || null,
+      email: values.email || null,
+      note: values.note || null,
+      tempo_intervento: values.tempoIntervento || null,
+      fornitore_id: values.fornitoreId || null,
+      codice_cliente: values.codiceCliente || null,
+      codice_sicep: values.codiceSicep || null,
+      codice_fatturazione: values.codiceFatturazione || null,
+      latitude: values.latitude || null,
+      longitude: values.longitude || null,
+      procedure_id: values.procedureId || null,
+    };
+
+    const { data, error } = await supabase
+      .from('punti_servizio')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      showError(`Errore durante la registrazione del punto servizio: ${error.message}`);
+      console.error("Error inserting punto_servizio:", error);
+    } else {
+      showSuccess("Punto servizio salvato con successo!");
+      console.log("Dati Punto Servizio salvati:", data);
+      form.reset();
+    }
   };
 
   return (

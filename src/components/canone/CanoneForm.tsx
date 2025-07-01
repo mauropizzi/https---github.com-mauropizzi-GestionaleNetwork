@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { supabase } from "@/integrations/supabase/client";
 
 const tipoCanoneOptions = [
   "Disponibilità Pronto Intervento",
@@ -89,19 +90,38 @@ export function CanoneForm() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Servizio a Canone:", values);
-    showSuccess("Servizio a canone salvato con successo!");
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
-    form.reset({
-      servicePointId: "",
-      fornitoreId: "",
-      tipoCanone: "",
-      startDate: new Date(),
-      endDate: undefined,
-      status: "Attivo",
-      notes: "",
-    });
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId || null,
+      tipo_canone: values.tipoCanone,
+      start_date: format(values.startDate, 'yyyy-MM-dd'),
+      end_date: values.endDate ? format(values.endDate, 'yyyy-MM-dd') : null,
+      status: values.status,
+      notes: values.notes || null,
+    };
+
+    const { data, error } = await supabase
+      .from('servizi_canone') // Use the new table
+      .insert([payload])
+      .select();
+
+    if (error) {
+      showError(`Errore durante la registrazione del servizio a canone: ${error.message}`);
+      console.error("Error inserting servizi_canone:", error);
+    } else {
+      showSuccess("Servizio a canone salvato con successo!");
+      console.log("Dati Servizio a Canone salvati:", data);
+      form.reset({
+        servicePointId: "",
+        fornitoreId: "",
+        tipoCanone: "",
+        startDate: new Date(),
+        endDate: undefined,
+        status: "Attivo",
+        notes: "",
+      });
+    }
   };
 
   return (
