@@ -260,6 +260,13 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       return;
     }
 
+    // Ensure requestTime is a valid date string before parsing
+    const parsedRequestDateTime = parseISO(requestTime);
+    if (!isValid(parsedRequestDateTime)) {
+      showError("Formato data/ora richiesta non valido.");
+      return;
+    }
+
     // Additional validation for final submission
     if (isFinal) {
       if (!startTime || !endTime) {
@@ -284,17 +291,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
-    // Ensure requestTime is a valid date string before parsing
-    const parsedRequestDate = requestTime ? parseISO(requestTime) : null;
-    if (!parsedRequestDate || !isValid(parsedRequestDate)) {
-      showError("Formato data/ora richiesta non valido.");
-      return;
-    }
-
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
-      report_date: format(parsedRequestDate, 'yyyy-MM-dd'),
-      report_time: format(parsedRequestDate, 'HH:mm:ss'),
+      report_date: format(parsedRequestDateTime, 'yyyy-MM-dd'),
+      report_time: format(parsedRequestDateTime, 'HH:mm:ss'),
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
@@ -347,12 +347,14 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       return;
     }
 
-    // Ensure start_time and end_time are never null for servizi_richiesti
-    const serviceStartTime = startTime ? format(parseISO(startTime), 'HH:mm:ss') : format(parsedRequestDate, 'HH:mm:ss');
-    const serviceEndTime = endTime ? format(parseISO(endTime), 'HH:mm:ss') : serviceStartTime;
+    // Derive times for DB, ensuring they are always valid HH:mm:ss strings
+    // If formData.startTime is empty, use the time from parsedRequestDateTime
+    const finalStartTime = formData.startTime ? `${formData.startTime}:00` : format(parsedRequestDateTime, 'HH:mm:ss');
+    // If formData.endTime is empty, use finalStartTime
+    const finalEndTime = formData.endTime ? `${formData.endTime}:00` : finalStartTime;
 
-    const serviceStartDate = parsedRequestDate;
-    const serviceEndDate = endTime ? parseISO(endTime) : parsedRequestDate; // Use end time date if available, else request time
+    const serviceStartDate = parsedRequestDateTime;
+    const serviceEndDate = parsedRequestDateTime; // Assuming single-day intervention for now
 
     const costDetails = {
       type: "Intervento", // Fixed type for this service
@@ -361,8 +363,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       fornitore_id: fornitoreId,
       start_date: serviceStartDate,
       end_date: serviceEndDate,
-      start_time: serviceStartTime,
-      end_time: serviceEndTime,
+      start_time: finalStartTime,
+      end_time: finalEndTime,
       num_agents: 1, // Assuming 1 agent for an intervention
       cadence_hours: null,
       inspection_type: null,
@@ -397,9 +399,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
       start_date: format(serviceStartDate, 'yyyy-MM-dd'),
-      start_time: serviceStartTime,
+      start_time: finalStartTime,
       end_date: format(serviceEndDate, 'yyyy-MM-dd'),
-      end_time: serviceEndTime,
+      end_time: finalEndTime,
       status: serviceStatus,
       calculated_cost: calculatedCost,
       num_agents: 1, // Assuming 1 agent for an intervention
