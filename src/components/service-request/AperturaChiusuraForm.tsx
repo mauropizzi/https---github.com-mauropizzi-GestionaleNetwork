@@ -334,7 +334,7 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
             name="endTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ora di fine servizio (HH:MM)</Label>
+                <FormLabel>Ora di fine servizio (HH:MM)</FormLabel>
                 <FormControl>
                   <Input type="text" placeholder="17:00" {...field} />
                 </FormControl>
