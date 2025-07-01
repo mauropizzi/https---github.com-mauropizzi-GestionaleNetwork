@@ -107,17 +107,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
-          // Helper to safely format DB time (HH:mm:ss) to form time (HH:mm)
-          const formatDbTimeToForm = (dbTime: string | null | undefined): string => {
+          const formatDbTime = (dbTime: string | null | undefined): string => {
             if (!dbTime) return '';
-            // The time from DB is HH:mm:ss, we just need HH:mm
-            return dbTime.substring(0, 5);
+            try {
+              const parsed = parseISO(`2000-01-01T${dbTime}`);
+              return isValid(parsed) ? format(parsed, 'HH:mm') : '';
+            } catch (e) {
+              return '';
+            }
           };
 
-          // Helper to safely construct a datetime-local string
           const createDateTimeString = (date: string | null | undefined, time: string | null | undefined): string => {
             if (!date || !time) return '';
-            const formattedTime = formatDbTimeToForm(time);
+            const formattedTime = formatDbTime(time);
             if (!formattedTime) return '';
             return `${date}T${formattedTime}`;
           };
