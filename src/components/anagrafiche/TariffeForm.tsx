@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { Cliente, PuntoServizio, Fornitore, serviceTypeRateOptions } from "@/lib/anagrafiche-data";
-import { fetchClienti, fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { fetchClienti, fetchPuntiServizio, fetchFornitori, cachedTariffe, lastTariffeFetchTime } from "@/lib/data-fetching"; // Import cachedTariffe and lastTariffeFetchTime
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const unitaMisuraOptions = ["ora", "intervento", "km", "mese"];
@@ -151,7 +151,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
     } else if (prefillData && !hasAppliedPrefill) {
       console.log("TariffeForm - Prefill data present, but waiting for dropdowns to load or already applied.");
     }
-  }, [prefillData, clienti, puntiServizio, fornitori, form, hasAppliedPrefill]); // Add hasAppliedPrefill to dependency array
+  }, [prefillData, clienti, puntiServizio, fornitori, form, hasAppliedPrefill]);
 
 
   // Watch for changes in tipo_servizio to auto-set unita_misura
@@ -219,6 +219,10 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
         note: null,
       });
       setHasAppliedPrefill(false); // Reset prefill flag after successful submission
+
+      // Invalidate the cache for tariffs to force a re-fetch next time
+      cachedTariffe = null;
+      lastTariffeFetchTime = 0;
     }
   };
 

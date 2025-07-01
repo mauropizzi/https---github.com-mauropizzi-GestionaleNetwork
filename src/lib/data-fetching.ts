@@ -5,8 +5,8 @@ import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, diffe
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 
-let cachedTariffe: any[] | null = null;
-let lastTariffeFetchTime: number = 0;
+export let cachedTariffe: any[] | null = null;
+export let lastTariffeFetchTime: number = 0;
 const TARIFEE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function fetchClienti(): Promise<Cliente[]> {
@@ -380,7 +380,7 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
 
   if (multiplier === null) {
     console.warn("Multiplier is null, cannot calculate cost.");
-    console.log("--- calculateServiceCost Debug End (Multiplier Null) ---");
+    console.log("--- calculateServiceCost Debug End (No Match) ---");
     return null;
   }
 
