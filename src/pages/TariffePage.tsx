@@ -55,10 +55,8 @@ const TariffePage = () => {
       setCurrentTab("nuova-tariffa"); // Switch to new tariff tab
       console.log("TariffePage - Setting prefillData:", newPrefillData);
 
-      // Clear search params after reading them to avoid persistent pre-fill
-      const newSearchParams = new URLSearchParams();
-      newSearchParams.set("tab", "nuova-tariffa");
-      setSearchParams(newSearchParams, { replace: true });
+      // DO NOT CLEAR SEARCH PARAMS HERE. Let TariffeForm consume them.
+      // The URL parameters will persist until the user navigates away or the form is submitted.
     } else {
       setPrefillData(null); // Clear prefill data if no params
       console.log("TariffePage - No prefill data found in URL.");
