@@ -27,26 +27,28 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
+import { showSuccess, showError } from "@/utils/toast"; // Import toast utilities
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 const formSchema = z.object({
   nome: z.string().min(2, "Il nome è richiesto."),
   cognome: z.string().min(2, "Il cognome è richiesto."),
-  codiceFiscale: z.string().optional(),
+  codiceFiscale: z.string().optional().nullable(),
   ruolo: z.enum(["Pattuglia", "Operatore Network", "GPG", "Operatore C.O."], {
     required_error: "Seleziona un ruolo.",
   }),
-  telefono: z.string().optional(),
-  email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
-  data_nascita: z.date().optional(),
-  luogo_nascita: z.string().optional(),
-  indirizzo: z.string().optional(),
-  cap: z.string().optional(),
-  citta: z.string().optional(),
-  provincia: z.string().optional(),
-  data_assunzione: z.date().optional(),
-  data_cessazione: z.date().optional(),
+  telefono: z.string().optional().nullable(),
+  email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
+  data_nascita: z.date().optional().nullable(),
+  luogo_nascita: z.string().optional().nullable(),
+  indirizzo: z.string().optional().nullable(),
+  cap: z.string().optional().nullable(),
+  citta: z.string().optional().nullable(),
+  provincia: z.string().optional().nullable(),
+  data_assunzione: z.date().optional().nullable(),
+  data_cessazione: z.date().optional().nullable(),
   attivo: z.boolean().default(true).optional(),
-  note: z.string().optional(),
+  note: z.string().optional().nullable(),
 });
 
 export function PersonaleForm() {
@@ -55,26 +57,56 @@ export function PersonaleForm() {
     defaultValues: {
       nome: "",
       cognome: "",
-      codiceFiscale: "",
+      codiceFiscale: null,
       ruolo: "Pattuglia", // Default to a new valid role
-      telefono: "",
-      email: "",
-      data_nascita: undefined,
-      luogo_nascita: "",
-      indirizzo: "",
-      cap: "",
-      citta: "",
-      provincia: "",
-      data_assunzione: undefined,
-      data_cessazione: undefined,
+      telefono: null,
+      email: null,
+      data_nascita: null,
+      luogo_nascita: null,
+      indirizzo: null,
+      cap: null,
+      citta: null,
+      provincia: null,
+      data_assunzione: null,
+      data_cessazione: null,
       attivo: true,
-      note: "",
+      note: null,
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Dati Personale:", values);
-    // Qui potresti inviare i dati a un backend o gestirli in altro modo
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      nome: values.nome,
+      cognome: values.cognome,
+      codice_fiscale: values.codiceFiscale || null,
+      ruolo: values.ruolo,
+      telefono: values.telefono || null,
+      email: values.email || null,
+      data_nascita: values.data_nascita ? format(values.data_nascita, 'yyyy-MM-dd') : null,
+      luogo_nascita: values.luogo_nascita || null,
+      indirizzo: values.indirizzo || null,
+      cap: values.cap || null,
+      citta: values.citta || null,
+      provincia: values.provincia || null,
+      data_assunzione: values.data_assunzione ? format(values.data_assunzione, 'yyyy-MM-dd') : null,
+      data_cessazione: values.data_cessazione ? format(values.data_cessazione, 'yyyy-MM-dd') : null,
+      attivo: values.attivo,
+      note: values.note || null,
+    };
+
+    const { data, error } = await supabase
+      .from('personale')
+      .insert([payload])
+      .select(); // Use .select() to get the inserted data back
+
+    if (error) {
+      showError(`Errore durante la registrazione del personale: ${error.message}`);
+      console.error("Error inserting personale:", error);
+    } else {
+      showSuccess("Personale salvato con successo!");
+      console.log("Dati Personale salvati:", data);
+      form.reset(); // Reset form after successful submission
+    }
   };
 
   return (
@@ -116,7 +148,7 @@ export function PersonaleForm() {
             <FormItem>
               <FormLabel>Codice Fiscale</FormLabel>
               <FormControl>
-                <Input placeholder="Codice Fiscale" {...field} />
+                <Input placeholder="Codice Fiscale" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -153,7 +185,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>Telefono</FormLabel>
                 <FormControl>
-                  <Input placeholder="Telefono" {...field} />
+                  <Input placeholder="Telefono" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -166,7 +198,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} />
+                  <Input type="email" placeholder="email@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -204,7 +236,7 @@ export function PersonaleForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -222,7 +254,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>Luogo di Nascita</FormLabel>
                 <FormControl>
-                  <Input placeholder="Luogo di Nascita" {...field} />
+                  <Input placeholder="Luogo di Nascita" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -238,7 +270,7 @@ export function PersonaleForm() {
             <FormItem>
               <FormLabel>Indirizzo</FormLabel>
               <FormControl>
-                <Input placeholder="Via, numero civico" {...field} />
+                <Input placeholder="Via, numero civico" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -252,7 +284,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>Città</FormLabel>
                 <FormControl>
-                  <Input placeholder="Città" {...field} />
+                  <Input placeholder="Città" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -265,7 +297,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>CAP</FormLabel>
                 <FormControl>
-                  <Input placeholder="CAP" {...field} />
+                  <Input placeholder="CAP" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -278,7 +310,7 @@ export function PersonaleForm() {
               <FormItem>
                 <FormLabel>Provincia</FormLabel>
                 <FormControl>
-                  <Input placeholder="Provincia" {...field} />
+                  <Input placeholder="Provincia" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -316,7 +348,7 @@ export function PersonaleForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -355,7 +387,7 @@ export function PersonaleForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -397,7 +429,7 @@ export function PersonaleForm() {
             <FormItem>
               <FormLabel>Note Aggiuntive</FormLabel>
               <FormControl>
-                <Textarea placeholder="Note sul personale..." {...field} />
+                <Textarea placeholder="Note sul personale..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
