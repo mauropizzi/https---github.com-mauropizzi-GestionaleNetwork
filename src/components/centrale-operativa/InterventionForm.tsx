@@ -1,23 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  requestTypeOptions,
-  serviceOutcomeOptions,
-} from '@/lib/centrale-options';
-import { format, parseISO, isValid } from 'date-fns';
-import { it } from 'date-fns/locale';
+import { format, parseISO } from 'date-fns';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
@@ -26,10 +9,15 @@ import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio, calculateServiceCost } from '@/lib/data-fetching';
 import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+
+// Import new modular components
+import { EventDetailsSection } from './EventDetailsSection';
+import { InterventionTimesSection } from './InterventionTimesSection';
+import { AccessDetailsSection } from './AccessDetailsSection';
+import { PersonnelSection } from './PersonnelSection';
+import { AnomaliesDelaySection } from './AnomaliesDelaySection';
+import { OutcomeBarcodeSection } from './OutcomeBarcodeSection';
+import { InterventionActionButtons } from './InterventionActionButtons';
 
 interface InterventionFormProps {
   eventId?: string; // Optional ID for editing
