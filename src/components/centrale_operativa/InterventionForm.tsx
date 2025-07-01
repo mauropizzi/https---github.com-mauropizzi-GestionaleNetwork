@@ -100,6 +100,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
+          // Helper to format time strings from DB to HH:mm
+          const formatDbTime = (dbTime: string | null | undefined) => {
+            if (!dbTime) return '';
+            try {
+              // Prepend a dummy date to parse time-only strings correctly with parseISO
+              const parsed = parseISO(`2000-01-01T${dbTime}`);
+              return isValid(parsed) ? format(parsed, 'HH:mm') : '';
+            } catch (e) {
+              console.error("Error parsing DB time:", dbTime, e);
+              return '';
+            }
+          };
+
           // Parse notes back into anomalies/delay fields if they were combined
           let anomalyDescription = '';
           let delayNotes = '';
@@ -132,9 +145,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             servicePoint: event.service_point_code || '',
             requestType: event.request_type || '',
             coOperator: event.co_operator || '',
-            requestTime: event.report_date && event.report_time ? `${event.report_date}T${event.report_time}` : '',
-            startTime: event.start_time || '',
-            endTime: event.end_time || '',
+            requestTime: event.report_date && event.report_time ? `${event.report_date}T${formatDbTime(event.report_time)}` : '',
+            startTime: event.start_time ? formatDbTime(event.start_time) : '',
+            endTime: event.end_time ? formatDbTime(event.end_time) : '',
             fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
             vaultAccess: undefined, // Same as above
             operatorClient: event.operator_client || '',
@@ -271,10 +284,17 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
+    // Ensure requestTime is a valid date string before parsing
+    const parsedRequestDate = requestTime ? parseISO(requestTime) : null;
+    if (!parsedRequestDate || !isValid(parsedRequestDate)) {
+      showError("Formato data/ora richiesta non valido.");
+      return;
+    }
+
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
-      report_date: format(parseISO(requestTime), 'yyyy-MM-dd'),
-      report_time: format(parseISO(requestTime), 'HH:mm:ss'),
+      report_date: format(parsedRequestDate, 'yyyy-MM-dd'),
+      report_time: format(parsedRequestDate, 'HH:mm:ss'),
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
@@ -328,11 +348,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     }
 
     // Ensure start_time and end_time are never null for servizi_richiesti
-    const serviceStartTime = startTime ? format(parseISO(startTime), 'HH:mm:ss') : format(parseISO(requestTime), 'HH:mm:ss');
+    const serviceStartTime = startTime ? format(parseISO(startTime), 'HH:mm:ss') : format(parsedRequestDate, 'HH:mm:ss');
     const serviceEndTime = endTime ? format(parseISO(endTime), 'HH:mm:ss') : serviceStartTime;
 
-    const serviceStartDate = parseISO(format(parseISO(requestTime), 'yyyy-MM-dd'));
-    const serviceEndDate = parseISO(format(endTime ? parseISO(endTime) : parseISO(requestTime), 'yyyy-MM-dd')); // Use end time date if available, else request time
+    const serviceStartDate = parsedRequestDate;
+    const serviceEndDate = endTime ? parseISO(endTime) : parsedRequestDate; // Use end time date if available, else request time
 
     const costDetails = {
       type: "Intervento", // Fixed type for this service
