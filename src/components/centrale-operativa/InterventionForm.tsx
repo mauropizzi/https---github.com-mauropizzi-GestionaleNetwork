@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/use-toast';
-import { format, parseISO } from 'date-fns';
+import {
+  requestTypeOptions,
+  serviceOutcomeOptions,
+} from '@/lib/centrale-options';
+import { format, parseISO, isValid } from 'date-fns';
+import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
@@ -9,15 +26,10 @@ import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio, calculateServiceCost } from '@/lib/data-fetching';
 import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
-
-// Import new modular components
-import { EventDetailsSection } from './EventDetailsSection';
-import { InterventionTimesSection } from './InterventionTimesSection';
-import { AccessDetailsSection } from './AccessDetailsSection';
-import { PersonnelSection } from './PersonnelSection';
-import { AnomaliesDelaySection } from './AnomaliesDelaySection';
-import { OutcomeBarcodeSection } from './OutcomeBarcodeSection';
-import { InterventionActionButtons } from './InterventionActionButtons';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InterventionFormProps {
   eventId?: string; // Optional ID for editing
@@ -487,8 +499,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       fornitore_id: fornitoreId,
       start_date: serviceStartDate,
       end_date: serviceEndDate,
-      start_time: startTime || null,
-      end_time: endTime || null,
+      start_time: startTime ? format(new Date(startTime), 'HH:mm:ss') : null, // Corrected format
+      end_time: endTime ? format(new Date(endTime), 'HH:mm:ss') : null, // Corrected format
       num_agents: 1, // Assuming 1 agent for an intervention
       cadence_hours: null,
       inspection_type: null,
@@ -523,9 +535,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
       start_date: format(serviceStartDate, 'yyyy-MM-dd'),
-      start_time: startTime || null,
+      start_time: startTime ? format(new Date(startTime), 'HH:mm:ss') : null, // Corrected format
       end_date: format(serviceEndDate, 'yyyy-MM-dd'),
-      end_time: endTime || null,
+      end_time: endTime ? format(new Date(endTime), 'HH:mm:ss') : null, // Corrected format
       status: serviceStatus,
       calculated_cost: calculatedCost,
       num_agents: 1, // Assuming 1 agent for an intervention
