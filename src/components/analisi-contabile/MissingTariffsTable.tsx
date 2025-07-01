@@ -30,11 +30,11 @@ interface MissingTariffsTableProps {
 
 export const MissingTariffsTable: React.FC<MissingTariffsTableProps> = ({ data, loading }) => {
   const columns: ColumnDef<MissingTariffEntry>[] = React.useMemo(() => [
-    {
-      accessorKey: "serviceId",
-      header: "ID Servizio",
-      cell: ({ row }) => <span>{row.original.serviceId}</span>,
-    },
+    // {
+    //   accessorKey: "serviceId",
+    //   header: "ID Servizio",
+    //   cell: ({ row }) => <span>{row.original.serviceId}</span>,
+    // },
     {
       accessorKey: "serviceType",
       header: "Tipo Servizio",
