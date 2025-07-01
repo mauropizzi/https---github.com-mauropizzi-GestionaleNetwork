@@ -187,7 +187,6 @@ const IncomingEmailsPage = () => {
                     <SelectValue placeholder="Filtra per cartella" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">Tutte le Cartelle</SelectItem>
                     {folderOptions.map(folder => (
                       <SelectItem key={folder} value={folder}>
                         {folder}
@@ -262,61 +261,15 @@ const IncomingEmailsPage = () => {
                 Da: {selectedEmail.sender_name || selectedEmail.sender_email} - Ricevuto il: {format(new Date(selectedEmail.received_at), 'PPP HH:mm', { locale: it })}
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="flex-1 p-4 border rounded-md my-4">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">Oggetto:</h4>
-                  <p><span>{selectedEmail.subject}</span></p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Cartella:</h4>
-                  <Select onValueChange={(value) => handleUpdateFolder(selectedEmail.id, value)} value={selectedEmail.folder}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Seleziona cartella" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {folderOptions.map(folder => (
-                        <SelectItem key={folder} value={folder}>
-                          {folder}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedEmail.body_html ? (
-                  <div>
-                    <h4 className="font-semibold">Contenuto HTML:</h4>
-                    <div dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} className="border p-2 rounded-md bg-gray-50 dark:bg-gray-700" />
-                  </div>
-                ) : (
-                  <div>
-                    <h4 className="font-semibold">Contenuto Testo:</h4>
-                    <p className="whitespace-pre-wrap border p-2 rounded-md bg-gray-50 dark:bg-gray-700"><span>{selectedEmail.body_text || 'Nessun contenuto testuale.'}</span></p>
-                  </div>
-                )}
-                {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold">Allegati:</h4>
-                    <ul className="list-disc list-inside">
-                      {selectedEmail.attachments.map((att: any, index: number) => (
-                        <li key={index}><span>{att.Filename} ({att.ContentType})</span></li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {selectedEmail.raw_email && (
-                  <div>
-                    <h4 className="font-semibold">Raw Email (per debug):</h4>
-                    <pre className="whitespace-pre-wrap text-xs border p-2 rounded-md bg-gray-50 dark:bg-gray-700 overflow-x-auto">
-                      <span>{JSON.stringify(JSON.parse(selectedEmail.raw_email), null, 2)}</span>
-                    </pre>
-                  </div>
-                )}
+            <React.Fragment> {/* Added explicit React.Fragment here */}
+              <div>
+                <p>Contenuto semplificato per il debug.</p>
+                <p>Oggetto: {selectedEmail.subject}</p>
               </div>
-            </ScrollArea>
-            <div className="flex justify-end">
-              <Button onClick={() => setIsDetailsDialogOpen(false)}>Chiudi</Button>
-            </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setIsDetailsDialogOpen(false)}>Chiudi</Button>
+              </div>
+            </React.Fragment>
           </DialogContent>
         </Dialog>
       )}
