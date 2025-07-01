@@ -61,7 +61,7 @@ const AnalisiContabile = () => {
             <TabsContent value="tariffe-mancanti" className="mt-4">
               <AnalysisFilters
                 clientsList={clientsList}
-                selectedClientId={selectedClientId} // Still pass, but won't be used if showClientFilter is false
+                selectedClientId={selectedClientId}
                 setSelectedClientId={setSelectedClientId}
                 startDateFilter={startDateFilter}
                 setStartDateFilter={setStartDateFilter}
@@ -70,7 +70,7 @@ const AnalisiContabile = () => {
                 handleResetFilters={handleResetFilters}
                 onRefresh={fetchAndIdentifyMissingTariffs}
                 loading={loadingMissingTariffs}
-                showClientFilter={false} // Client filter not relevant for this tab
+                showClientFilter={false}
               />
               <MissingTariffsTable data={missingTariffs} loading={loadingMissingTariffs} />
             </TabsContent>
