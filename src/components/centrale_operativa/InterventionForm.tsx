@@ -117,6 +117,12 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             }
           };
 
+          const requestTimeString = event.report_date && event.report_time ? `${event.report_date}T${formatDbTime(event.report_time)}` : '';
+          const startTimeString = service?.start_date && service?.start_time ? `${service.start_date}T${formatDbTime(service.start_time)}` : '';
+          const endTimeString = service?.end_date && service?.end_time 
+            ? `${service.end_date}T${formatDbTime(service.end_time)}` 
+            : (startTimeString || requestTimeString);
+
           let anomalyDescription = '';
           let delayNotes = '';
           let anomalies: 'si' | 'no' | undefined = undefined;
@@ -148,9 +154,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             servicePoint: event.service_point_code || '',
             requestType: event.request_type || '',
             coOperator: event.co_operator || '',
-            requestTime: event.report_date && event.report_time ? `${event.report_date}T${formatDbTime(event.report_time)}` : '',
-            startTime: service?.start_date && service?.start_time ? `${service.start_date}T${formatDbTime(service.start_time)}` : '',
-            endTime: service?.end_date && service?.end_time ? `${service.end_date}T${formatDbTime(service.end_time)}` : '',
+            requestTime: requestTimeString,
+            startTime: startTimeString || requestTimeString,
+            endTime: endTimeString,
             fullAccess: undefined,
             vaultAccess: undefined,
             operatorClient: event.operator_client || '',
@@ -262,22 +268,26 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     if (requestTime && isValid(parseISO(requestTime))) {
       parsedRequestDateTime = parseISO(requestTime);
     } else {
-      showError("Orario Richiesta è obbligatorio e deve essere valido.");
+      showError("Orario Richiesta è obbligatorio e deve essere un valore valido.");
       return;
     }
 
-    // 2. Parse startTime and endTime from form. They can be empty.
-    const parsedStartTime = startTime ? parseISO(startTime) : null;
-    const parsedEndTime = endTime ? parseISO(endTime) : null;
+    // 2. Validate and parse startTime and endTime
+    let parsedStartTime: Date | null = startTime ? parseISO(startTime) : null;
+    if (startTime && !isValid(parsedStartTime)) {
+      showError("Formato Orario Inizio Intervento non valido.");
+      return;
+    }
 
-    // 3. Determine the final Date objects to use for formatting.
-    // Fallback to requestTime if form fields are empty or invalid.
-    const finalStartDate = (parsedStartTime && isValid(parsedStartTime)) ? parsedStartTime : parsedRequestDateTime;
-    const finalEndDate = (parsedEndTime && isValid(parsedEndTime)) ? parsedEndTime : finalStartDate; // Fallback to start date if end date is invalid
+    let parsedEndTime: Date | null = endTime ? parseISO(endTime) : null;
+    if (endTime && !isValid(parsedEndTime)) {
+      showError("Formato Orario Fine Intervento non valido.");
+      return;
+    }
 
-    // 4. Additional validation for final submission
+    // 3. Additional validation for final submission
     if (isFinal) {
-      if (!startTime || !endTime) { // Check original form values
+      if (!parsedStartTime || !parsedEndTime) {
         showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
         return;
       }
@@ -302,6 +312,12 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     // --- Time processing for DB ---
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
+
+    // Determine final dates and times for the payload
+    // Use request time as a fallback for start time.
+    // Use start time (or its fallback) as a fallback for end time.
+    const finalStartDate = parsedStartTime || parsedRequestDateTime;
+    const finalEndDate = parsedEndTime || finalStartDate;
 
     const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
     const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ss');
