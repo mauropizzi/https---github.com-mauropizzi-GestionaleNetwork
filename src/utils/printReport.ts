@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,16 +68,16 @@ export const printSingleServiceReport = async (reportId: string) => {
   
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
-  doc.text(`Data Creazione: ${format(new Date(report.created_at), "PPP HH:mm", { locale: it })}`, 14, y);
+  doc.text(`Data Creazione: ${report.created_at && isValid(parseISO(report.created_at)) ? format(parseISO(report.created_at), "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Data Intervento: ${format(new Date(report.report_date), "PPP", { locale: it })}`, 14, y);
+  doc.text(`Data Intervento: ${report.report_date && isValid(parseISO(report.report_date)) ? format(parseISO(report.report_date), "PPP", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Ora Intervento: ${report.report_time}`, 14, y);
+  doc.text(`Ora Intervento: ${report.report_time || 'N/A'}`, 14, y);
   y += 7;
 
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
   y += 7;
-  doc.text(`Tipologia Richiesta: ${report.request_type}`, 14, y);
+  doc.text(`Tipologia Richiesta: ${report.request_type || 'N/A'}`, 14, y);
   y += 7;
   doc.text(`Co-Operatore: ${report.co_operator || 'N/A'}`, 14, y);
   y += 7;
