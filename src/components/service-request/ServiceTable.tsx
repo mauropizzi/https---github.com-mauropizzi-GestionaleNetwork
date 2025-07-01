@@ -16,18 +16,15 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { showInfo, showSuccess, showError } from "@/utils/toast";
-import { format, isAfter, isBefore, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Eye, Edit, Trash2, RefreshCcw, CalendarIcon } from "lucide-react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 import { ServiceEditDialog } from "./ServiceEditDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchClienti, fetchPuntiServizio, calculateServiceCost } from "@/lib/data-fetching";
-import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { calculateServiceCost } from "@/lib/data-fetching";
+import { useServiceRequests } from "@/hooks/use-service-requests"; // Import the new hook
+import { ServiceTableFilters } from "./ServiceTableFilters"; // Import the new filter component
 
 interface ServiceRequest {
   id: string;
@@ -51,87 +48,23 @@ interface ServiceRequest {
 }
 
 export function ServiceTable() {
-  const [data, setData] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    startDateFilter,
+    setStartDateFilter,
+    endDateFilter,
+    setEndDateFilter,
+    fetchServices,
+    handleResetFilters,
+    puntiServizioMap, // Still needed for mapping in columns/dialogs
+  } = useServiceRequests();
+
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
-  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
-  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
-
-
-  const fetchServices = useCallback(async () => {
-    setLoading(true);
-    let query = supabase
-      .from('servizi_richiesti')
-      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio, id_cliente)');
-
-    if (startDateFilter) {
-      query = query.gte('start_date', format(startDateFilter, 'yyyy-MM-dd'));
-    }
-    if (endDateFilter) {
-      query = query.lte('end_date', format(endDateFilter, 'yyyy-MM-dd'));
-    }
-
-    const { data: servicesData, error } = await query;
-
-    if (error) {
-      showError(`Errore nel recupero dei servizi: ${error.message}`);
-      console.error("Error fetching services:", error);
-      setData([]);
-    } else {
-      const servicesWithCalculatedCost = await Promise.all(servicesData.map(async (service) => {
-        const serviceStartDate = parseISO(service.start_date);
-        const serviceEndDate = parseISO(service.end_date);
-
-        const costDetails = {
-          type: service.type,
-          client_id: service.client_id,
-          service_point_id: service.service_point_id,
-          fornitore_id: service.fornitore_id,
-          start_date: serviceStartDate,
-          end_date: serviceEndDate,
-          start_time: service.start_time,
-          end_time: service.end_time,
-          num_agents: service.num_agents,
-          cadence_hours: service.cadence_hours,
-          daily_hours_config: service.daily_hours_config,
-          inspection_type: service.inspection_type,
-        };
-        const calculatedRates = await calculateServiceCost(costDetails);
-        return { ...service, calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null };
-      }));
-      setData(servicesWithCalculatedCost || []);
-    }
-    setLoading(false);
-  }, [startDateFilter, endDateFilter]);
-
-  const fetchAnagraficheMaps = useCallback(async () => {
-    const fetchedPuntiServizio = await supabase
-      .from('punti_servizio')
-      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)');
-
-    if (fetchedPuntiServizio.error) {
-      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
-      return;
-    }
-
-    const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
-    fetchedPuntiServizio.data.forEach(ps => {
-      psMap.set(ps.id, {
-        ...ps,
-        nome_cliente: ps.clienti?.nome_cliente || 'N/A'
-      });
-    });
-    setPuntiServizioMap(psMap);
-  }, []);
-
-  useEffect(() => {
-    fetchServices();
-    fetchAnagraficheMaps();
-  }, [fetchServices, fetchAnagraficheMaps]);
 
   const handleView = (service: ServiceRequest) => {
     const clientName = service.clienti?.nome_cliente || 'N/A';
@@ -215,7 +148,7 @@ export function ServiceTable() {
       console.error("Error updating service:", error);
     } else {
       showSuccess(`Servizio ${selectedService.id} aggiornato con successo!`);
-      fetchServices();
+      fetchServices(); // Re-fetch data to update the table
     }
     setIsEditDialogOpen(false);
     setSelectedService(null);
@@ -233,7 +166,7 @@ export function ServiceTable() {
         console.error("Error deleting service:", error);
       } else {
         showSuccess(`Servizio ${serviceId} eliminato con successo!`);
-        fetchServices();
+        fetchServices(); // Re-fetch data to update the table
       }
     } else {
       showInfo(`Eliminazione del servizio ${serviceId} annullata.`);
@@ -360,74 +293,19 @@ export function ServiceTable() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const handleResetFilters = () => {
-    setStartDateFilter(undefined);
-    setEndDateFilter(undefined);
-    setSearchTerm("");
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
-        <Input
-          placeholder="Cerca per tipo, cliente, punto servizio..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full md:w-auto justify-start text-left font-normal",
-                !startDateFilter && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {startDateFilter ? format(startDateFilter, "PPP", { locale: it }) : "Data Inizio"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={startDateFilter}
-              onSelect={setStartDateFilter}
-              initialFocus
-              locale={it}
-            />
-          </PopoverContent>
-        </Popover>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full md:w-auto justify-start text-left font-normal",
-                !endDateFilter && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {endDateFilter ? format(endDateFilter, "PPP", { locale: it }) : "Data Fine"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={endDateFilter}
-              onSelect={setEndDateFilter}
-              initialFocus
-              locale={it}
-            />
-          </PopoverContent>
-        </Popover>
-        <Button variant="outline" onClick={handleResetFilters}>
-          Reset Filtri
-        </Button>
-        <Button variant="outline" onClick={fetchServices} disabled={loading}>
-          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
-        </Button>
-      </div>
+      <ServiceTableFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        startDateFilter={startDateFilter}
+        setStartDateFilter={setStartDateFilter}
+        endDateFilter={endDateFilter}
+        setEndDateFilter={setEndDateFilter}
+        handleResetFilters={handleResetFilters}
+        onRefresh={fetchServices}
+        loading={loading}
+      />
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
