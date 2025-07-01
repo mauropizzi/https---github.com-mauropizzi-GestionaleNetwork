@@ -55,7 +55,18 @@ const formSchema = z.object({
   path: ["data_fine_validita"],
 });
 
-export function TariffeForm() {
+interface TariffeFormProps {
+  prefillData?: {
+    cliente_id?: string;
+    tipo_servizio?: string;
+    punto_servizio_id?: string;
+    fornitore_id?: string;
+    data_inizio_validita?: Date | null;
+    data_fine_validita?: Date | null;
+  } | null;
+}
+
+export function TariffeForm({ prefillData }: TariffeFormProps) {
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]); // Nuovo stato per i fornitori
@@ -87,6 +98,44 @@ export function TariffeForm() {
       note: null,
     },
   });
+
+  // Apply prefill data when available
+  useEffect(() => {
+    if (prefillData) {
+      form.reset({
+        cliente_id: prefillData.cliente_id || "",
+        tipo_servizio: prefillData.tipo_servizio || "",
+        punto_servizio_id: prefillData.punto_servizio_id || "",
+        fornitore_id: prefillData.fornitore_id || "",
+        data_inizio_validita: prefillData.data_inizio_validita,
+        data_fine_validita: prefillData.data_fine_validita,
+        // Keep other fields as their default or current values
+        importo: 0,
+        supplier_rate: 0,
+        unita_misura: "",
+        note: null,
+      });
+      // Also set the unit of measure based on service type if it's one of the fixed ones
+      let defaultUnitaMisura = "";
+      switch (prefillData.tipo_servizio) {
+        case "Piantonamento":
+        case "Servizi Fiduciari":
+          defaultUnitaMisura = "ora";
+          break;
+        case "Ispezioni":
+        case "Bonifiche":
+        case "Gestione Chiavi":
+        case "Apertura/Chiusura":
+        case "Intervento":
+          defaultUnitaMisura = "intervento";
+          break;
+      }
+      if (defaultUnitaMisura) {
+        form.setValue("unita_misura", defaultUnitaMisura, { shouldValidate: true });
+      }
+    }
+  }, [prefillData, form]);
+
 
   // Watch for changes in tipo_servizio to auto-set unita_misura
   const tipoServizio = form.watch("tipo_servizio");

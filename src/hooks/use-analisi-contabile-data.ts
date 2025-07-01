@@ -25,8 +25,12 @@ interface MissingTariffEntry {
   serviceId: string;
   serviceType: string;
   clientName: string;
+  clientId: string; // Added
   servicePointName?: string;
+  servicePointId?: string; // Added
+  fornitoreId?: string; // Added
   startDate: string;
+  endDate: string; // Added for pre-filling tariff form
   reason: string;
 }
 
@@ -183,8 +187,12 @@ export const useAnalisiContabileData = () => {
             serviceId: service.id,
             serviceType: service.type,
             clientName: clientNameMap.get(service.client_id) || 'Cliente Sconosciuto',
+            clientId: service.client_id, // Include client ID
             servicePointName: servicePointNameMap.get(service.service_point_id) || 'Punto Servizio Sconosciuto',
-            startDate: format(serviceStartDate, 'PPP', { locale: it }),
+            servicePointId: service.service_point_id, // Include service point ID
+            fornitoreId: service.fornitore_id, // Include fornitore ID
+            startDate: format(serviceStartDate, 'yyyy-MM-dd'),
+            endDate: format(serviceEndDate, 'yyyy-MM-dd'), // Include end date
             reason: "Nessuna tariffa corrispondente trovata per il periodo e il tipo di servizio.",
           });
         }

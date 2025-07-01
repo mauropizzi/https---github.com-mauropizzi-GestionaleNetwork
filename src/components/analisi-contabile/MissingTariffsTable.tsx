@@ -13,13 +13,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MissingTariffEntry {
   serviceId: string;
   serviceType: string;
   clientName: string;
+  clientId: string;
   servicePointName?: string;
+  servicePointId?: string;
+  fornitoreId?: string;
   startDate: string;
+  endDate: string;
   reason: string;
 }
 
@@ -29,12 +36,26 @@ interface MissingTariffsTableProps {
 }
 
 export const MissingTariffsTable: React.FC<MissingTariffsTableProps> = ({ data, loading }) => {
+  const navigate = useNavigate();
+
+  const handleInsertTariff = (entry: MissingTariffEntry) => {
+    const queryParams = new URLSearchParams();
+    queryParams.append("tab", "nuova-tariffa");
+    queryParams.append("clientId", entry.clientId);
+    queryParams.append("serviceType", entry.serviceType);
+    if (entry.servicePointId) {
+      queryParams.append("servicePointId", entry.servicePointId);
+    }
+    if (entry.fornitoreId) {
+      queryParams.append("fornitoreId", entry.fornitoreId);
+    }
+    queryParams.append("startDate", entry.startDate);
+    queryParams.append("endDate", entry.endDate);
+
+    navigate(`/anagrafiche/tariffe?${queryParams.toString()}`);
+  };
+
   const columns: ColumnDef<MissingTariffEntry>[] = React.useMemo(() => [
-    // {
-    //   accessorKey: "serviceId",
-    //   header: "ID Servizio",
-    //   cell: ({ row }) => <span>{row.original.serviceId}</span>,
-    // },
     {
       accessorKey: "serviceType",
       header: "Tipo Servizio",
@@ -48,7 +69,7 @@ export const MissingTariffsTable: React.FC<MissingTariffsTableProps> = ({ data, 
     {
       accessorKey: "servicePointName",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.servicePointName}</span>,
+      cell: ({ row }) => <span>{row.original.servicePointName || 'N/A'}</span>,
     },
     {
       accessorKey: "startDate",
@@ -59,6 +80,20 @@ export const MissingTariffsTable: React.FC<MissingTariffsTableProps> = ({ data, 
       accessorKey: "reason",
       header: "Motivo",
       cell: ({ row }) => <span>{row.original.reason}</span>,
+    },
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleInsertTariff(row.original)}
+          title="Inserisci Tariffa"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" /> Inserisci Tariffa
+        </Button>
+      ),
     },
   ], []);
 

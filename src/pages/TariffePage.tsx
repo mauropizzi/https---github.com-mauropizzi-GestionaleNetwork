@@ -16,19 +16,48 @@ import { ImportSummaryDialog } from "@/components/anagrafiche/ImportSummaryDialo
 
 const TariffePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "lista-tariffe"; // Changed default tab
+  const [currentTab, setCurrentTab] = useState(searchParams.get("tab") || "lista-tariffe"); // Changed default tab
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
   const [refreshTable, setRefreshTable] = useState(false); // State to trigger table refresh
 
-  const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value });
-  };
+  // State for pre-fill data
+  const [prefillData, setPrefillData] = useState<any>(null);
 
   useEffect(() => {
-    if (!searchParams.get("tab")) {
-      setSearchParams({ tab: "lista-tariffe" }); // Changed default tab
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      setCurrentTab(tabParam);
+    } else {
+      setSearchParams({ tab: "lista-tariffe" });
     }
+
+    // Check for pre-fill parameters
+    const clientId = searchParams.get("clientId");
+    const serviceType = searchParams.get("serviceType");
+    const servicePointId = searchParams.get("servicePointId");
+    const fornitoreId = searchParams.get("fornitoreId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+
+    if (clientId && serviceType) {
+      setPrefillData({
+        cliente_id: clientId,
+        tipo_servizio: serviceType,
+        punto_servizio_id: servicePointId || "",
+        fornitore_id: fornitoreId || "",
+        data_inizio_validita: startDate ? new Date(startDate) : null,
+        data_fine_validita: endDate ? new Date(endDate) : null,
+      });
+      setCurrentTab("nuova-tariffa"); // Switch to new tariff tab
+      // Clear search params after reading them to avoid persistent pre-fill
+      const newSearchParams = new URLSearchParams();
+      newSearchParams.set("tab", "nuova-tariffa");
+      setSearchParams(newSearchParams, { replace: true });
+    } else {
+      setPrefillData(null); // Clear prefill data if no params
+    }
+
   }, [searchParams, setSearchParams]);
 
   // Effect to trigger table refresh when `refreshTable` changes
@@ -108,13 +137,13 @@ const TariffePage = () => {
             </Label>
           </div>
 
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="nuova-tariffa">Nuova Tariffa</TabsTrigger>
               <TabsTrigger value="lista-tariffe">Lista Tariffe</TabsTrigger>
             </TabsList>
             <TabsContent value="nuova-tariffa" className="mt-4">
-              <TariffeForm />
+              <TariffeForm prefillData={prefillData} />
             </TabsContent>
             <TabsContent value="lista-tariffe" className="mt-4">
               <TariffeTable key={refreshTable ? 'refresh' : 'no-refresh'} />
