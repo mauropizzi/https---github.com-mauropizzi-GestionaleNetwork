@@ -53,29 +53,72 @@ const formSchema = z.object({
   path: ["endDate"],
 });
 
-export function AperturaChiusuraForm() {
+interface AperturaChiusuraFormProps {
+  serviceId?: string;
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: AperturaChiusuraFormProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio);
-      setFornitori(fetchedFornitori);
-    };
-    loadData();
-  }, []);
+  const [loadingInitialData, setLoadingInitialData] = useState(!!serviceId);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       servicePointId: "",
       fornitoreId: "",
+      startDate: new Date(),
       startTime: "09:00",
+      endDate: new Date(),
       endTime: "17:00",
     },
   });
+
+  useEffect(() => {
+    const loadInitialServiceData = async () => {
+      if (serviceId) {
+        setLoadingInitialData(true);
+        const { data: service, error } = await supabase
+          .from('servizi_richiesti')
+          .select('*')
+          .eq('id', serviceId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero del servizio: ${error.message}`);
+          console.error("Error fetching service for edit:", error);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (service) {
+          form.reset({
+            servicePointId: service.service_point_id || "",
+            fornitoreId: service.fornitore_id || "",
+            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            startTime: service.start_time || "09:00",
+            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            endTime: service.end_time || "17:00",
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+
+    loadInitialServiceData();
+  }, [serviceId, form]);
+
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      const fetchedFornitori = await fetchFornitori();
+      setPuntiServizio(fetchedPuntiServizio);
+      setFornitori(fetchedFornitori);
+    };
+    loadDropdownData();
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
@@ -103,32 +146,45 @@ export function AperturaChiusuraForm() {
       type: "Apertura/Chiusura",
       client_id: clientId,
       service_point_id: values.servicePointId,
-      fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
+      fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: values.endTime,
       status: "Pending",
-      calculated_cost: calculatedCost, // Now including the calculated cost
+      calculated_cost: calculatedCost,
       num_agents: null,
       cadence_hours: null,
       inspection_type: null,
       daily_hours_config: null,
     };
 
-    const { data, error } = await supabase
-      .from('servizi_richiesti')
-      .insert([payload]);
-
-    if (error) {
-      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
-      console.error("Error inserting service request:", error);
+    let result;
+    if (serviceId) {
+      result = await supabase
+        .from('servizi_richiesti')
+        .update(payload)
+        .eq('id', serviceId);
     } else {
-      showSuccess("Richiesta di apertura/chiusura registrata con successo!");
-      console.log("Service request saved successfully:", data);
+      result = await supabase
+        .from('servizi_richiesti')
+        .insert([payload]);
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${serviceId ? 'modifica' : 'registrazione'} della richiesta: ${result.error.message}`);
+      console.error(`Error ${serviceId ? 'updating' : 'inserting'} service request:`, result.error);
+    } else {
+      showSuccess(`Richiesta di apertura/chiusura ${serviceId ? 'modificata' : 'registrata'} con successo!`);
+      console.log(`Service request ${serviceId ? 'updated' : 'saved'} successfully:`, result.data);
       form.reset();
+      onSaveSuccess?.();
     }
   };
+
+  if (loadingInitialData) {
+    return <div className="text-center py-8">Caricamento dati servizio...</div>;
+  }
 
   return (
     <Form {...form}>
@@ -278,7 +334,7 @@ export function AperturaChiusuraForm() {
             name="endTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ora di fine servizio (HH:MM)</FormLabel>
+                <FormLabel>Ora di fine servizio (HH:MM)</Label>
                 <FormControl>
                   <Input type="text" placeholder="17:00" {...field} />
                 </FormControl>
@@ -287,7 +343,16 @@ export function AperturaChiusuraForm() {
             )}
           />
         </div>
-        <Button type="submit" className="w-full">Registra Richiesta</Button>
+        <div className="flex justify-end gap-2 mt-6">
+          {serviceId && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button type="submit" className="w-full">
+            {serviceId ? "Salva Modifiche" : "Registra Richiesta"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

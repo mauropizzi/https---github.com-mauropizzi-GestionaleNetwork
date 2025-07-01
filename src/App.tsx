@@ -25,7 +25,8 @@ import PublicSuccessPage from "./pages/PublicSuccessPage";
 import Login from "./pages/Login";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
 import IncomingEmailsPage from "./pages/IncomingEmails";
-import AnalisiContabile from "./pages/AnalisiContabile"; // Import the new page
+import AnalisiContabile from "./pages/AnalisiContabile";
+import EditServiceRequestPage from "./pages/EditServiceRequestPage"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -82,12 +83,13 @@ const App = () => (
                   <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
                   <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
                   <Route path="service-list" element={<ServiceList />} />
+                  <Route path="service-list/edit/:id" element={<EditServiceRequestPage />} /> {/* New route for editing service requests */}
                   <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
                   <Route path="centrale-operativa" element={<CentraleOperativa />} />
                   <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
                   <Route path="servizi-a-canone" element={<ServiziCanone />} />
                   <Route path="incoming-emails" element={<IncomingEmailsPage />} />
-                  <Route path="analisi-contabile" element={<AnalisiContabile />} /> {/* New route */}
+                  <Route path="analisi-contabile" element={<AnalisiContabile />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Route>

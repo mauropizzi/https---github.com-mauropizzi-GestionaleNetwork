@@ -69,25 +69,24 @@ const formSchema = z.object({
   path: ["endDate"],
 });
 
-export function IspezioniForm() {
+interface IspezioniFormProps {
+  serviceId?: string;
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniFormProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio);
-      setFornitori(fetchedFornitori);
-    };
-    loadData();
-  }, []);
+  const [loadingInitialData, setLoadingInitialData] = useState(!!serviceId);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       servicePointId: "",
       fornitoreId: "",
+      startDate: new Date(),
+      endDate: new Date(),
       cadenceHours: 2,
       inspectionType: "perimetrale",
       dailyHours: [
@@ -103,13 +102,66 @@ export function IspezioniForm() {
     },
   });
 
+  useEffect(() => {
+    const loadInitialServiceData = async () => {
+      if (serviceId) {
+        setLoadingInitialData(true);
+        const { data: service, error } = await supabase
+          .from('servizi_richiesti')
+          .select('*')
+          .eq('id', serviceId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero del servizio: ${error.message}`);
+          console.error("Error fetching service for edit:", error);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (service) {
+          form.reset({
+            servicePointId: service.service_point_id || "",
+            fornitoreId: service.fornitore_id || "",
+            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            cadenceHours: service.cadence_hours || 2,
+            inspectionType: (service.inspection_type as "perimetrale" | "interna" | "completa") || "perimetrale",
+            dailyHours: service.daily_hours_config || [
+              { day: "Lunedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Martedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Mercoledì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Giovedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Venerdì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Sabato", startTime: "09:00", endTime: "13:00", is24h: false },
+              { day: "Domenica", startTime: "", endTime: "", is24h: true },
+              { day: "Festivi", startTime: "", endTime: "", is24h: true },
+            ],
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+
+    loadInitialServiceData();
+  }, [serviceId, form]);
+
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      const fetchedFornitori = await fetchFornitori();
+      setPuntiServizio(fetchedPuntiServizio);
+      setFornitori(fetchedFornitori);
+    };
+    loadDropdownData();
+  }, []);
+
   const { fields } = useFieldArray({
     control: form.control,
     name: "dailyHours",
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
@@ -118,11 +170,8 @@ export function IspezioniForm() {
       return;
     }
 
-    // Determine start_time and end_time from daily_hours_config for database insertion
-    // This is a simplification, as daily_hours_config is more granular.
-    // The database only stores one start_time and one end_time for the main record.
-    let effectiveStartTime = "00:00"; // Default to start of day
-    let effectiveEndTime = "23:59"; // Default to end of day
+    let effectiveStartTime = "00:00";
+    let effectiveEndTime = "23:59";
 
     const firstValidDayConfig = values.dailyHours.find(d => d.is24h || (d.startTime && d.endTime));
     if (firstValidDayConfig) {
@@ -145,41 +194,55 @@ export function IspezioniForm() {
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
       daily_hours_config: values.dailyHours,
+      start_time: effectiveStartTime, // Pass to cost calculation
+      end_time: effectiveEndTime, // Pass to cost calculation
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);
 
-    // Prepare data for Supabase insertion
     const payload = {
-      type: "Ispezioni", // Fixed type for this form
-      client_id: clientId, // Now correctly setting client_id
+      type: "Ispezioni",
+      client_id: clientId,
       service_point_id: values.servicePointId,
-      fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
+      fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
-      start_time: effectiveStartTime, // Popola con l'orario effettivo
+      start_time: effectiveStartTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
-      end_time: effectiveEndTime, // Popola con l'orario effettivo
-      status: "Pending", // Default status
-      calculated_cost: calculatedCost, // Now including the calculated cost
-      num_agents: null, // Not applicable for Ispezioni
+      end_time: effectiveEndTime,
+      status: "Pending",
+      calculated_cost: calculatedCost,
+      num_agents: null,
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
-      daily_hours_config: values.dailyHours, // Save the daily hours configuration
+      daily_hours_config: values.dailyHours,
     };
 
-    const { data, error } = await supabase
-      .from('servizi_richiesti')
-      .insert([payload]);
-
-    if (error) {
-      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
-      console.error("Error inserting service request:", error);
+    let result;
+    if (serviceId) {
+      result = await supabase
+        .from('servizi_richiesti')
+        .update(payload)
+        .eq('id', serviceId);
     } else {
-      showSuccess("Richiesta di ispezione registrata con successo!");
-      console.log("Service request saved successfully:", data);
-      form.reset(); // Reset form after successful submission
+      result = await supabase
+        .from('servizi_richiesti')
+        .insert([payload]);
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${serviceId ? 'modifica' : 'registrazione'} della richiesta: ${result.error.message}`);
+      console.error(`Error ${serviceId ? 'updating' : 'inserting'} service request:`, result.error);
+    } else {
+      showSuccess(`Richiesta di ispezione ${serviceId ? 'modificata' : 'registrata'} con successo!`);
+      console.log(`Service request ${serviceId ? 'updated' : 'saved'} successfully:`, result.data);
+      form.reset();
+      onSaveSuccess?.();
     }
   };
+
+  if (loadingInitialData) {
+    return <div className="text-center py-8">Caricamento dati servizio...</div>;
+  }
 
   return (
     <Form {...form}>
@@ -420,7 +483,16 @@ export function IspezioniForm() {
           ))}
         </div>
 
-        <Button type="submit" className="w-full">Registra Richiesta</Button>
+        <div className="flex justify-end gap-2 mt-6">
+          {serviceId && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button type="submit" className="w-full">
+            {serviceId ? "Salva Modifiche" : "Registra Richiesta"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

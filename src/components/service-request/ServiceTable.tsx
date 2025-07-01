@@ -20,11 +20,12 @@ import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
-import { ServiceEditDialog } from "./ServiceEditDialog";
+// import { ServiceEditDialog } from "./ServiceEditDialog"; // REMOVE THIS IMPORT
 import { supabase } from "@/integrations/supabase/client";
 import { calculateServiceCost } from "@/lib/data-fetching";
-import { useServiceRequests } from "@/hooks/use-service-requests"; // Import the new hook
-import { ServiceTableFilters } from "./ServiceTableFilters"; // Import the new filter component
+import { useServiceRequests } from "@/hooks/use-service-requests";
+import { ServiceTableFilters } from "./ServiceTableFilters";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 interface ServiceRequest {
   id: string;
@@ -37,7 +38,7 @@ interface ServiceRequest {
   end_time?: string | null;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   calculated_cost?: number | null;
-  multiplier?: number | null; // Added multiplier field
+  multiplier?: number | null;
   num_agents?: number | null;
   cadence_hours?: number | null;
   inspection_type?: string | null;
@@ -49,6 +50,7 @@ interface ServiceRequest {
 }
 
 export function ServiceTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const {
     data,
     loading,
@@ -60,11 +62,10 @@ export function ServiceTable() {
     setEndDateFilter,
     fetchServices,
     handleResetFilters,
-    puntiServizioMap, // Still needed for mapping in columns/dialogs
+    puntiServizioMap,
   } = useServiceRequests();
 
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
 
   const handleView = (service: ServiceRequest) => {
@@ -78,74 +79,24 @@ export function ServiceTable() {
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
       cost: service.calculated_cost || undefined,
+      // The following fields are already part of ServiceRequest, but were explicitly added to the dialog's interface
+      // and might need to be mapped if the dialog's interface is not directly ServiceRequest
+      startTime: service.start_time || undefined,
+      endTime: service.end_time || undefined,
+      numAgents: service.num_agents || undefined,
+      cadenceHours: service.cadence_hours || undefined,
+      inspectionType: service.inspection_type || undefined,
+      dailyHoursConfig: service.daily_hours_config || undefined,
     });
     setIsDetailsDialogOpen(true);
   };
 
   const handleEdit = (service: ServiceRequest) => {
-    // Pass the raw service object directly. The dialog will handle display names.
-    setSelectedService(service);
-    setIsEditDialogOpen(true);
+    // Navigate to the dedicated edit page for this service
+    navigate(`/service-list/edit/${service.id}`);
   };
 
-  const handleSaveEdit = async (updatedFormValues: any) => {
-    if (!selectedService) {
-      showError("Nessun servizio selezionato per la modifica.");
-      return;
-    }
-
-    // Reconstruct the payload using original service data and updated form values
-    const payload = {
-      ...selectedService, // Start with all original fields
-      type: updatedFormValues.type,
-      status: updatedFormValues.status,
-      // If other fields were editable in ServiceEditDialog, they would be mapped here:
-      // start_date: format(updatedFormValues.startDate, 'yyyy-MM-dd'),
-      // end_date: format(updatedFormValues.endDate, 'yyyy-MM-dd'),
-      // num_agents: updatedFormValues.numAgents,
-      // etc.
-    };
-
-    // Recalculate cost based on potentially updated values (even if only type/status are editable now)
-    const costDetails = {
-      type: payload.type,
-      client_id: payload.client_id,
-      service_point_id: payload.service_point_id,
-      fornitore_id: payload.fornitore_id,
-      start_date: parseISO(payload.start_date),
-      end_date: parseISO(payload.end_date),
-      start_time: payload.start_time,
-      end_time: payload.end_time,
-      num_agents: payload.num_agents,
-      cadence_hours: payload.cadence_hours,
-      daily_hours_config: payload.daily_hours_config,
-      inspection_type: payload.inspection_type,
-    };
-    const calculatedRates = await calculateServiceCost(costDetails);
-    payload.calculated_cost = calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null;
-    payload.multiplier = calculatedRates ? calculatedRates.multiplier : null; // Update multiplier on save
-
-    const { data, error } = await supabase
-      .from('servizi_richiesti')
-      .update({
-        type: payload.type,
-        status: payload.status,
-        calculated_cost: payload.calculated_cost,
-        // Add other fields here if they become editable in ServiceEditDialog
-      })
-      .eq('id', selectedService.id)
-      .select();
-
-    if (error) {
-      showError(`Errore durante l'aggiornamento del servizio: ${error.message}`);
-      console.error("Error updating service:", error);
-    } else {
-      showSuccess(`Servizio ${selectedService.id} aggiornato con successo!`);
-      fetchServices(); // Re-fetch data to update the table
-    }
-    setIsEditDialogOpen(false);
-    setSelectedService(null);
-  };
+  // REMOVE handleSaveEdit as it's now handled by the dedicated edit page
 
   const handleDelete = async (serviceId: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il servizio ${serviceId}?`)) {
@@ -159,7 +110,7 @@ export function ServiceTable() {
         console.error("Error deleting service:", error);
       } else {
         showSuccess(`Servizio ${serviceId} eliminato con successo!`);
-        fetchServices(); // Re-fetch data to update the table
+        fetchServices();
       }
     } else {
       showInfo(`Eliminazione del servizio ${serviceId} annullata.`);
@@ -236,8 +187,8 @@ export function ServiceTable() {
       },
     },
     {
-      accessorKey: "multiplier", // Changed accessorKey to multiplier
-      header: "Numero Ore/Servizi", // Updated header
+      accessorKey: "multiplier",
+      header: "Numero Ore/Servizi",
       cell: ({ row }) => {
         const multiplier = row.original.multiplier;
         let unit = "";
@@ -254,7 +205,7 @@ export function ServiceTable() {
             unit = "interventi";
             break;
           default:
-            unit = ""; 
+            unit = "";
         }
         return (
           <span>
@@ -390,14 +341,7 @@ export function ServiceTable() {
         } : null}
       />
 
-      {selectedService && (
-        <ServiceEditDialog
-          isOpen={isEditDialogOpen}
-          onClose={() => setIsEditDialogOpen(false)}
-          service={selectedService} // Pass the full service object
-          onSave={handleSaveEdit}
-        />
-      )}
+      {/* ServiceEditDialog is no longer used here */}
     </div>
   );
 }

@@ -72,26 +72,25 @@ const formSchema = z.object({
   path: ["endDate"],
 });
 
-export function ServiziFiduciariForm() {
+interface ServiziFiduciariFormProps {
+  serviceId?: string;
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: ServiziFiduciariFormProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio);
-      setFornitori(fetchedFornitori);
-    };
-    loadData();
-  }, []);
+  const [loadingInitialData, setLoadingInitialData] = useState(!!serviceId);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       servicePointId: "",
       fornitoreId: "",
+      startDate: new Date(),
       startTime: "09:00",
+      endDate: new Date(),
       endTime: "17:00",
       numAgents: 1,
       dailyHours: [
@@ -107,13 +106,67 @@ export function ServiziFiduciariForm() {
     },
   });
 
+  useEffect(() => {
+    const loadInitialServiceData = async () => {
+      if (serviceId) {
+        setLoadingInitialData(true);
+        const { data: service, error } = await supabase
+          .from('servizi_richiesti')
+          .select('*')
+          .eq('id', serviceId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero del servizio: ${error.message}`);
+          console.error("Error fetching service for edit:", error);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (service) {
+          form.reset({
+            servicePointId: service.service_point_id || "",
+            fornitoreId: service.fornitore_id || "",
+            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            startTime: service.start_time || "09:00",
+            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            endTime: service.end_time || "17:00",
+            numAgents: service.num_agents || 1,
+            dailyHours: service.daily_hours_config || [
+              { day: "Lunedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Martedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Mercoledì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Giovedì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Venerdì", startTime: "09:00", endTime: "17:00", is24h: false },
+              { day: "Sabato", startTime: "09:00", endTime: "13:00", is24h: false },
+              { day: "Domenica", startTime: "", endTime: "", is24h: true },
+              { day: "Festivi", startTime: "", endTime: "", is24h: true },
+            ],
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+
+    loadInitialServiceData();
+  }, [serviceId, form]);
+
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      const fetchedFornitori = await fetchFornitori();
+      setPuntiServizio(fetchedPuntiServizio);
+      setFornitori(fetchedFornitori);
+    };
+    loadDropdownData();
+  }, []);
+
   const { fields } = useFieldArray({
     control: form.control,
     name: "dailyHours",
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Get the client_id from the selected service point
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
@@ -137,7 +190,6 @@ export function ServiziFiduciariForm() {
 
     const calculatedCost = await calculateServiceCost(costDetails);
 
-    // Prepare data for Supabase insertion
     const payload = {
       type: "Servizi Fiduciari", // Fixed type for this form
       client_id: clientId, // Now correctly setting client_id
@@ -155,19 +207,32 @@ export function ServiziFiduciariForm() {
       daily_hours_config: values.dailyHours, // Save the daily hours configuration
     };
 
-    const { data, error } = await supabase
-      .from('servizi_richiesti')
-      .insert([payload]);
-
-    if (error) {
-      showError(`Errore durante la registrazione della richiesta: ${error.message}`);
-      console.error("Error inserting service request:", error);
+    let result;
+    if (serviceId) {
+      result = await supabase
+        .from('servizi_richiesti')
+        .update(payload)
+        .eq('id', serviceId);
     } else {
-      showSuccess("Richiesta di servizi fiduciari registrata con successo!");
-      console.log("Service request saved successfully:", data);
-      form.reset(); // Reset form after successful submission
+      result = await supabase
+        .from('servizi_richiesti')
+        .insert([payload]);
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${serviceId ? 'modifica' : 'registrazione'} della richiesta: ${result.error.message}`);
+      console.error(`Error ${serviceId ? 'updating' : 'inserting'} service request:`, result.error);
+    } else {
+      showSuccess(`Richiesta di servizi fiduciari ${serviceId ? 'modificata' : 'registrata'} con successo!`);
+      console.log(`Service request ${serviceId ? 'updated' : 'saved'} successfully:`, result.data);
+      form.reset();
+      onSaveSuccess?.();
     }
   };
+
+  if (loadingInitialData) {
+    return <div className="text-center py-8">Caricamento dati servizio...</div>;
+  }
 
   return (
     <Form {...form}>
@@ -412,7 +477,16 @@ export function ServiziFiduciariForm() {
           ))}
         </div>
 
-        <Button type="submit" className="w-full">Registra Richiesta</Button>
+        <div className="flex justify-end gap-2 mt-6">
+          {serviceId && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button type="submit" className="w-full">
+            {serviceId ? "Salva Modifiche" : "Registra Richiesta"}
+          </Button>
+        </div>
       </form>
     </Form>
   );
