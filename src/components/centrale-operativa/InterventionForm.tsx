@@ -16,7 +16,7 @@ import {
   requestTypeOptions,
   serviceOutcomeOptions,
 } from '@/lib/centrale-options';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
@@ -29,10 +29,15 @@ import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-da
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { operatorClientOptions } from '@/lib/centrale-options';
 import { cn } from "@/lib/utils";
 
-export function InterventionForm() {
+interface InterventionFormProps {
+  eventId?: string; // Optional ID for editing
+  onSaveSuccess?: () => void; // Callback for successful save/update
+  onCancel?: () => void; // Callback for cancel
+}
+
+export function InterventionForm({ eventId, onSaveSuccess, onCancel }: InterventionFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     servicePoint: '',
@@ -64,9 +69,10 @@ export function InterventionForm() {
   const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
   const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false);
+  const [loadingInitialData, setLoadingInitialData] = useState(!!eventId);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadDropdownData = async () => {
       const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
       setOperatoriNetworkList(fetchedOperatoriNetwork);
 
@@ -79,8 +85,84 @@ export function InterventionForm() {
       const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
       setCoOperatorsPersonnel(fetchedCoOperators);
     };
-    loadData();
+    loadDropdownData();
   }, []);
+
+  useEffect(() => {
+    const loadEventDataForEdit = async () => {
+      if (eventId) {
+        setLoadingInitialData(true);
+        const { data: event, error } = await supabase
+          .from('allarme_interventi')
+          .select('*')
+          .eq('id', eventId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero dell'evento: ${error.message}`);
+          console.error("Error fetching alarm event for edit:", error);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (event) {
+          // Parse notes back into anomalies/delay fields if they were combined
+          let anomalyDescription = '';
+          let delayNotes = '';
+          let anomalies: 'si' | 'no' | undefined = undefined;
+          let delay: 'si' | 'no' | undefined = undefined;
+
+          if (event.notes) {
+            const notesArray = event.notes.split('; ').map((s: string) => s.trim());
+            const anomalyMatch = notesArray.find((note: string) => note.startsWith('Anomalie:'));
+            const delayMatch = notesArray.find((note: string) => note.startsWith('Ritardo:'));
+
+            if (anomalyMatch) {
+              anomalies = 'si';
+              anomalyDescription = anomalyMatch.replace('Anomalie:', '').trim();
+            } else {
+              anomalies = 'no';
+            }
+            if (delayMatch) {
+              delay = 'si';
+              delayNotes = delayMatch.replace('Ritardo:', '').trim();
+            } else {
+              delay = 'no';
+            }
+          } else {
+            anomalies = 'no';
+            delay = 'no';
+          }
+
+          setFormData({
+            servicePoint: event.service_point_code || '',
+            requestType: event.request_type || '',
+            coOperator: event.co_operator || '',
+            requestTime: event.report_date && event.report_time ? `${event.report_date}T${event.report_time}` : '',
+            startTime: event.start_time || '',
+            endTime: event.end_time || '',
+            fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
+            vaultAccess: undefined, // Same as above
+            operatorClient: event.operator_client || '',
+            gpgIntervention: event.gpg_intervention || '',
+            anomalies: anomalies,
+            anomalyDescription: anomalyDescription,
+            delay: delay,
+            delayNotes: delayNotes,
+            serviceOutcome: event.service_outcome || '',
+            barcode: '', // Barcode is not stored in DB, so it remains empty
+            startLatitude: event.start_latitude || undefined,
+            startLongitude: event.start_longitude || undefined,
+            endLatitude: event.end_latitude || undefined,
+            endLongitude: event.end_longitude || undefined,
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+    loadEventDataForEdit();
+  }, [eventId]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -367,16 +449,26 @@ export function InterventionForm() {
       end_longitude: endLongitude || null,
     };
 
-    const { data, error } = await supabase
-      .from('allarme_interventi')
-      .insert([payload]);
-
-    if (error) {
-      showError(`Errore durante la registrazione dell'evento: ${error.message}`);
-      console.error("Error inserting alarm event:", error);
+    let result;
+    if (eventId) {
+      // Update existing record
+      result = await supabase
+        .from('allarme_interventi')
+        .update(payload)
+        .eq('id', eventId);
     } else {
-      showSuccess(`Evento ${isFinal ? 'chiuso' : 'registrato'} con successo!`);
-      console.log("Event saved successfully:", data);
+      // Insert new record
+      result = await supabase
+        .from('allarme_interventi')
+        .insert([payload]);
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} dell'evento: ${result.error.message}`);
+      console.error(`Error ${eventId ? 'updating' : 'inserting'} alarm event:`, result.error);
+    } else {
+      showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} con successo!`);
+      console.log(`Event ${eventId ? 'updated' : 'saved'} successfully:`, result.data);
       setFormData({ // Reset form
         servicePoint: '',
         requestType: '',
@@ -399,6 +491,7 @@ export function InterventionForm() {
         endLatitude: undefined,
         endLongitude: undefined,
       });
+      onSaveSuccess?.(); // Call success callback
     }
   };
 
@@ -413,6 +506,10 @@ export function InterventionForm() {
   };
 
   const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+
+  if (loadingInitialData) {
+    return <div className="text-center py-8">Caricamento dati evento...</div>;
+  }
 
   return (
     <form onSubmit={handleCloseEvent} className="space-y-4">
@@ -842,12 +939,28 @@ export function InterventionForm() {
         <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
           STAMPA PDF
         </Button>
-        <Button type="button" className="w-full bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
-          REGISTRA EVENTO
-        </Button>
-        <Button type="submit" className="w-full">
-          Chiudi Evento
-        </Button>
+        {eventId ? (
+          <>
+            <Button type="button" className="w-full bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
+              Salva Modifiche (In Corso)
+            </Button>
+            <Button type="submit" className="w-full">
+              Chiudi Evento (Completa)
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" className="w-full bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
+              REGISTRA EVENTO
+            </Button>
+            <Button type="submit" className="w-full">
+              Chiudi Evento
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );
