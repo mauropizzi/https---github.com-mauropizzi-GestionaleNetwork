@@ -118,6 +118,23 @@ export function IspezioniForm() {
       return;
     }
 
+    // Determine start_time and end_time from daily_hours_config for database insertion
+    // This is a simplification, as daily_hours_config is more granular.
+    // The database only stores one start_time and one end_time for the main record.
+    let effectiveStartTime = "00:00"; // Default to start of day
+    let effectiveEndTime = "23:59"; // Default to end of day
+
+    const firstValidDayConfig = values.dailyHours.find(d => d.is24h || (d.startTime && d.endTime));
+    if (firstValidDayConfig) {
+        if (firstValidDayConfig.is24h) {
+            effectiveStartTime = "00:00";
+            effectiveEndTime = "23:59";
+        } else {
+            effectiveStartTime = firstValidDayConfig.startTime;
+            effectiveEndTime = firstValidDayConfig.endTime;
+        }
+    }
+
     const costDetails = {
       type: "Ispezioni",
       client_id: clientId,
@@ -139,9 +156,9 @@ export function IspezioniForm() {
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
       start_date: format(values.startDate, 'yyyy-MM-dd'),
-      start_time: null, // Detailed times are in daily_hours_config
+      start_time: effectiveStartTime, // Popola con l'orario effettivo
       end_date: format(values.endDate, 'yyyy-MM-dd'),
-      end_time: null, // Detailed times are in daily_hours_config
+      end_time: effectiveEndTime, // Popola con l'orario effettivo
       status: "Pending", // Default status
       calculated_cost: calculatedCost, // Now including the calculated cost
       num_agents: null, // Not applicable for Ispezioni
