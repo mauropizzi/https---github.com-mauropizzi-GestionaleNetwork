@@ -246,6 +246,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === formData.coOperator);
       const coOperatorName = selectedCoOperatorForPdf ? `${selectedCoOperatorForPdf.nome} ${selectedCoOperatorForPdf.cognome || ''}` : 'N/A';
 
+      const parsedRequestTime = formData.requestTime ? parseISO(formData.requestTime) : null;
+      const parsedStartTime = formData.startTime ? parseISO(formData.startTime) : null;
+      const parsedEndTime = formData.endTime ? parseISO(formData.endTime) : null;
+
       doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
       doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
@@ -254,19 +258,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       y += 7;
       doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
       y += 7;
-      doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime && isValid(parseISO(formData.requestTime)) ? format(parseISO(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Richiesta C.O. Security Service: ${parsedRequestTime && isValid(parsedRequestTime) ? format(parsedRequestTime, 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
         doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Inizio Intervento: ${formData.startTime && isValid(parseISO(formData.startTime)) ? format(parseISO(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Inizio Intervento: ${parsedStartTime && isValid(parsedStartTime) ? format(parsedStartTime, 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       if (formData.endLatitude !== undefined && formData.endLongitude !== undefined) {
         doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Fine Intervento: ${formData.endTime && isValid(parseISO(formData.endTime)) ? format(parseISO(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Fine Intervento: ${parsedEndTime && isValid(parsedEndTime) ? format(parsedEndTime, 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;

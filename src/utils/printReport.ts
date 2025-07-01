@@ -66,11 +66,14 @@ export const printSingleServiceReport = async (reportId: string) => {
   doc.setFontSize(10);
   const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   
+  const parsedCreatedAt = report.created_at ? parseISO(report.created_at) : null;
+  const parsedReportDate = report.report_date ? parseISO(report.report_date) : null;
+
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
-  doc.text(`Data Creazione: ${report.created_at && isValid(parseISO(report.created_at)) ? format(parseISO(report.created_at), "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
+  doc.text(`Data Creazione: ${parsedCreatedAt && isValid(parsedCreatedAt) ? format(parsedCreatedAt, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Data Intervento: ${report.report_date && isValid(parseISO(report.report_date)) ? format(parseISO(report.report_date), "PPP", { locale: it }) : 'N/A'}`, 14, y);
+  doc.text(`Data Intervento: ${parsedReportDate && isValid(parsedReportDate) ? format(parsedReportDate, "PPP", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
   doc.text(`Ora Intervento: ${report.report_time || 'N/A'}`, 14, y);
   y += 7;
