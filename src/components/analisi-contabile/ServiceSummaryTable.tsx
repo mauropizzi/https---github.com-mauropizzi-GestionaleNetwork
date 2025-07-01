@@ -17,6 +17,7 @@ import {
 interface ServiceSummary {
   servicePointId: string;
   servicePointName: string;
+  serviceType: string; // Added serviceType
   totalServices: number;
   totalHours: number;
   totalClientCost: number;
@@ -35,6 +36,11 @@ export const ServiceSummaryTable: React.FC<ServiceSummaryTableProps> = ({ data, 
       accessorKey: "servicePointName",
       header: "Punto Servizio",
       cell: ({ row }) => <span>{row.original.servicePointName}</span>,
+    },
+    {
+      accessorKey: "serviceType", // New column
+      header: "Tipologia Servizio",
+      cell: ({ row }) => <span>{row.original.serviceType}</span>,
     },
     {
       accessorKey: "totalServices",

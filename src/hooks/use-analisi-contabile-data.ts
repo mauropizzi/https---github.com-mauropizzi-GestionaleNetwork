@@ -14,6 +14,7 @@ import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data";
 interface ServiceSummary {
   servicePointId: string;
   servicePointName: string;
+  serviceType: string; // Added serviceType
   totalServices: number;
   totalHours: number;
   totalClientCost: number;
@@ -111,10 +112,12 @@ export const useAnalisiContabileData = () => {
 
           const calculatedRates = await calculateServiceCost(costDetails);
 
-          if (!summary[servicePoint.id]) {
-            summary[servicePoint.id] = {
+          const summaryKey = `${servicePoint.id}_${service.type}`; // Group by service point and type
+          if (!summary[summaryKey]) {
+            summary[summaryKey] = {
               servicePointId: servicePoint.id,
               servicePointName: servicePoint.nome_punto_servizio,
+              serviceType: service.type, // Set service type
               totalServices: 0,
               totalHours: 0,
               totalClientCost: 0,
@@ -122,15 +125,15 @@ export const useAnalisiContabileData = () => {
               costDelta: 0,
             };
           }
-          summary[servicePoint.id].totalServices += 1;
+          summary[summaryKey].totalServices += 1;
           if (calculatedRates) {
             const clientCost = calculatedRates.multiplier * calculatedRates.clientRate;
             const supplierCost = calculatedRates.multiplier * calculatedRates.supplierRate;
             
-            summary[servicePoint.id].totalHours += calculatedRates.multiplier;
-            summary[servicePoint.id].totalClientCost += clientCost;
-            summary[servicePoint.id].totalSupplierCost += supplierCost;
-            summary[servicePoint.id].costDelta += (clientCost - supplierCost);
+            summary[summaryKey].totalHours += calculatedRates.multiplier;
+            summary[summaryKey].totalClientCost += clientCost;
+            summary[summaryKey].totalSupplierCost += supplierCost;
+            summary[summaryKey].costDelta += (clientCost - supplierCost);
           }
         }
       }
@@ -198,7 +201,8 @@ export const useAnalisiContabileData = () => {
         }
       }
       setMissingTariffs(identifiedMissingTariffs);
-    } catch (err) {
+    }
+    catch (err) {
       showError("Errore nel recupero o nell'identificazione delle tariffe mancanti.");
       console.error("Error fetching or identifying missing tariffs:", err);
       setMissingTariffs([]);
