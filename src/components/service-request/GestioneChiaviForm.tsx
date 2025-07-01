@@ -43,6 +43,9 @@ const formSchema = z.object({
     required_error: "La data di fine è richiesta.",
   }),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
+  keyManagementType: z.enum(["verifica chiavi", "consegna chiavi", "ritiro chiavi"], {
+    required_error: "Seleziona un tipo di gestione chiavi.",
+  }), // New field
 }).refine(data => {
   const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${data.startTime}:00`;
   const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${data.endTime}:00`;
@@ -74,6 +77,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       startTime: "09:00",
       endDate: new Date(),
       endTime: "17:00",
+      keyManagementType: "verifica chiavi", // Default value for new field
     },
   });
 
@@ -102,6 +106,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
             startTime: service.start_time || "09:00",
             endDate: service.end_date ? parseISO(service.end_date) : new Date(),
             endTime: service.end_time || "17:00",
+            keyManagementType: (service.inspection_type as "verifica chiavi" | "consegna chiavi" | "ritiro chiavi") || "verifica chiavi", // Populate new field from inspection_type
           });
         }
         setLoadingInitialData(false);
@@ -139,6 +144,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       end_date: values.endDate,
       start_time: values.startTime,
       end_time: values.endTime,
+      inspection_type: values.keyManagementType, // Pass keyManagementType for cost calculation
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);
@@ -156,7 +162,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       calculated_cost: calculatedCost,
       num_agents: null,
       cadence_hours: null,
-      inspection_type: null,
+      inspection_type: values.keyManagementType, // Save keyManagementType to inspection_type
       daily_hours_config: null,
     };
 
@@ -344,6 +350,29 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
             )}
           />
         </div>
+        {/* New field for Key Management Type */}
+        <FormField
+          control={form.control}
+          name="keyManagementType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo Gestione Chiavi</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona tipo gestione chiavi" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="verifica chiavi">Verifica Chiavi</SelectItem>
+                  <SelectItem value="consegna chiavi">Consegna Chiavi</SelectItem>
+                  <SelectItem value="ritiro chiavi">Ritiro Chiavi</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex justify-end gap-2 mt-6">
           {serviceId && (
             <Button type="button" variant="outline" onClick={onCancel}>
