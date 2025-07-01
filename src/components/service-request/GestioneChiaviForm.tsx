@@ -39,22 +39,9 @@ const formSchema = z.object({
     required_error: "La data di inizio è richiesta.",
   }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
-  endDate: z.date({
-    required_error: "La data di fine è richiesta.",
-  }),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
   keyManagementType: z.enum(["verifica chiavi", "consegna chiavi", "ritiro chiavi"], {
     required_error: "Seleziona un tipo di gestione chiavi.",
   }), // New field
-}).refine(data => {
-  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${data.startTime}:00`;
-  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${data.endTime}:00`;
-  const start = parseISO(startDateTimeStr);
-  const end = parseISO(endDateTimeStr);
-  return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
-}, {
-  message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
-  path: ["endDate"],
 });
 
 interface GestioneChiaviFormProps {
@@ -75,8 +62,6 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       fornitoreId: "",
       startDate: new Date(),
       startTime: "09:00",
-      endDate: new Date(),
-      endTime: "17:00",
       keyManagementType: "verifica chiavi", // Default value for new field
     },
   });
@@ -104,8 +89,6 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
             fornitoreId: service.fornitore_id || "",
             startDate: service.start_date ? parseISO(service.start_date) : new Date(),
             startTime: service.start_time || "09:00",
-            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
-            endTime: service.end_time || "17:00",
             keyManagementType: (service.inspection_type as "verifica chiavi" | "consegna chiavi" | "ritiro chiavi") || "verifica chiavi", // Populate new field from inspection_type
           });
         }
@@ -141,9 +124,9 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId,
       start_date: values.startDate,
-      end_date: values.endDate,
+      end_date: values.startDate, // End date is same as start date for one-off
       start_time: values.startTime,
-      end_time: values.endTime,
+      end_time: values.startTime, // End time is same as start time for one-off
       inspection_type: values.keyManagementType, // Pass keyManagementType for cost calculation
     };
 
@@ -156,8 +139,8 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: values.startTime,
-      end_date: format(values.endDate, 'yyyy-MM-dd'),
-      end_time: values.endTime,
+      end_date: format(values.startDate, 'yyyy-MM-dd'), // Set end_date to start_date
+      end_time: values.startTime, // Set end_time to start_time
       status: "Pending",
       calculated_cost: calculatedCost,
       num_agents: null,
@@ -250,7 +233,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
             name="startDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data di inizio servizio</FormLabel>
+                <FormLabel>Data del servizio</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -289,61 +272,9 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
             name="startTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ora di inizio servizio (HH:MM)</FormLabel>
+                <FormLabel>Ora del servizio (HH:MM)</FormLabel>
                 <FormControl>
                   <Input type="text" placeholder="09:00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="endDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data di fine servizio</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP", { locale: it })
-                        ) : (
-                          <span>Seleziona una data</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                      locale={it}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="endTime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ora di fine servizio (HH:MM)</FormLabel>
-                <FormControl>
-                  <Input type="text" placeholder="17:00" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
