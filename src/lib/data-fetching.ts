@@ -171,27 +171,47 @@ interface ServiceDetailsForCost {
 
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
   const allTariffe = await fetchAllTariffe();
+  console.log("--- calculateServiceCost Debug Start ---");
+  console.log("Service Details (input):", {
+    type: details.type,
+    client_id: details.client_id,
+    service_point_id: details.service_point_id,
+    fornitore_id: details.fornitore_id,
+    startDate: format(details.start_date, 'yyyy-MM-dd'),
+    endDate: format(details.end_date, 'yyyy-MM-dd'),
+    cadence_hours: details.cadence_hours,
+    daily_hours_config_present: !!details.daily_hours_config,
+  });
 
   const serviceStartDate = details.start_date;
 
   const matchingTariffs = allTariffe.filter(tariff => {
     const tariffStartDate = parseISO(tariff.data_inizio_validita);
-    const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31); // Far future date if no end date
+    const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31);
 
     const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
 
-    const match = (
-      tariff.client_id === details.client_id &&
-      tariff.service_type === details.type &&
-      isTariffActive &&
-      (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null) &&
-      (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)
-    );
+    const clientMatch = tariff.client_id === details.client_id;
+    const typeMatch = tariff.service_type === details.type;
+    const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
+    const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
+
+    const match = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
+
+    console.log(`  Tariff ID: ${tariff.id || 'N/A'}`);
+    console.log(`    Tariff Data: { type: "${tariff.service_type}", client_id: "${tariff.client_id}", sp_id: "${tariff.punto_servizio_id}", forn_id: "${tariff.fornitore_id}", start_date: "${tariff.data_inizio_validita}", end_date: "${tariff.data_fine_validita}" }`);
+    console.log(`    Match Criteria: Active: ${isTariffActive} (ServiceDate: ${format(serviceStartDate, 'yyyy-MM-dd')} vs TariffDates: ${format(tariffStartDate, 'yyyy-MM-dd')} - ${format(tariffEndDate, 'yyyy-MM-dd')})`);
+    console.log(`                    Client: ${clientMatch}, Type: ${typeMatch}, ServicePoint: ${servicePointMatch}, Fornitore: ${fornitoreMatch}`);
+    console.log(`    Overall Tariff Match: ${match}`);
 
     return match;
   });
 
+  console.log("Matching Tariffs (after filter):", matchingTariffs);
+
   if (matchingTariffs.length === 0) {
+    console.warn("No matching tariffs found for service details:", details);
+    console.log("--- calculateServiceCost Debug End (No Match) ---");
     return null;
   }
 
@@ -213,6 +233,7 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   });
 
   const selectedTariff = sortedTariffs[0];
+  console.log("Selected Tariff:", selectedTariff);
 
   let multiplier: number | null = null;
 
@@ -269,6 +290,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
         let currentDate = new Date(details.start_date);
         const endDate = details.end_date;
 
+        console.log("Ispezioni: details.daily_hours_config", details.daily_hours_config);
+        console.log("Ispezioni: start_date", details.start_date, "end_date", details.end_date);
+
         while (currentDate <= endDate) {
           const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
           const isCurrentDayHoliday = isDateHoliday(currentDate);
@@ -283,6 +307,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           } else {
             dayConfig = details.daily_hours_config?.find((d: any) => d.day === dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1));
           }
+          
+          console.log(`  Day: ${format(currentDate, 'yyyy-MM-dd')} (${dayOfWeek}), Holiday: ${isCurrentDayHoliday}, Found config:`, dayConfig);
 
           if (dayConfig) {
             if (dayConfig.is24h) {
@@ -302,6 +328,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           }
           currentDate = addDays(currentDate, 1);
         }
+        console.log("Ispezioni: totalOperationalHours", totalOperationalHours);
+        console.log("Ispezioni: details.cadence_hours", details.cadence_hours);
 
         if (details.cadence_hours && details.cadence_hours > 0) {
           multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
@@ -329,8 +357,15 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   }
 
   if (multiplier === null) {
+    console.warn("Multiplier is null, cannot calculate cost.");
+    console.log("--- calculateServiceCost Debug End (Multiplier Null) ---");
     return null;
   }
+
+  console.log("Calculated Multiplier:", multiplier);
+  console.log("Client Rate:", selectedTariff.client_rate);
+  console.log("Supplier Rate:", selectedTariff.supplier_rate);
+  console.log("--- calculateServiceCost Debug End (Success) ---");
 
   return {
     multiplier: multiplier,
