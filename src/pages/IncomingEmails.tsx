@@ -216,7 +216,7 @@ const IncomingEmailsPage = () => {
                               )}
                         </TableHead>
                       ))}
-                    </TableHead>
+                    </TableRow>
                   ))}
                 </TableHeader>
                 <TableBody>
