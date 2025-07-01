@@ -16,6 +16,7 @@ interface ServiceRequest {
   end_time?: string | null;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   calculated_cost?: number | null;
+  multiplier?: number | null; // Added multiplier field
   num_agents?: number | null;
   cadence_hours?: number | null;
   inspection_type?: string | null;
@@ -87,7 +88,11 @@ export function useServiceRequests(): UseServiceRequestsResult {
           inspection_type: service.inspection_type,
         };
         const calculatedRates = await calculateServiceCost(costDetails);
-        return { ...service, calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null };
+        return { 
+          ...service, 
+          calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null,
+          multiplier: calculatedRates ? calculatedRates.multiplier : null, // Store the multiplier
+        };
       }));
       setData(servicesWithCalculatedCost || []);
     }

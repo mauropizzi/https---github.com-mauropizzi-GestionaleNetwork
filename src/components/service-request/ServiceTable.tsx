@@ -37,6 +37,7 @@ interface ServiceRequest {
   end_time?: string | null;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   calculated_cost?: number | null;
+  multiplier?: number | null; // Added multiplier field
   num_agents?: number | null;
   cadence_hours?: number | null;
   inspection_type?: string | null;
@@ -122,6 +123,7 @@ export function ServiceTable() {
     };
     const calculatedRates = await calculateServiceCost(costDetails);
     payload.calculated_cost = calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null;
+    payload.multiplier = calculatedRates ? calculatedRates.multiplier : null; // Update multiplier on save
 
     const { data, error } = await supabase
       .from('servizi_richiesti')
@@ -234,15 +236,34 @@ export function ServiceTable() {
       },
     },
     {
-      accessorKey: "calculated_cost",
-      header: "Costo Stimato (€)",
-      cell: ({ row }) => (
-        <span>
-          {row.original.calculated_cost !== undefined && row.original.calculated_cost !== null 
-            ? `${row.original.calculated_cost.toFixed(2)} €` 
-            : "N/A"}
-        </span>
-      ),
+      accessorKey: "multiplier", // Changed accessorKey to multiplier
+      header: "Numero Ore/Servizi", // Updated header
+      cell: ({ row }) => {
+        const multiplier = row.original.multiplier;
+        let unit = "";
+        switch (row.original.type) {
+          case "Piantonamento":
+          case "Servizi Fiduciari":
+            unit = "ore";
+            break;
+          case "Ispezioni":
+          case "Bonifiche":
+          case "Gestione Chiavi":
+          case "Apertura/Chiusura":
+          case "Intervento":
+            unit = "interventi";
+            break;
+          default:
+            unit = ""; 
+        }
+        return (
+          <span>
+            {multiplier !== undefined && multiplier !== null
+              ? `${multiplier.toFixed(2)} ${unit}`
+              : "N/A"}
+          </span>
+        );
+      },
     },
     {
       id: "actions",
