@@ -104,8 +104,9 @@ export function ServiceTable() {
           daily_hours_config: service.daily_hours_config,
           inspection_type: service.inspection_type,
         };
-        const calculatedCost = await calculateServiceCost(costDetails);
-        return { ...service, calculated_cost: calculatedCost };
+        const calculatedRates = await calculateServiceCost(costDetails);
+        // Assign only the client's calculated cost to calculated_cost
+        return { ...service, calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null };
       }));
       setData(servicesWithCalculatedCost || []);
     }
