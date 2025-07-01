@@ -107,7 +107,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
-          const formatDbTime = (dbTime: string | null | undefined): string => {
+          const formatDbTime = (dbTime: string | null | undefined) => {
             if (!dbTime) return '';
             try {
               const parsed = parseISO(`2000-01-01T${dbTime}`);
@@ -266,22 +266,27 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     if (requestTime && isValid(parseISO(requestTime))) {
       parsedRequestDateTime = parseISO(requestTime);
     } else {
-      showError("Orario Richiesta è obbligatorio e deve essere valido.");
+      showError("Orario Richiesta è obbligatorio e deve essere un valore valido.");
       return;
     }
 
-    // 2. Parse other times, they can be null if empty/invalid
-    const parsedStartTime = startTime ? parseISO(startTime) : null;
-    const parsedEndTime = endTime ? parseISO(endTime) : null;
+    // 2. Validate and parse startTime and endTime
+    let parsedStartTime: Date | null = startTime ? parseISO(startTime) : null;
+    if (startTime && !isValid(parsedStartTime)) {
+      showError("Formato Orario Inizio Intervento non valido.");
+      return;
+    }
 
-    // 3. Determine final dates, falling back to request time
-    const finalStartDate = (parsedStartTime && isValid(parsedStartTime)) ? parsedStartTime : parsedRequestDateTime;
-    const finalEndDate = (parsedEndTime && isValid(parsedEndTime)) ? parsedEndTime : finalStartDate; // Fallback to final start date
+    let parsedEndTime: Date | null = endTime ? parseISO(endTime) : null;
+    if (endTime && !isValid(parsedEndTime)) {
+      showError("Formato Orario Fine Intervento non valido.");
+      return;
+    }
 
-    // 4. Additional validation for final submission
+    // 3. Additional validation for final submission
     if (isFinal) {
-      if (!startTime || !endTime || !isValid(parsedStartTime) || !isValid(parsedEndTime)) {
-        showError("Orario Inizio e Fine Intervento sono obbligatori e devono essere validi per la chiusura.");
+      if (!parsedStartTime || !parsedEndTime) {
+        showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
@@ -305,6 +310,12 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     // --- Time processing for DB ---
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
+
+    // Determine final dates and times for the payload
+    // Use request time as a fallback for start time.
+    // Use start time (or its fallback) as a fallback for end time.
+    const finalStartDate = parsedStartTime || parsedRequestDateTime;
+    const finalEndDate = parsedEndTime || finalStartDate;
 
     const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
     const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ss');
