@@ -159,7 +159,12 @@ interface ServiceDetailsForCost {
 }
 
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<number | null> {
+  console.log("--- calculateServiceCost: Dettagli Servizio Ricevuti ---");
+  console.log("Details:", JSON.stringify(details, null, 2));
+
   const allTariffe = await fetchAllTariffe();
+  console.log("--- calculateServiceCost: Tutte le Tariffe Recuperate ---");
+  console.log("All Tariffe:", JSON.stringify(allTariffe, null, 2));
 
   const serviceStartDate = details.start_date;
 
@@ -169,19 +174,32 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
 
     const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
 
-    return (
+    const match = (
       tariff.client_id === details.client_id &&
       tariff.service_type === details.type &&
       isTariffActive &&
       (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null) &&
       (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)
     );
+
+    console.log(`  Checking Tariff ID: ${tariff.id || 'N/A'}`);
+    console.log(`    Client ID Match: ${tariff.client_id === details.client_id} (Tariff: ${tariff.client_id}, Details: ${details.client_id})`);
+    console.log(`    Service Type Match: ${tariff.service_type === details.type} (Tariff: '${tariff.service_type}', Details: '${details.type}')`);
+    console.log(`    Date Active: ${isTariffActive} (Service Date: ${format(serviceStartDate, 'yyyy-MM-dd')}, Tariff Start: ${format(tariffStartDate, 'yyyy-MM-dd')}, Tariff End: ${format(tariffEndDate, 'yyyy-MM-dd')})`);
+    console.log(`    Punto Servizio Match: ${(tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null)} (Tariff: ${tariff.punto_servizio_id}, Details: ${details.service_point_id})`);
+    console.log(`    Fornitore Match: ${(tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)} (Tariff: ${tariff.fornitore_id}, Details: ${details.fornitore_id})`);
+    console.log(`    Overall Match: ${match}`);
+
+    return match;
   });
 
   if (matchingTariffs.length === 0) {
-    console.warn(`Nessuna tariffa trovata per il servizio di tipo '${details.type}' per il cliente '${details.client_id}' e punto servizio '${details.service_point_id}' nel periodo specificato.`);
+    console.warn(`--- calculateServiceCost: Nessuna tariffa corrispondente trovata per il servizio. ---`);
     return null;
   }
+
+  console.log("--- calculateServiceCost: Tariffe Corrispondenti Trovate ---");
+  console.log("Matching Tariffs:", JSON.stringify(matchingTariffs, null, 2));
 
   // Prioritize tariffs: specific service point > specific supplier > general client
   // Then, if multiple, pick the one with the latest start date (most recent)
@@ -201,6 +219,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   });
 
   const selectedTariff = sortedTariffs[0];
+  console.log("--- calculateServiceCost: Tariffa Selezionata ---");
+  console.log("Selected Tariff:", JSON.stringify(selectedTariff, null, 2));
 
   let calculatedCost: number | null = null;
 
@@ -322,5 +342,7 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
       calculatedCost = null;
   }
 
+  console.log("--- calculateServiceCost: Costo Calcolato Finale ---");
+  console.log("Calculated Cost:", calculatedCost);
   return calculatedCost;
 }
