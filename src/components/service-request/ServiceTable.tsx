@@ -321,7 +321,13 @@ export function ServiceTable() {
     {
       accessorKey: "calculated_cost",
       header: "Costo Stimato (€)",
-      cell: ({ row }) => (row.original.calculated_cost !== undefined && row.original.calculated_cost !== null ? `${row.original.calculated_cost.toFixed(2)} €` : "N/A"),
+      cell: ({ row }) => (
+        <span>
+          {row.original.calculated_cost !== undefined && row.original.calculated_cost !== null 
+            ? `${row.original.calculated_cost.toFixed(2)} €` 
+            : "N/A"}
+        </span>
+      ),
     },
     {
       id: "actions",
