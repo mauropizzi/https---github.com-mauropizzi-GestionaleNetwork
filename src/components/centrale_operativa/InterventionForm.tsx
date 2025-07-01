@@ -107,19 +107,17 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         }
 
         if (event) {
-          const formatDbTime = (dbTime: string | null | undefined): string => {
+          // Helper to safely format DB time (HH:mm:ss) to form time (HH:mm)
+          const formatDbTimeToForm = (dbTime: string | null | undefined): string => {
             if (!dbTime) return '';
-            try {
-              const parsed = parseISO(`2000-01-01T${dbTime}`);
-              return isValid(parsed) ? format(parsed, 'HH:mm') : '';
-            } catch (e) {
-              return '';
-            }
+            // The time from DB is HH:mm:ss, we just need HH:mm
+            return dbTime.substring(0, 5);
           };
 
+          // Helper to safely construct a datetime-local string
           const createDateTimeString = (date: string | null | undefined, time: string | null | undefined): string => {
             if (!date || !time) return '';
-            const formattedTime = formatDbTime(time);
+            const formattedTime = formatDbTimeToForm(time);
             if (!formattedTime) return '';
             return `${date}T${formattedTime}`;
           };
@@ -316,7 +314,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     // --- Time processing for DB ---
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
-    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // ADDED TIMEZONE
 
     // Determine final dates and times for the payload
     // Use request time as a fallback for start time.
@@ -325,10 +323,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const finalEndDate = parsedEndTime || finalStartDate;
 
     const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
-    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ss');
+    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ssXXX'); // ADDED TIMEZONE
     
     const finalEndDateForDb = format(finalEndDate, 'yyyy-MM-dd');
-    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ss');
+    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ssXXX'); // ADDED TIMEZONE
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
