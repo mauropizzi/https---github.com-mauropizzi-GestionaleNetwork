@@ -107,7 +107,7 @@ const EditAlarmEventPage = () => {
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">Modifica Evento Allarme: {id}</CardTitle>
+          <CardTitle className="text-3xl font-bold text-center">Modifica Evento Allarme</CardTitle>
           <CardDescription className="text-center">Apporta modifiche ai dettagli dell'evento.</CardDescription>
         </CardHeader>
         <CardContent>
