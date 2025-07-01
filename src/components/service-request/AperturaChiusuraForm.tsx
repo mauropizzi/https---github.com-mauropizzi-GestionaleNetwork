@@ -26,10 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data"; // Import PuntoServizio
-import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
+import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching";
 import { showError, showSuccess } from "@/utils/toast";
-import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
