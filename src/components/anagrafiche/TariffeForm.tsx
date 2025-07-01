@@ -71,14 +71,15 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]); // Nuovo stato per i fornitori
 
+  // Load dropdown data once on component mount
   useEffect(() => {
     const loadData = async () => {
       const fetchedClienti = await fetchClienti();
       const fetchedPuntiServizio = await fetchPuntiServizio();
-      const fetchedFornitori = await fetchFornitori(); // Recupera i fornitori
+      const fetchedFornitori = await fetchFornitori();
       setClienti(fetchedClienti);
       setPuntiServizio(fetchedPuntiServizio);
-      setFornitori(fetchedFornitori); // Imposta i fornitori
+      setFornitori(fetchedFornitori);
     };
     loadData();
   }, []);
@@ -99,10 +100,13 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
     },
   });
 
-  // Apply prefill data when available
+  // Apply prefill data when available and dropdown data is loaded
   useEffect(() => {
-    console.log("TariffeForm - useEffect triggered with prefillData:", prefillData);
-    if (prefillData) {
+    console.log("TariffeForm - prefillData effect. prefillData:", prefillData);
+    console.log("TariffeForm - Dropdown data loaded status: clients.length", clienti.length, "ps.length", puntiServizio.length, "fornitori.length", fornitori.length);
+
+    // Only attempt to reset if prefillData exists AND dropdowns are populated
+    if (prefillData && clienti.length > 0 && puntiServizio.length > 0 && fornitori.length > 0) {
       const resetValues = {
         cliente_id: prefillData.cliente_id || "",
         tipo_servizio: prefillData.tipo_servizio || "",
@@ -110,16 +114,14 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
         fornitore_id: prefillData.fornitore_id || "",
         data_inizio_validita: prefillData.data_inizio_validita,
         data_fine_validita: prefillData.data_fine_validita,
-        // Keep other fields as their default or current values
-        importo: 0,
-        supplier_rate: 0,
-        unita_misura: "",
+        importo: 0, // Keep default for new tariff
+        supplier_rate: 0, // Keep default for new tariff
+        unita_misura: "", // Will be set by another useEffect based on tipo_servizio
         note: null,
       };
-      console.log("TariffeForm - Calling form.reset with:", resetValues);
+      console.log("TariffeForm - Attempting form.reset with:", resetValues);
       form.reset(resetValues);
 
-      // Also set the unit of measure based on service type if it's one of the fixed ones
       let defaultUnitaMisura = "";
       switch (prefillData.tipo_servizio) {
         case "Piantonamento":
@@ -138,8 +140,10 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
         console.log("TariffeForm - Setting default unita_misura:", defaultUnitaMisura);
         form.setValue("unita_misura", defaultUnitaMisura, { shouldValidate: true });
       }
+    } else if (prefillData) {
+      console.log("TariffeForm - Prefill data present, but waiting for dropdowns to load...");
     }
-  }, [prefillData, form]);
+  }, [prefillData, clienti, puntiServizio, fornitori, form]); // Add dropdown states to dependency array
 
 
   // Watch for changes in tipo_servizio to auto-set unita_misura
