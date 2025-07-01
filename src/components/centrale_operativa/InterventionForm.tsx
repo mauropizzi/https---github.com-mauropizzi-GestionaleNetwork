@@ -255,19 +255,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       y += 7;
       doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
       y += 7;
-      doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(parseISO(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
         doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Inizio Intervento: ${formData.startTime ? format(parseISO(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       if (formData.endLatitude !== undefined && formData.endLongitude !== undefined) {
         doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Fine Intervento: ${formData.endTime ? format(parseISO(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
@@ -423,8 +423,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
-      report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
-      report_time: format(new Date(requestTime), 'HH:mm:ss'),
+      report_date: format(parseISO(requestTime), 'yyyy-MM-dd'),
+      report_time: format(parseISO(requestTime), 'HH:mm:ss'),
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
@@ -478,11 +478,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     }
 
     // Ensure start_time and end_time are never null for servizi_richiesti
-    const serviceStartTime = startTime ? format(new Date(startTime), 'HH:mm:ss') : format(new Date(requestTime), 'HH:mm:ss');
-    const serviceEndTime = endTime ? format(new Date(endTime), 'HH:mm:ss') : serviceStartTime;
+    const serviceStartTime = startTime ? format(parseISO(startTime), 'HH:mm:ss') : format(parseISO(requestTime), 'HH:mm:ss');
+    const serviceEndTime = endTime ? format(parseISO(endTime), 'HH:mm:ss') : serviceStartTime;
 
-    const serviceStartDate = parseISO(format(new Date(requestTime), 'yyyy-MM-dd'));
-    const serviceEndDate = parseISO(format(new Date(endTime || requestTime), 'yyyy-MM-dd')); // Use end time date if available, else request time
+    const serviceStartDate = parseISO(format(parseISO(requestTime), 'yyyy-MM-dd'));
+    const serviceEndDate = parseISO(format(endTime ? parseISO(endTime) : parseISO(requestTime), 'yyyy-MM-dd')); // Use end time date if available, else request time
 
     const costDetails = {
       type: "Intervento", // Fixed type for this service
