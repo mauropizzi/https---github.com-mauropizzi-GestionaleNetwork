@@ -31,29 +31,43 @@ import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   fornitoreId: z.string().uuid("Seleziona un fornitore valido.").nonempty("Il fornitore è richiesto."),
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
   endDate: z.date({
     required_error: "La data di fine è richiesta.",
   }),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
-  operationType: z.enum(["Apertura", "Chiusura"], {
+  aperturaTime: z.string().regex(timeRegex, "Formato ora apertura non valido (HH:MM).").optional().or(z.literal("")),
+  chiusuraTime: z.string().regex(timeRegex, "Formato ora chiusura non valido (HH:MM).").optional().or(z.literal("")),
+  operationType: z.enum(["Apertura", "Chiusura", "Entrambi"], {
     required_error: "Seleziona un tipo di operazione.",
-  }), // New field
+  }),
 }).refine(data => {
-  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${data.startTime}:00`;
-  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${data.endTime}:00`;
-  const start = parseISO(startDateTimeStr);
-  const end = parseISO(endDateTimeStr);
-  return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
+  // Validate overall date range
+  return data.endDate >= data.startDate;
 }, {
-  message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
+  message: "La data di fine non può essere precedente alla data di inizio.",
   path: ["endDate"],
+}).refine(data => {
+  // Validate times based on operationType
+  if (data.operationType === "Apertura" && !data.aperturaTime) {
+    return false;
+  }
+  if (data.operationType === "Chiusura" && !data.chiusuraTime) {
+    return false;
+  }
+  if (data.operationType === "Entrambi" && (!data.aperturaTime || !data.chiusuraTime)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Inserisci l'orario/gli orari richiesti per il tipo di operazione.",
+  path: ["aperturaTime"], // This path is a bit generic, but Zod will point to the first failing one.
 });
 
 interface AperturaChiusuraFormProps {
@@ -73,9 +87,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       servicePointId: "",
       fornitoreId: "",
       startDate: new Date(),
-      startTime: "09:00",
-      endDate: new Date(), // Re-added
-      endTime: "17:00", // Re-added
+      endDate: new Date(),
+      aperturaTime: "",
+      chiusuraTime: "",
       operationType: "Apertura",
     },
   });
@@ -102,10 +116,10 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
             startDate: service.start_date ? parseISO(service.start_date) : new Date(),
-            startTime: service.start_time || "09:00",
-            endDate: service.end_date ? parseISO(service.end_date) : new Date(), // Re-added
-            endTime: service.end_time || "17:00", // Re-added
-            operationType: (service.inspection_type as "Apertura" | "Chiusura") || "Apertura",
+            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            aperturaTime: service.start_time || "", // Map start_time to aperturaTime
+            chiusuraTime: service.end_time || "", // Map end_time to chiusuraTime
+            operationType: (service.inspection_type as "Apertura" | "Chiusura" | "Entrambi") || "Apertura",
           });
         }
         setLoadingInitialData(false);
@@ -140,10 +154,10 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId,
       start_date: values.startDate,
-      end_date: values.endDate, // Use actual end date
-      start_time: values.startTime,
-      end_time: values.endTime, // Use actual end time
-      inspection_type: values.operationType,
+      end_date: values.endDate,
+      start_time: values.aperturaTime || null, // Pass aperturaTime for cost calculation
+      end_time: values.chiusuraTime || null, // Pass chiusuraTime for cost calculation
+      inspection_type: values.operationType, // Pass operationType for cost calculation
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);
@@ -154,14 +168,14 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
-      start_time: values.startTime,
-      end_date: format(values.endDate, 'yyyy-MM-dd'), // Use actual end date
-      end_time: values.endTime, // Use actual end time
+      start_time: values.aperturaTime || null, // Save aperturaTime to start_time
+      end_date: format(values.endDate, 'yyyy-MM-dd'),
+      end_time: values.chiusuraTime || null, // Save chiusuraTime to end_time
       status: "Pending",
       calculated_cost: calculatedCost,
       num_agents: null,
       cadence_hours: null,
-      inspection_type: values.operationType,
+      inspection_type: values.operationType, // Save operationType to inspection_type
       daily_hours_config: null,
     };
 
@@ -187,6 +201,8 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       onSaveSuccess?.();
     }
   };
+
+  const operationType = form.watch("operationType");
 
   if (loadingInitialData) {
     return <div className="text-center py-8">Caricamento dati servizio...</div>;
@@ -285,19 +301,6 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
           />
           <FormField
             control={form.control}
-            name="startTime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ora di inizio servizio (HH:MM)</FormLabel>
-                <FormControl>
-                  <Input type="text" placeholder="09:00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="endDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
@@ -335,13 +338,54 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-2 gap-4"> {/* Nested grid for time and operation type */}
+        </div>
+
+        <FormField
+          control={form.control}
+          name="operationType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo Operazione</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona tipo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Apertura">Apertura</SelectItem>
+                  <SelectItem value="Chiusura">Chiusura</SelectItem>
+                  <SelectItem value="Entrambi">Entrambi</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {(operationType === "Apertura" || operationType === "Entrambi") && (
             <FormField
               control={form.control}
-              name="endTime"
+              name="aperturaTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ora di fine servizio (HH:MM)</FormLabel>
+                  <FormLabel>Ora Apertura (HH:MM)</FormLabel>
+                  <FormControl>
+                    <Input type="text" placeholder="09:00" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {(operationType === "Chiusura" || operationType === "Entrambi") && (
+            <FormField
+              control={form.control}
+              name="chiusuraTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ora Chiusura (HH:MM)</FormLabel>
                   <FormControl>
                     <Input type="text" placeholder="17:00" {...field} />
                   </FormControl>
@@ -349,29 +393,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="operationType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo Operazione</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleziona tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Apertura">Apertura</SelectItem>
-                    <SelectItem value="Chiusura">Chiusura</SelectItem>
-                  </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          )}
         </div>
+
         <div className="flex justify-end gap-2 mt-6">
           {serviceId && (
             <Button type="button" variant="outline" onClick={onCancel}>
