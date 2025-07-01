@@ -82,17 +82,8 @@ export function ServiceTable() {
   };
 
   const handleEdit = (service: ServiceRequest) => {
-    const clientName = service.clienti?.nome_cliente || '';
-    const servicePointName = service.punti_servizio?.nome_punto_servizio || '';
-
-    setSelectedService({
-      ...service,
-      client: clientName,
-      location: servicePointName,
-      startDate: new Date(service.start_date),
-      endDate: new Date(service.end_date),
-      cost: service.calculated_cost || undefined,
-    });
+    // Pass the raw service object directly. The dialog will handle display names.
+    setSelectedService(service);
     setIsEditDialogOpen(true);
   };
 
@@ -378,21 +369,14 @@ export function ServiceTable() {
         } : null}
       />
 
-      <ServiceEditDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-        service={selectedService ? {
-          id: selectedService.id,
-          type: selectedService.type,
-          client: selectedService.clienti?.nome_cliente || 'N/A',
-          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
-          startDate: new Date(selectedService.start_date),
-          endDate: new Date(selectedService.end_date),
-          status: selectedService.status,
-          cost: selectedService.calculated_cost || undefined,
-        } : null}
-        onSave={handleSaveEdit}
-      />
+      {selectedService && (
+        <ServiceEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          service={selectedService} // Pass the full service object
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
