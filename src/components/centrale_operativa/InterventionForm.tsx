@@ -266,32 +266,18 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       return;
     }
 
-    // 2. Validate and parse startTime and endTime
-    let parsedStartTime: Date | null = null;
-    if (startTime) {
-      const tempParsed = parseISO(startTime);
-      if (isValid(tempParsed)) {
-        parsedStartTime = tempParsed;
-      } else {
-        showError("Formato Orario Inizio Intervento non valido.");
-        return;
-      }
-    }
+    // 2. Parse startTime and endTime from form. They can be empty.
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
 
-    let parsedEndTime: Date | null = null;
-    if (endTime) {
-      const tempParsed = parseISO(endTime);
-      if (isValid(tempParsed)) {
-        parsedEndTime = tempParsed;
-      } else {
-        showError("Formato Orario Fine Intervento non valido.");
-        return;
-      }
-    }
+    // 3. Determine the final Date objects to use for formatting.
+    // Fallback to requestTime if form fields are empty or invalid.
+    const finalStartDate = (parsedStartTime && isValid(parsedStartTime)) ? parsedStartTime : parsedRequestDateTime;
+    const finalEndDate = (parsedEndTime && isValid(parsedEndTime)) ? parsedEndTime : finalStartDate; // Fallback to start date if end date is invalid
 
-    // 3. Additional validation for final submission
+    // 4. Additional validation for final submission
     if (isFinal) {
-      if (!parsedStartTime || !parsedEndTime) {
+      if (!startTime || !endTime) { // Check original form values
         showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
         return;
       }
@@ -317,12 +303,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
 
-    // Use parsed dates for DB, fallback to request time if not provided
-    const finalStartDateForDb = format(parsedStartTime || parsedRequestDateTime, 'yyyy-MM-dd');
-    const finalStartTimeForDb = format(parsedStartTime || parsedRequestDateTime, 'HH:mm:ss');
-    
-    const finalEndDateForDb = format(parsedEndTime || parsedStartTime || parsedRequestDateTime, 'yyyy-MM-dd');
-    const finalEndTimeForDb = format(parsedEndTime || parsedStartTime || parsedRequestDateTime, 'HH:mm:ss');
+    const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
+    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ss');
+
+    const finalEndDateForDb = format(finalEndDate, 'yyyy-MM-dd');
+    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ss');
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
@@ -385,8 +370,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: parseISO(finalStartDateForDb),
-      end_date: parseISO(finalEndDateForDb),
+      start_date: finalStartDate,
+      end_date: finalEndDate,
       start_time: finalStartTimeForDb,
       end_time: finalEndTimeForDb,
       num_agents: 1, // Assuming 1 agent for an intervention
