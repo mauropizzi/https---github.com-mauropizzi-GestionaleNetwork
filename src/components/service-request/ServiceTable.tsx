@@ -21,35 +21,33 @@ import { it } from 'date-fns/locale';
 import { Eye, Edit, Trash2, RefreshCcw, CalendarIcon } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 import { ServiceEditDialog } from "./ServiceEditDialog";
-import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
-import { fetchClienti, fetchPuntiServizio, calculateServiceCost } from "@/lib/data-fetching"; // Import data fetching utilities
-import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data"; // Import interfaces
+import { supabase } from "@/integrations/supabase/client";
+import { fetchClienti, fetchPuntiServizio, calculateServiceCost } from "@/lib/data-fetching";
+import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input"; // Import Input for search
+import { Input } from "@/components/ui/input";
 
-// Define the structure of a service request from Supabase
 interface ServiceRequest {
   id: string;
   type: string;
-  client_id?: string | null; // Changed to client_id (UUID)
-  service_point_id?: string | null; // New field for service point
-  start_date: string; // Changed to string to match DB
-  start_time?: string | null; // New field
-  end_date: string; // Changed to string to match DB
-  end_time?: string | null; // New field
+  client_id?: string | null;
+  service_point_id?: string | null;
+  start_date: string;
+  start_time?: string | null;
+  end_date: string;
+  end_time?: string | null;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
-  calculated_cost?: number | null; // Changed to calculated_cost
-  num_agents?: number | null; // New field
-  cadence_hours?: number | null; // New field
-  inspection_type?: string | null; // New field
-  daily_hours_config?: any | null; // New field for JSONB
-  fornitore_id?: string | null; // Added fornitore_id for cost calculation
+  calculated_cost?: number | null;
+  num_agents?: number | null;
+  cadence_hours?: number | null;
+  inspection_type?: string | null;
+  daily_hours_config?: any | null;
+  fornitore_id?: string | null;
 
-  // Joined fields for display
   clienti?: { nome_cliente: string } | null;
-  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null; // Added id_cliente to service point
+  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
 }
 
 export function ServiceTable() {
@@ -60,8 +58,7 @@ export function ServiceTable() {
   const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
-  const [searchTerm, setSearchTerm] = useState(""); // New state for general search
-  // State for client and service point maps for display purposes in cells
+  const [searchTerm, setSearchTerm] = useState("");
   const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
 
 
@@ -69,7 +66,7 @@ export function ServiceTable() {
     setLoading(true);
     let query = supabase
       .from('servizi_richiesti')
-      .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio, id_cliente)'); // Fetch id_cliente from punti_servizio
+      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio, id_cliente)');
 
     if (startDateFilter) {
       query = query.gte('start_date', format(startDateFilter, 'yyyy-MM-dd'));
@@ -85,7 +82,6 @@ export function ServiceTable() {
       console.error("Error fetching services:", error);
       setData([]);
     } else {
-      // Recalculate cost for each service
       const servicesWithCalculatedCost = await Promise.all(servicesData.map(async (service) => {
         const serviceStartDate = parseISO(service.start_date);
         const serviceEndDate = parseISO(service.end_date);
@@ -105,7 +101,6 @@ export function ServiceTable() {
           inspection_type: service.inspection_type,
         };
         const calculatedRates = await calculateServiceCost(costDetails);
-        // Assign only the client's calculated cost to calculated_cost
         return { ...service, calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null };
       }));
       setData(servicesWithCalculatedCost || []);
@@ -116,7 +111,7 @@ export function ServiceTable() {
   const fetchAnagraficheMaps = useCallback(async () => {
     const fetchedPuntiServizio = await supabase
       .from('punti_servizio')
-      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)'); // Fetch client name through join
+      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)');
 
     if (fetchedPuntiServizio.error) {
       console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
@@ -139,15 +134,13 @@ export function ServiceTable() {
   }, [fetchServices, fetchAnagraficheMaps]);
 
   const handleView = (service: ServiceRequest) => {
-    // Determine the client name: first from direct client_id join, then from service_point's client_id
-    const clientName = service.clienti?.nome_cliente || 
-                       (service.punti_servizio?.id_cliente ? 
-                         (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || 'N/A') : 'N/A');
+    const clientName = service.clienti?.nome_cliente || 'N/A';
+    const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
 
     setSelectedService({
       ...service,
       client: clientName,
-      location: service.punti_servizio?.nome_punto_servizio || 'N/A',
+      location: servicePointName,
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
       cost: service.calculated_cost || undefined,
@@ -156,14 +149,13 @@ export function ServiceTable() {
   };
 
   const handleEdit = (service: ServiceRequest) => {
-    const clientName = service.clienti?.nome_cliente || 
-                       (service.punti_servizio?.id_cliente ? 
-                         (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || '') : '');
+    const clientName = service.clienti?.nome_cliente || '';
+    const servicePointName = service.punti_servizio?.nome_punto_servizio || '';
 
     setSelectedService({
       ...service,
       client: clientName,
-      location: service.punti_servizio?.nome_punto_servizio || '',
+      location: servicePointName,
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
       cost: service.calculated_cost || undefined,
@@ -171,33 +163,50 @@ export function ServiceTable() {
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = async (updatedService: any) => { // updatedService will be from the form schema
+  const handleSaveEdit = async (updatedFormValues: any) => {
     if (!selectedService) {
       showError("Nessun servizio selezionato per la modifica.");
       return;
     }
 
-    // Map form values back to DB schema
+    // Reconstruct the payload using original service data and updated form values
     const payload = {
-      type: updatedService.type,
-      // client_id and service_point_id are not directly editable in this dialog,
-      // assuming they remain the same as the original selectedService.
-      // If they were editable, you'd need to map names back to IDs.
-      start_date: format(new Date(selectedService.start_date), 'yyyy-MM-dd'), // Keep original dates for now
-      start_time: selectedService.start_time,
-      end_date: format(new Date(selectedService.end_date), 'yyyy-MM-dd'), // Keep original dates for now
-      end_time: selectedService.end_time,
-      status: updatedService.status,
-      calculated_cost: selectedService.calculated_cost, // Keep original calculated cost or recalculate if needed
-      num_agents: selectedService.num_agents,
-      cadence_hours: selectedService.cadence_hours,
-      inspection_type: selectedService.inspection_type,
-      daily_hours_config: selectedService.daily_hours_config,
+      ...selectedService, // Start with all original fields
+      type: updatedFormValues.type,
+      status: updatedFormValues.status,
+      // If other fields were editable in ServiceEditDialog, they would be mapped here:
+      // start_date: format(updatedFormValues.startDate, 'yyyy-MM-dd'),
+      // end_date: format(updatedFormValues.endDate, 'yyyy-MM-dd'),
+      // num_agents: updatedFormValues.numAgents,
+      // etc.
     };
+
+    // Recalculate cost based on potentially updated values (even if only type/status are editable now)
+    const costDetails = {
+      type: payload.type,
+      client_id: payload.client_id,
+      service_point_id: payload.service_point_id,
+      fornitore_id: payload.fornitore_id,
+      start_date: parseISO(payload.start_date),
+      end_date: parseISO(payload.end_date),
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      num_agents: payload.num_agents,
+      cadence_hours: payload.cadence_hours,
+      daily_hours_config: payload.daily_hours_config,
+      inspection_type: payload.inspection_type,
+    };
+    const calculatedRates = await calculateServiceCost(costDetails);
+    payload.calculated_cost = calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null;
 
     const { data, error } = await supabase
       .from('servizi_richiesti')
-      .update(payload)
+      .update({
+        type: payload.type,
+        status: payload.status,
+        calculated_cost: payload.calculated_cost,
+        // Add other fields here if they become editable in ServiceEditDialog
+      })
       .eq('id', selectedService.id)
       .select();
 
@@ -206,7 +215,7 @@ export function ServiceTable() {
       console.error("Error updating service:", error);
     } else {
       showSuccess(`Servizio ${selectedService.id} aggiornato con successo!`);
-      fetchServices(); // Refresh data after update
+      fetchServices();
     }
     setIsEditDialogOpen(false);
     setSelectedService(null);
@@ -224,7 +233,7 @@ export function ServiceTable() {
         console.error("Error deleting service:", error);
       } else {
         showSuccess(`Servizio ${serviceId} eliminato con successo!`);
-        fetchServices(); // Refresh data after deletion
+        fetchServices();
       }
     } else {
       showInfo(`Eliminazione del servizio ${serviceId} annullata.`);
@@ -233,10 +242,8 @@ export function ServiceTable() {
 
   const filteredData = useMemo(() => {
     return data.filter(service => {
-      const clientName = service.clienti?.nome_cliente || 
-                         (service.punti_servizio?.id_cliente ? 
-                           (puntiServizioMap.get(service.punti_servizio.id_cliente)?.nome_cliente || '') : '');
-      const servicePointName = service.punti_servizio?.nome_punto_servizio || '';
+      const clientName = service.clienti?.nome_cliente || 'N/A';
+      const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
 
       const matchesSearch = searchTerm.toLowerCase() === '' ||
         service.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -246,14 +253,9 @@ export function ServiceTable() {
 
       return matchesSearch;
     });
-  }, [data, searchTerm, puntiServizioMap]); // Added puntiServizioMap to dependencies
+  }, [data, searchTerm]);
 
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
-    // Commented out to hide the column
-    // {
-    //   accessorKey: "id",
-    //   header: "ID Servizio",
-    // },
     {
       accessorKey: "type",
       header: "Tipo Servizio",
@@ -261,18 +263,7 @@ export function ServiceTable() {
     {
       accessorKey: "client_id",
       header: "Cliente",
-      cell: ({ row }) => {
-        // Prioritize client_id from the service request itself, then from the associated service point
-        const clientIdFromService = row.original.client_id;
-        const clientIdFromServicePoint = row.original.punti_servizio?.id_cliente;
-        
-        if (clientIdFromService) {
-          return row.original.clienti?.nome_cliente || 'N/A';
-        } else if (clientIdFromServicePoint) {
-          return puntiServizioMap.get(clientIdFromServicePoint)?.nome_cliente || 'N/A';
-        }
-        return 'N/A';
-      },
+      cell: ({ row }) => row.original.clienti?.nome_cliente || 'N/A',
     },
     {
       accessorKey: "service_point_id",
@@ -361,7 +352,7 @@ export function ServiceTable() {
         </div>
       ),
     },
-  ], [handleView, handleEdit, handleDelete, puntiServizioMap]); // Added puntiServizioMap to dependencies
+  ], [handleView, handleEdit, handleDelete]);
 
   const table = useReactTable({
     data: filteredData,
@@ -488,31 +479,35 @@ export function ServiceTable() {
         </Table>
       </div>
 
-      {/* Service Details Dialog */}
       <ServiceDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
         service={selectedService ? {
           id: selectedService.id,
           type: selectedService.type,
-          client: selectedService.client, // Use the resolved client name
-          location: selectedService.location, // Use the resolved location name
+          client: selectedService.clienti?.nome_cliente || 'N/A',
+          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
           startDate: new Date(selectedService.start_date),
           endDate: new Date(selectedService.end_date),
           status: selectedService.status,
           cost: selectedService.calculated_cost || undefined,
+          startTime: selectedService.start_time || undefined,
+          endTime: selectedService.end_time || undefined,
+          numAgents: selectedService.num_agents || undefined,
+          cadenceHours: selectedService.cadence_hours || undefined,
+          inspectionType: selectedService.inspection_type || undefined,
+          dailyHoursConfig: selectedService.daily_hours_config || undefined,
         } : null}
       />
 
-      {/* Service Edit Dialog */}
       <ServiceEditDialog
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
         service={selectedService ? {
           id: selectedService.id,
           type: selectedService.type,
-          client: selectedService.client, // Use the resolved client name
-          location: selectedService.location, // Use the resolved location name
+          client: selectedService.clienti?.nome_cliente || 'N/A',
+          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
           startDate: new Date(selectedService.start_date),
           endDate: new Date(selectedService.end_date),
           status: selectedService.status,
