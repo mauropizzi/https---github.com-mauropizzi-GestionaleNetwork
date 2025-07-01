@@ -40,22 +40,28 @@ const TariffePage = () => {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    console.log("TariffePage - Raw searchParams:", Object.fromEntries(searchParams.entries()));
+
     if (clientId && serviceType) {
-      setPrefillData({
+      const newPrefillData = {
         cliente_id: clientId,
         tipo_servizio: serviceType,
         punto_servizio_id: servicePointId || "",
         fornitore_id: fornitoreId || "",
         data_inizio_validita: startDate ? new Date(startDate) : null,
         data_fine_validita: endDate ? new Date(endDate) : null,
-      });
+      };
+      setPrefillData(newPrefillData);
       setCurrentTab("nuova-tariffa"); // Switch to new tariff tab
+      console.log("TariffePage - Setting prefillData:", newPrefillData);
+
       // Clear search params after reading them to avoid persistent pre-fill
       const newSearchParams = new URLSearchParams();
       newSearchParams.set("tab", "nuova-tariffa");
       setSearchParams(newSearchParams, { replace: true });
     } else {
       setPrefillData(null); // Clear prefill data if no params
+      console.log("TariffePage - No prefill data found in URL.");
     }
 
   }, [searchParams, setSearchParams]);

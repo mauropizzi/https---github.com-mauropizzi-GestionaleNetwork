@@ -101,8 +101,9 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
 
   // Apply prefill data when available
   useEffect(() => {
+    console.log("TariffeForm - useEffect triggered with prefillData:", prefillData);
     if (prefillData) {
-      form.reset({
+      const resetValues = {
         cliente_id: prefillData.cliente_id || "",
         tipo_servizio: prefillData.tipo_servizio || "",
         punto_servizio_id: prefillData.punto_servizio_id || "",
@@ -114,7 +115,10 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
         supplier_rate: 0,
         unita_misura: "",
         note: null,
-      });
+      };
+      console.log("TariffeForm - Calling form.reset with:", resetValues);
+      form.reset(resetValues);
+
       // Also set the unit of measure based on service type if it's one of the fixed ones
       let defaultUnitaMisura = "";
       switch (prefillData.tipo_servizio) {
@@ -131,6 +135,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
           break;
       }
       if (defaultUnitaMisura) {
+        console.log("TariffeForm - Setting default unita_misura:", defaultUnitaMisura);
         form.setValue("unita_misura", defaultUnitaMisura, { shouldValidate: true });
       }
     }
