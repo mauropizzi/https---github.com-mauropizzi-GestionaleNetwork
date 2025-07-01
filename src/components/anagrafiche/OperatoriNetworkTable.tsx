@@ -94,22 +94,27 @@ export function OperatoriNetworkTable() {
     {
       accessorKey: "nome",
       header: "Nome",
+      cell: ({ row }) => <span>{row.original.nome}</span>,
     },
     {
       accessorKey: "cognome",
       header: "Cognome",
+      cell: ({ row }) => <span>{row.original.cognome || 'N/A'}</span>,
     },
     {
       accessorKey: "nome_cliente",
       header: "Cliente Associato",
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
     },
     {
       accessorKey: "telefono",
       header: "Telefono",
+      cell: ({ row }) => <span>{row.original.telefono || 'N/A'}</span>,
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
     },
     {
       id: "actions",

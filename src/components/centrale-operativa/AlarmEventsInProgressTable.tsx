@@ -197,30 +197,32 @@ export function AlarmEventsInProgressTable() {
     {
       accessorKey: 'report_date',
       header: 'Data',
-      cell: ({ row }) => format(new Date(row.original.report_date), 'PPP', { locale: it }),
+      cell: ({ row }) => <span>{format(new Date(row.original.report_date), 'PPP', { locale: it })}</span>,
     },
     {
       accessorKey: 'report_time',
       header: 'Ora',
+      cell: ({ row }) => <span>{row.original.report_time}</span>,
     },
     {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
       cell: ({ row }) => {
         const servicePoint = puntiServizioMap.get(row.original.service_point_code);
-        return servicePoint?.nome_punto_servizio || row.original.service_point_code;
+        return <span>{servicePoint?.nome_punto_servizio || row.original.service_point_code}</span>;
       },
     },
     {
       accessorKey: 'request_type',
       header: 'Tipo Richiesta',
+      cell: ({ row }) => <span>{row.original.request_type}</span>,
     },
     {
       accessorKey: 'co_operator',
       header: 'Operatore C.O.',
       cell: ({ row }) => {
         const personnel = coOperatorsPersonnelMap.get(row.original.co_operator || '');
-        return personnel ? `${personnel.nome} ${personnel.cognome || ''}` : 'N/A';
+        return <span>{personnel ? `${personnel.nome} ${personnel.cognome || ''}` : 'N/A'}</span>;
       },
     },
     {
@@ -228,7 +230,7 @@ export function AlarmEventsInProgressTable() {
       header: 'G.P.G. Intervento',
       cell: ({ row }) => {
         const personnel = pattugliaPersonnelMap.get(row.original.gpg_intervention || '');
-        return personnel ? `${personnel.nome} ${personnel.cognome}` : 'N/A';
+        return <span>{personnel ? `${personnel.nome} ${personnel.cognome}` : 'N/A'}</span>;
       },
     },
     {

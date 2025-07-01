@@ -115,16 +115,17 @@ const IncomingEmailsPage: React.FC = () => {
     {
       accessorKey: 'received_at',
       header: 'Ricevuto il',
-      cell: ({ row }) => format(new Date(row.original.received_at), 'PPP HH:mm', { locale: it }),
+      cell: ({ row }) => <span>{format(new Date(row.original.received_at), 'PPP HH:mm', { locale: it })}</span>,
     },
     {
       accessorKey: 'sender_name',
       header: 'Mittente',
-      cell: ({ row }) => row.original.sender_name || row.original.sender_email,
+      cell: ({ row }) => <span>{row.original.sender_name || row.original.sender_email}</span>,
     },
     {
       accessorKey: 'subject',
       header: 'Oggetto',
+      cell: ({ row }) => <span>{row.original.subject}</span>,
     },
     {
       accessorKey: 'folder',
@@ -214,7 +215,7 @@ const IncomingEmailsPage: React.FC = () => {
                             )}
                       </TableHead>
                     ))}
-                  </TableRow>
+                  </TableHead>
                 ))}
               </TableHeader>
               <TableBody>
@@ -263,7 +264,7 @@ const IncomingEmailsPage: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold">Oggetto:</h4>
-                  <p>{selectedEmail.subject}</p>
+                  <p><span>{selectedEmail.subject}</span></p>
                 </div>
                 <div>
                   <h4 className="font-semibold">Cartella:</h4>
@@ -288,7 +289,7 @@ const IncomingEmailsPage: React.FC = () => {
                 ) : (
                   <div>
                     <h4 className="font-semibold">Contenuto Testo:</h4>
-                    <p className="whitespace-pre-wrap border p-2 rounded-md bg-gray-50 dark:bg-gray-700">{selectedEmail.body_text || 'Nessun contenuto testuale.'}</p>
+                    <p className="whitespace-pre-wrap border p-2 rounded-md bg-gray-50 dark:bg-gray-700"><span>{selectedEmail.body_text || 'Nessun contenuto testuale.'}</span></p>
                   </div>
                 )}
                 {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
@@ -296,7 +297,7 @@ const IncomingEmailsPage: React.FC = () => {
                     <h4 className="font-semibold">Allegati:</h4>
                     <ul className="list-disc list-inside">
                       {selectedEmail.attachments.map((att: any, index: number) => (
-                        <li key={index}>{att.Filename} ({att.ContentType})</li>
+                        <li key={index}><span>{att.Filename} ({att.ContentType})</span></li>
                       ))}
                     </ul>
                   </div>
@@ -305,7 +306,7 @@ const IncomingEmailsPage: React.FC = () => {
                   <div>
                     <h4 className="font-semibold">Raw Email (per debug):</h4>
                     <pre className="whitespace-pre-wrap text-xs border p-2 rounded-md bg-gray-50 dark:bg-gray-700 overflow-x-auto">
-                      {JSON.stringify(JSON.parse(selectedEmail.raw_email), null, 2)}
+                      <span>{JSON.stringify(JSON.parse(selectedEmail.raw_email), null, 2)}</span>
                     </pre>
                   </div>
                 )}

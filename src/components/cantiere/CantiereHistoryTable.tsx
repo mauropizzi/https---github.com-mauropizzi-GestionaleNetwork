@@ -77,35 +77,42 @@ const columns: ColumnDef<CantiereReport>[] = [
   {
     accessorKey: "reportDate",
     header: "Data Rapporto",
-    cell: ({ row }) => format(row.original.reportDate, "PPP", { locale: it }),
+    cell: ({ row }) => <span>{format(row.original.reportDate, "PPP", { locale: it })}</span>,
   },
   {
     accessorKey: "cliente",
     header: "Cliente",
+    cell: ({ row }) => <span>{row.original.cliente}</span>,
   },
   {
     accessorKey: "cantiere",
     header: "Cantiere",
+    cell: ({ row }) => <span>{row.original.cantiere}</span>,
   },
   {
     accessorKey: "addetto",
     header: "Addetto",
+    cell: ({ row }) => <span>{row.original.addetto}</span>,
   },
   {
     accessorKey: "servizio",
     header: "Servizio",
+    cell: ({ row }) => <span>{row.original.servizio}</span>,
   },
   {
     accessorKey: "oreServizio",
     header: "Ore",
+    cell: ({ row }) => <span>{row.original.oreServizio}</span>,
   },
   {
     accessorKey: "automezziCount",
     header: "Automezzi",
+    cell: ({ row }) => <span>{row.original.automezziCount}</span>,
   },
   {
     accessorKey: "attrezziCount",
     header: "Attrezzi",
+    cell: ({ row }) => <span>{row.original.attrezziCount}</span>,
   },
   {
     id: "actions",

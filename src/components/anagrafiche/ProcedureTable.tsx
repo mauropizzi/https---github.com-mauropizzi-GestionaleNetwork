@@ -119,24 +119,27 @@ export function ProcedureTable() {
     {
       accessorKey: "nome_procedura",
       header: "Nome Procedura",
+      cell: ({ row }) => <span>{row.original.nome_procedura}</span>,
     },
     {
       accessorKey: "versione",
       header: "Versione",
+      cell: ({ row }) => <span>{row.original.versione || 'N/A'}</span>,
     },
     {
       accessorKey: "data_ultima_revisione",
       header: "Ultima Revisione",
-      cell: ({ row }) => row.original.data_ultima_revisione ? format(new Date(row.original.data_ultima_revisione), "PPP", { locale: it }) : "N/A",
+      cell: ({ row }) => <span>{row.original.data_ultima_revisione ? format(new Date(row.original.data_ultima_revisione), "PPP", { locale: it }) : "N/A"}</span>,
     },
     {
       accessorKey: "responsabile",
       header: "Responsabile",
+      cell: ({ row }) => <span>{row.original.responsabile || 'N/A'}</span>,
     },
     {
       accessorKey: "attivo",
       header: "Attiva",
-      cell: ({ row }) => (row.original.attivo ? "Sì" : "No"),
+      cell: ({ row }) => <span>{row.original.attivo ? "Sì" : "No"}</span>,
     },
     {
       id: "documento_url",
@@ -146,7 +149,7 @@ export function ProcedureTable() {
           <a href={row.original.documento_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
             Visualizza <ExternalLink className="ml-1 h-3 w-3" />
           </a>
-        ) : "N/A"
+        ) : <span>N/A</span>
       ),
     },
     {

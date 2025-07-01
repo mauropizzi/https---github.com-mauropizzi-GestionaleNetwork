@@ -111,27 +111,32 @@ export function PersonaleTable() {
     {
       accessorKey: "nome",
       header: "Nome",
+      cell: ({ row }) => <span>{row.original.nome}</span>,
     },
     {
       accessorKey: "cognome",
       header: "Cognome",
+      cell: ({ row }) => <span>{row.original.cognome}</span>,
     },
     {
       accessorKey: "ruolo",
       header: "Ruolo",
+      cell: ({ row }) => <span>{row.original.ruolo}</span>,
     },
     {
       accessorKey: "telefono",
       header: "Telefono",
+      cell: ({ row }) => <span>{row.original.telefono || 'N/A'}</span>,
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
     },
     {
       accessorKey: "attivo",
       header: "Attivo",
-      cell: ({ row }) => (row.original.attivo ? "Sì" : "No"),
+      cell: ({ row }) => <span>{row.original.attivo ? "Sì" : "No"}</span>,
     },
     {
       id: "actions",

@@ -100,31 +100,35 @@ export function InterventionListTable() {
     {
       accessorKey: 'id',
       header: 'ID',
+      cell: ({ row }) => <span>{row.original.id}</span>,
     },
     {
       accessorKey: 'report_date',
       header: 'Data',
-      cell: ({ row }) => format(new Date(row.original.report_date), 'PPP', { locale: it }),
+      cell: ({ row }) => <span>{format(new Date(row.original.report_date), 'PPP', { locale: it })}</span>,
     },
     {
       accessorKey: 'report_time',
       header: 'Ora',
+      cell: ({ row }) => <span>{row.original.report_time}</span>,
     },
     {
       accessorKey: 'service_point_code',
       header: 'Punto Servizio',
       cell: ({ row }) => {
         const servicePoint = puntiServizioMap.get(row.original.service_point_code); // Lookup by ID
-        return servicePoint?.nome_punto_servizio || row.original.service_point_code; // Fallback to ID if name not found
+        return <span>{servicePoint?.nome_punto_servizio || row.original.service_point_code}</span>; // Fallback to ID if name not found
       },
     },
     {
       accessorKey: 'request_type',
       header: 'Tipo Richiesta',
+      cell: ({ row }) => <span>{row.original.request_type}</span>,
     },
     {
       accessorKey: 'service_outcome',
       header: 'Esito',
+      cell: ({ row }) => <span>{row.original.service_outcome || 'N/A'}</span>,
     },
   ], [puntiServizioMap]);
 

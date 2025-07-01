@@ -108,35 +108,42 @@ export function FornitoriTable() {
     {
       accessorKey: "nome_fornitore",
       header: "Nome Fornitore",
+      cell: ({ row }) => <span>{row.original.nome_fornitore}</span>,
     },
     {
       accessorKey: "partita_iva",
       header: "Partita IVA",
+      cell: ({ row }) => <span>{row.original.partita_iva || 'N/A'}</span>,
     },
     {
       accessorKey: "codice_fiscale",
       header: "Codice Fiscale",
+      cell: ({ row }) => <span>{row.original.codice_fiscale || 'N/A'}</span>,
     },
     {
       accessorKey: "citta",
       header: "Città",
+      cell: ({ row }) => <span>{row.original.citta || 'N/A'}</span>,
     },
     {
       accessorKey: "telefono",
       header: "Telefono",
+      cell: ({ row }) => <span>{row.original.telefono || 'N/A'}</span>,
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
     },
     {
       accessorKey: "tipo_fornitura",
       header: "Tipo Fornitura",
+      cell: ({ row }) => <span>{row.original.tipo_fornitura || 'N/A'}</span>,
     },
     {
       accessorKey: "attivo",
       header: "Attivo",
-      cell: ({ row }) => (row.original.attivo ? "Sì" : "No"),
+      cell: ({ row }) => <span>{row.original.attivo ? "Sì" : "No"}</span>,
     },
     {
       id: "actions",
