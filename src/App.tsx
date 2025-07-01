@@ -36,6 +36,7 @@ const ProtectedRoute = () => {
   console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null');
 
   if (loading) {
+    console.log('ProtectedRoute: Session is loading, showing loading message.');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <p className="text-xl text-gray-600 dark:text-gray-400">Caricamento sessione...</p>

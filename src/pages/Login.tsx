@@ -4,8 +4,8 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  // Reindirizza sempre alla radice dell'applicazione dopo il login
-  const redirectToUrl = '/'; 
+  // Reindirizza sempre alla radice dell'applicazione dopo il login, usando l'origine corrente
+  const redirectToUrl = window.location.origin; 
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
