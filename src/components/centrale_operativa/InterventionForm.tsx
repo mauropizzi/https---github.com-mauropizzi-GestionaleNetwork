@@ -86,34 +86,37 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const loadEventDataForEdit = async () => {
       if (eventId) {
         setLoadingInitialData(true);
-        const { data: event, error } = await supabase
+        
+        const { data: event, error: eventError } = await supabase
           .from('allarme_interventi')
           .select('*')
           .eq('id', eventId)
           .single();
 
-        if (error) {
-          showError(`Errore nel recupero dell'evento: ${error.message}`);
-          console.error("Error fetching alarm event for edit:", error);
+        const { data: service, error: serviceError } = await supabase
+          .from('servizi_richiesti')
+          .select('start_date, start_time, end_date, end_time')
+          .eq('id', eventId)
+          .single();
+
+        if (eventError) {
+          showError(`Errore nel recupero dei dati dell'evento: ${eventError.message}`);
+          console.error("Error fetching event data for edit:", eventError);
           setLoadingInitialData(false);
           return;
         }
 
         if (event) {
-          // Helper to format time strings from DB to HH:mm
           const formatDbTime = (dbTime: string | null | undefined) => {
             if (!dbTime) return '';
             try {
-              // Prepend a dummy date to parse time-only strings correctly with parseISO
               const parsed = parseISO(`2000-01-01T${dbTime}`);
               return isValid(parsed) ? format(parsed, 'HH:mm') : '';
             } catch (e) {
-              console.error("Error parsing DB time:", dbTime, e);
               return '';
             }
           };
 
-          // Parse notes back into anomalies/delay fields if they were combined
           let anomalyDescription = '';
           let delayNotes = '';
           let anomalies: 'si' | 'no' | undefined = undefined;
@@ -146,10 +149,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             requestType: event.request_type || '',
             coOperator: event.co_operator || '',
             requestTime: event.report_date && event.report_time ? `${event.report_date}T${formatDbTime(event.report_time)}` : '',
-            startTime: event.start_time ? formatDbTime(event.start_time) : '',
-            endTime: event.end_time ? formatDbTime(event.end_time) : '',
-            fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
-            vaultAccess: undefined, // Same as above
+            startTime: service?.start_date && service?.start_time ? `${service.start_date}T${formatDbTime(service.start_time)}` : '',
+            endTime: service?.end_date && service?.end_time ? `${service.end_date}T${formatDbTime(service.end_time)}` : '',
+            fullAccess: undefined,
+            vaultAccess: undefined,
             operatorClient: event.operator_client || '',
             gpgIntervention: event.gpg_intervention || '',
             anomalies: anomalies,
@@ -157,7 +160,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             delay: delay,
             delayNotes: delayNotes,
             serviceOutcome: event.service_outcome || '',
-            barcode: '', // Barcode is not stored in DB, so it remains empty
+            barcode: '',
             startLatitude: event.start_latitude || undefined,
             startLongitude: event.start_longitude || undefined,
             endLatitude: event.end_latitude || undefined,
@@ -254,30 +257,42 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endLongitude,
     } = formData;
 
-    // 1. Validate and parse requestTime first and early exit if invalid
+    // 1. Validate and parse requestTime
     let parsedRequestDateTime: Date;
-    if (requestTime) {
-      const tempParsed = parseISO(requestTime);
-      if (!isValid(tempParsed)) {
-        showError("Formato data/ora richiesta non valido. Assicurati che sia completo (YYYY-MM-DDTHH:MM).");
+    if (requestTime && isValid(parseISO(requestTime))) {
+      parsedRequestDateTime = parseISO(requestTime);
+    } else {
+      showError("Orario Richiesta è obbligatorio e deve essere valido.");
+      return;
+    }
+
+    // 2. Validate and parse startTime and endTime
+    let parsedStartTime: Date | null = null;
+    if (startTime) {
+      const tempParsed = parseISO(startTime);
+      if (isValid(tempParsed)) {
+        parsedStartTime = tempParsed;
+      } else {
+        showError("Formato Orario Inizio Intervento non valido.");
         return;
       }
-      parsedRequestDateTime = tempParsed;
-    } else {
-      showError("Orario Richiesta è obbligatorio.");
-      return;
     }
 
-    // Basic validation for other required fields
-    if (!servicePoint || !requestType) {
-      showError("Punto Servizio e Tipologia Servizio Richiesto sono obbligatori.");
-      return;
+    let parsedEndTime: Date | null = null;
+    if (endTime) {
+      const tempParsed = parseISO(endTime);
+      if (isValid(tempParsed)) {
+        parsedEndTime = tempParsed;
+      } else {
+        showError("Formato Orario Fine Intervento non valido.");
+        return;
+      }
     }
 
-    // Additional validation for final submission
+    // 3. Additional validation for final submission
     if (isFinal) {
-      if (!startTime || !endTime) {
-        showError("Orario Inizio Intervento e Orario Fine Intervento sono obbligatori per la chiusura.");
+      if (!parsedStartTime || !parsedEndTime) {
+        showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
@@ -298,20 +313,21 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
-    // Ensure times are always HH:mm:ss strings for DB
-    // If formData.startTime is empty, use the time from parsedRequestDateTime
-    const finalStartTime = startTime ? `${startTime}:00` : format(parsedRequestDateTime, 'HH:mm:ss');
-    // If formData.endTime is empty, use finalStartTime
-    const finalEndTime = endTime ? `${endTime}:00` : finalStartTime;
+    // --- Time processing for DB ---
+    const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
 
-    // Use parsedRequestDateTime for serviceStartDate and serviceEndDate
-    const serviceStartDate = parsedRequestDateTime;
-    const serviceEndDate = parsedRequestDateTime; // Assuming single-day intervention for now
+    // Use parsed dates for DB, fallback to request time if not provided
+    const finalStartDateForDb = format(parsedStartTime || parsedRequestDateTime, 'yyyy-MM-dd');
+    const finalStartTimeForDb = format(parsedStartTime || parsedRequestDateTime, 'HH:mm:ss');
+    
+    const finalEndDateForDb = format(parsedEndTime || parsedStartTime || parsedRequestDateTime, 'yyyy-MM-dd');
+    const finalEndTimeForDb = format(parsedEndTime || parsedStartTime || parsedRequestDateTime, 'HH:mm:ss');
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
-      report_date: format(parsedRequestDateTime, 'yyyy-MM-dd'),
-      report_time: format(parsedRequestDateTime, 'HH:mm:ss'),
+      report_date: reportDateForDb,
+      report_time: reportTimeForDb,
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
@@ -369,10 +385,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: serviceStartDate,
-      end_date: serviceEndDate,
-      start_time: finalStartTime,
-      end_time: finalEndTime,
+      start_date: parseISO(finalStartDateForDb),
+      end_date: parseISO(finalEndDateForDb),
+      start_time: finalStartTimeForDb,
+      end_time: finalEndTimeForDb,
       num_agents: 1, // Assuming 1 agent for an intervention
       cadence_hours: null,
       inspection_type: null,
@@ -406,10 +422,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: format(serviceStartDate, 'yyyy-MM-dd'),
-      start_time: finalStartTime,
-      end_date: format(serviceEndDate, 'yyyy-MM-dd'),
-      end_time: finalEndTime,
+      start_date: finalStartDateForDb,
+      start_time: finalStartTimeForDb,
+      end_date: finalEndDateForDb,
+      end_time: finalEndTimeForDb,
       status: serviceStatus,
       calculated_cost: calculatedCost,
       num_agents: 1, // Assuming 1 agent for an intervention
