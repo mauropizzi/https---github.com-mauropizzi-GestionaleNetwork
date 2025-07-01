@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
-import { showError } => {
+import { showError } from "@/utils/toast"; // Correzione qui
+import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes } from "date-fns";
+import { it } from 'date-fns/locale';
+import { isDateHoliday } from "@/lib/date-utils";
+
+export async function fetchClienti(): Promise<Cliente[]> {
   const { data, error } = await supabase
     .from('clienti')
     .select('id, nome_cliente');
