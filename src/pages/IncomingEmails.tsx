@@ -48,7 +48,7 @@ interface IncomingEmail {
 
 const folderOptions = ["Inbox", "Archived", "Spam", "Trash"]; // Hardcoded folder options
 
-const IncomingEmailsPage: React.FC = () => {
+const IncomingEmailsPage = () => { // Removed React.FC
   const [data, setData] = useState<IncomingEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,7 +165,7 @@ const IncomingEmailsPage: React.FC = () => {
   });
 
   return (
-    <>
+    <React.Fragment> {/* Changed from <> to React.Fragment */}
       <div className="container mx-auto p-4">
         <Card className="w-full max-w-6xl mx-auto">
           <CardHeader>
@@ -320,7 +320,7 @@ const IncomingEmailsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
-    </>
+    </React.Fragment>
   );
 };
 
