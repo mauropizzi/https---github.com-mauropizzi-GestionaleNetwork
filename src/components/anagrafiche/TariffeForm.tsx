@@ -242,7 +242,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo di Servizio</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona tipo di servizio" />
