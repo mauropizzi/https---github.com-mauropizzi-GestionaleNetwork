@@ -97,11 +97,11 @@ export function InterventionListTable() {
   }, [data, searchTerm, filterDate, puntiServizioMap]);
 
   const columns: ColumnDef<Intervention>[] = useMemo(() => [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: ({ row }) => <span>{row.original.id}</span>,
-    },
+    // {
+    //   accessorKey: 'id',
+    //   header: 'ID',
+    //   cell: ({ row }) => <span>{row.original.id}</span>,
+    // },
     {
       accessorKey: 'report_date',
       header: 'Data',
