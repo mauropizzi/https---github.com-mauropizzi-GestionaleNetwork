@@ -1,11 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
-import { showError } from "@/utils/toast";
-import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes } from "date-fns";
-import { it } from 'date-fns/locale';
-import { isDateHoliday } from "@/lib/date-utils";
-
-export async function fetchClienti(): Promise<Cliente[]> {
+import { showError } => {
   const { data, error } = await supabase
     .from('clienti')
     .select('id, nome_cliente');
@@ -125,15 +120,13 @@ export async function fetchServiceRequestsForAnalysis(clientId?: string, startDa
     console.error("Error fetching service requests for analysis:", error);
     return [];
   }
-  console.log("--- fetchServiceRequestsForAnalysis: Dati Servizi Recuperati ---");
-  console.log(JSON.stringify(data, null, 2));
   return data || [];
 }
 
 export async function fetchAllTariffe(): Promise<any[]> {
   const { data, error } = await supabase
     .from('tariffe')
-    .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita, client_rate, unita_misura'); // Fetch client_rate and unita_misura
+    .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita, client_rate, supplier_rate, unita_misura'); // Fetch client_rate and unita_misura
 
   if (error) {
     showError(`Errore nel recupero di tutte le tariffe: ${error.message}`);
@@ -158,13 +151,8 @@ interface ServiceDetailsForCost {
   inspection_type?: string | null;
 }
 
-export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<number | null> {
-  console.log("--- calculateServiceCost: Dettagli Servizio Ricevuti ---");
-  console.log("Details:", JSON.stringify(details, null, 2));
-
+export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
   const allTariffe = await fetchAllTariffe();
-  console.log("--- calculateServiceCost: Tutte le Tariffe Recuperate ---");
-  console.log("All Tariffe:", JSON.stringify(allTariffe, null, 2));
 
   const serviceStartDate = details.start_date;
 
@@ -182,24 +170,12 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
       (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)
     );
 
-    console.log(`  Checking Tariff ID: ${tariff.id || 'N/A'}`);
-    console.log(`    Client ID Match: ${tariff.client_id === details.client_id} (Tariff: ${tariff.client_id}, Details: ${details.client_id})`);
-    console.log(`    Service Type Match: ${tariff.service_type === details.type} (Tariff: '${tariff.service_type}', Details: '${details.type}')`);
-    console.log(`    Date Active: ${isTariffActive} (Service Date: ${format(serviceStartDate, 'yyyy-MM-dd')}, Tariff Start: ${format(tariffStartDate, 'yyyy-MM-dd')}, Tariff End: ${format(tariffEndDate, 'yyyy-MM-dd')})`);
-    console.log(`    Punto Servizio Match: ${(tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null)} (Tariff: ${tariff.punto_servizio_id}, Details: ${details.service_point_id})`);
-    console.log(`    Fornitore Match: ${(tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null)} (Tariff: ${tariff.fornitore_id}, Details: ${details.fornitore_id})`);
-    console.log(`    Overall Match: ${match}`);
-
     return match;
   });
 
   if (matchingTariffs.length === 0) {
-    console.warn(`--- calculateServiceCost: Nessuna tariffa corrispondente trovata per il servizio. ---`);
     return null;
   }
-
-  console.log("--- calculateServiceCost: Tariffe Corrispondenti Trovate ---");
-  console.log("Matching Tariffs:", JSON.stringify(matchingTariffs, null, 2));
 
   // Prioritize tariffs: specific service point > specific supplier > general client
   // Then, if multiple, pick the one with the latest start date (most recent)
@@ -219,10 +195,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   });
 
   const selectedTariff = sortedTariffs[0];
-  console.log("--- calculateServiceCost: Tariffa Selezionata ---");
-  console.log("Selected Tariff:", JSON.stringify(selectedTariff, null, 2));
 
-  let calculatedCost: number | null = null;
+  let multiplier: number | null = null;
 
   switch (details.type) {
     case "Piantonamento":
@@ -265,10 +239,9 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
           }
           currentDate = addDays(currentDate, 1);
         }
-        calculatedCost = totalHours * (details.num_agents || 1) * selectedTariff.client_rate;
+        multiplier = totalHours * (details.num_agents || 1);
       } else {
-        console.warn(`Unità di misura '${selectedTariff.unita_misura}' non supportata per ${details.type}.`);
-        calculatedCost = null;
+        multiplier = null;
       }
       break;
     }
@@ -313,13 +286,12 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
         }
 
         if (details.cadence_hours && details.cadence_hours > 0) {
-          const numInspections = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
-          calculatedCost = numInspections * selectedTariff.client_rate;
+          multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
         } else {
-          calculatedCost = null;
+          multiplier = null;
         }
       } else {
-        calculatedCost = null;
+        multiplier = null;
       }
       break;
     }
@@ -328,17 +300,23 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     case "Apertura/Chiusura":
     case "Intervento": {
       if (selectedTariff.unita_misura === "intervento") {
-        calculatedCost = selectedTariff.client_rate; // Fixed cost per intervention
+        multiplier = 1; // Fixed cost per intervention, so multiplier is 1
       } else {
-        calculatedCost = null;
+        multiplier = null;
       }
       break;
     }
     default:
-      calculatedCost = null;
+      multiplier = null;
   }
 
-  console.log("--- calculateServiceCost: Costo Calcolato Finale ---");
-  console.log("Calculated Cost:", calculatedCost);
-  return calculatedCost;
+  if (multiplier === null) {
+    return null;
+  }
+
+  return {
+    multiplier: multiplier,
+    clientRate: selectedTariff.client_rate,
+    supplierRate: selectedTariff.supplier_rate,
+  };
 }

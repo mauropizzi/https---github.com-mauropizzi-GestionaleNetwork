@@ -20,7 +20,10 @@ interface ServiceSummary {
   servicePointId: string;
   servicePointName: string;
   totalServices: number;
-  totalCost: number; // Sum of calculated_cost
+  totalHours: number; // New: Total hours for hour-based services, or total interventions for fixed-cost
+  totalClientCost: number; // New: Total cost for the client
+  totalSupplierCost: number; // New: Total cost for the supplier
+  costDelta: number; // New: Difference between client and supplier cost
 }
 
 interface MissingTariffEntry {
@@ -98,7 +101,7 @@ const AnalisiContabile = () => {
             type: service.type,
             client_id: service.client_id,
             service_point_id: service.service_point_id,
-            fornitore_id: service.fornitore_id, // Assuming fornitore_id is available in service object if needed
+            fornitore_id: service.fornitore_id,
             start_date: serviceStartDate,
             end_date: serviceEndDate,
             start_time: service.start_time,
@@ -109,19 +112,28 @@ const AnalisiContabile = () => {
             inspection_type: service.inspection_type,
           };
 
-          const calculatedCost = await calculateServiceCost(costDetails);
+          const calculatedRates = await calculateServiceCost(costDetails);
 
           if (!summary[servicePoint.id]) {
             summary[servicePoint.id] = {
               servicePointId: servicePoint.id,
               servicePointName: servicePoint.nome_punto_servizio,
               totalServices: 0,
-              totalCost: 0,
+              totalHours: 0,
+              totalClientCost: 0,
+              totalSupplierCost: 0,
+              costDelta: 0,
             };
           }
           summary[servicePoint.id].totalServices += 1;
-          if (calculatedCost !== null) {
-            summary[servicePoint.id].totalCost += calculatedCost;
+          if (calculatedRates) {
+            const clientCost = calculatedRates.multiplier * calculatedRates.clientRate;
+            const supplierCost = calculatedRates.multiplier * calculatedRates.supplierRate;
+            
+            summary[servicePoint.id].totalHours += calculatedRates.multiplier; // Accumulate multiplier as total hours/interventions
+            summary[servicePoint.id].totalClientCost += clientCost;
+            summary[servicePoint.id].totalSupplierCost += supplierCost;
+            summary[servicePoint.id].costDelta += (clientCost - supplierCost);
           }
         }
       }
@@ -171,9 +183,9 @@ const AnalisiContabile = () => {
           inspection_type: service.inspection_type,
         };
 
-        const calculatedCost = await calculateServiceCost(costDetails);
+        const calculatedRates = await calculateServiceCost(costDetails);
 
-        if (calculatedCost === null) {
+        if (calculatedRates === null) {
           identifiedMissingTariffs.push({
             serviceId: service.id,
             serviceType: service.type,
@@ -211,9 +223,28 @@ const AnalisiContabile = () => {
       header: "Totale Servizi",
     },
     {
-      accessorKey: "totalCost",
-      header: "Costo Totale (€)",
-      cell: ({ row }) => `${row.original.totalCost.toFixed(2)} €`,
+      accessorKey: "totalHours",
+      header: "Ore/Interventi Totali",
+      cell: ({ row }) => row.original.totalHours.toFixed(2),
+    },
+    {
+      accessorKey: "totalClientCost",
+      header: "Costo Cliente (€)",
+      cell: ({ row }) => `${row.original.totalClientCost.toFixed(2)} €`,
+    },
+    {
+      accessorKey: "totalSupplierCost",
+      header: "Costo Fornitore (€)",
+      cell: ({ row }) => `${row.original.totalSupplierCost.toFixed(2)} €`,
+    },
+    {
+      accessorKey: "costDelta",
+      header: "Delta (€)",
+      cell: ({ row }) => {
+        const delta = row.original.costDelta;
+        const deltaClass = delta >= 0 ? "text-green-600" : "text-red-600";
+        return <span className={deltaClass}>{delta.toFixed(2)} €</span>;
+      },
     },
   ], []);
 
@@ -473,7 +504,7 @@ const AnalisiContabile = () => {
                                 )}
                           </TableHead>
                         ))}
-                      </TableRow>
+                      </TableHead>
                     ))}
                   </TableHeader>
                   <TableBody>
