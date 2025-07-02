@@ -121,10 +121,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         if (event) {
           let anomalyDescription = '';
           let delayNotes = '';
-          let anomalies: 'si' | 'no' | undefined = 'no'; // Default to 'no'
-          let delay: 'si' | 'no' | undefined = 'no';     // Default to 'no'
-          let fullAccess: 'si' | 'no' | undefined = 'no'; // Default to 'no'
-          let vaultAccess: 'si' | 'no' | undefined = 'no'; // Default to 'no'
+          let anomalies: 'si' | 'no' | undefined = undefined; // Default to undefined
+          let delay: 'si' | 'no' | undefined = undefined;     // Default to undefined
+          let fullAccess: 'si' | 'no' | undefined = undefined; // Default to undefined
+          let vaultAccess: 'si' | 'no' | undefined = undefined; // Default to undefined
 
           if (event.notes) {
             const notesArray = event.notes.split('; ').map((s: string) => s.trim());
@@ -136,10 +136,14 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             if (anomalyMatch) {
               anomalies = 'si';
               anomalyDescription = anomalyMatch.replace('Anomalie:', '').trim();
+            } else {
+              anomalies = 'no'; // If not found, explicitly set to 'no' for consistency with radio group
             }
             if (delayMatch) {
               delay = 'si';
               delayNotes = delayMatch.replace('Ritardo:', '').trim();
+            } else {
+              delay = 'no'; // If not found, explicitly set to 'no' for consistency with radio group
             }
             if (fullAccessMatch) {
               fullAccess = fullAccessMatch.replace('Accesso Completo:', '').trim().toLowerCase() as 'si' | 'no';
@@ -148,18 +152,21 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
               vaultAccess = vaultAccessMatch.replace('Accesso Caveau:', '').trim().toLowerCase() as 'si' | 'no';
             }
           }
+          // If event.notes is null/empty, or specific matches not found,
+          // fullAccess and vaultAccess remain undefined from their initial declaration.
+          // This correctly sets the initial state for the radio buttons to "unselected".
 
-          const requestTimeString = event.report_date && event.report_time 
+          const requestTimeString = (event.report_date && event.report_time) 
             ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
-            : '';
-          
-          const startTimeString = serviceTimes?.start_date && serviceTimes?.start_time
-            ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
-            : '';
+            : ''; // Ensure it's an empty string if parts are missing
 
-          const endTimeString = serviceTimes?.end_date && serviceTimes?.end_time
+          const startTimeString = (serviceTimes?.start_date && serviceTimes?.start_time)
+            ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
+            : ''; // Ensure empty string
+
+          const endTimeString = (serviceTimes?.end_date && serviceTimes?.end_time)
             ? `${serviceTimes.end_date}T${serviceTimes.end_time.substring(0, 5)}`
-            : '';
+            : ''; // Ensure empty string
 
           setFormData({
             servicePoint: event.service_point_code || '',
@@ -449,34 +456,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       return;
     }
 
-    // Validate and parse requestTime
-    const parsedRequestDateTime = parseISO(requestTime);
-    if (!isValid(parsedRequestDateTime)) {
-      showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return;
-    }
-
-    // Validate and parse startTime and endTime
-    const parsedStartTime = startTime ? parseISO(startTime) : null;
-    if (startTime && !isValid(parsedStartTime)) {
-      showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return;
-    }
-
-    const parsedEndTime = endTime ? parseISO(endTime) : null;
-    if (endTime && !isValid(parsedEndTime)) {
-      showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return;
-    }
-
-    // Additional validation for final submission
     if (isFinal) {
-      if (!parsedStartTime) {
-        showError("Orario Inizio Intervento è obbligatorio per la chiusura.");
-        return;
-      }
-      if (!parsedEndTime) {
-        showError("Orario Fine Intervento è obbligatorio per la chiusura.");
+      if (!startTime || !endTime) {
+        showError("Orario Inizio Intervento e Orario Fine Intervento sono obbligatori per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
@@ -504,6 +486,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
+    const parsedRequestDateTime = parseISO(requestTime);
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
 
@@ -560,6 +543,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       showError("Impossibile determinare il cliente associato al punto servizio per l'analisi contabile.");
       return;
     }
+
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
 
     const costDetails = {
       type: "Intervento",
@@ -661,7 +647,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
   };
 
   if (loadingInitialData) {
-    return <div className="text-center py-8">Caricamento dati evento...</div>;
+    return (
+      <div className="text-center py-8">
+        Caricamento dati evento...
+      </div>
+    );
   }
 
   return (
