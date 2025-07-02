@@ -19,15 +19,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText, Mail } from 'lucide-react'; // Added Mail icon
+import { Printer, RefreshCcw, Edit, MessageSquareText, Mail } from 'lucide-react'; // Removed Trash2, FileText
 import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { generateSingleServiceReportPdfBlob, printSingleServiceReport } from '@/utils/printReport'; // Modified import
+import { generateSingleServiceReportPdfBlob, printSingleServiceReport } from '@/utils/printReport';
 import { useNavigate } from 'react-router-dom';
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
 import { Personale, PuntoServizio, Procedure } from '@/lib/anagrafiche-data';
-import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog';
-import { sendEmail } from '@/utils/email'; // Import sendEmail
+import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog'; // Still needed for type, but not used for rendering
+import { sendEmail } from '@/utils/email';
 
 interface AllarmeIntervento {
   id: string;
@@ -63,6 +63,7 @@ export function AlarmEventsInProgressTable() {
   const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizioExtended>>(new Map());
   const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map());
 
+  // These states are no longer used for rendering in this component, but kept for type consistency if needed elsewhere
   const [isProcedureDetailsDialogOpen, setIsProcedureDetailsDialogOpen] = useState(false);
   const [selectedProcedureForDetails, setSelectedProcedureForDetails] = useState<Procedure | null>(null);
 
@@ -193,34 +194,7 @@ export function AlarmEventsInProgressTable() {
     }
   }, [puntiServizioMap]);
 
-  const handleViewProcedure = useCallback((servicePointCode: string) => {
-    const servicePoint = puntiServizioMap.get(servicePointCode);
-    if (servicePoint && servicePoint.procedure) {
-      setSelectedProcedureForDetails(servicePoint.procedure);
-      setIsProcedureDetailsDialogOpen(true);
-    } else {
-      showInfo("Nessuna procedura associata a questo punto servizio o dettagli non disponibili.");
-    }
-  }, [puntiServizioMap]);
-
-  const handleDelete = async (eventId: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare l'evento di allarme con ID ${eventId}?`)) {
-      const { error } = await supabase
-        .from('allarme_interventi')
-        .delete()
-        .eq('id', eventId);
-
-      if (error) {
-        showError(`Errore durante l'eliminazione dell'evento: ${error.message}`);
-        console.error("Error deleting alarm event:", error);
-      } else {
-        showSuccess(`Evento ${eventId} eliminato con successo!`);
-        fetchInProgressEvents();
-      }
-    } else {
-      showInfo(`Eliminazione dell'evento ${eventId} annullata.`);
-    }
-  };
+  // Removed handleViewProcedure and handleDelete from this component as per the plan.
 
   const filteredData = useMemo(() => {
     return data.filter(report => {
@@ -300,21 +274,11 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleViewProcedure(row.original.service_point_code)} 
-            title="Visualizza Procedura"
-          >
-            <FileText className="h-4 w-4" />
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id)} title="Elimina">
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {/* Removed Procedure and Delete buttons from here */}
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, handleDelete, handleViewProcedure, handleEmailReport, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
+  ], [handleEdit, handleWhatsAppMessage, handleEmailReport, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const table = useReactTable({
     data: filteredData,
@@ -394,13 +358,7 @@ export function AlarmEventsInProgressTable() {
         </Table>
       </div>
 
-      {selectedProcedureForDetails && (
-        <ProcedureDetailsDialog
-          isOpen={isProcedureDetailsDialogOpen}
-          onClose={() => setIsProcedureDetailsDialogOpen(false)}
-          procedure={selectedProcedureForDetails}
-        />
-      )}
+      {/* ProcedureDetailsDialog is no longer rendered here */}
     </div>
   );
 }
