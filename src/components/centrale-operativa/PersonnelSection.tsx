@@ -40,8 +40,8 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
               aria-expanded={isOperatorNetworkOpen}
               className="w-full justify-between"
             >
-              {formData.operatorClient
-                ? operatoriNetworkList.find(op => op.id === formData.operatorClient)?.nome + " " + operatoriNetworkList.find(op => op.id === formData.operatorClient)?.cognome
+              {formData.operatorNetworkId
+                ? operatoriNetworkList.find(op => op.id === formData.operatorNetworkId)?.nome + " " + (operatoriNetworkList.find(op => op.id === formData.operatorNetworkId)?.cognome || '')
                 : "Seleziona operatore network..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -56,14 +56,14 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
                     key={op.id}
                     value={`${op.nome} ${op.cognome || ''}`}
                     onSelect={() => {
-                      handleSelectChange('operatorClient', op.id);
+                      handleSelectChange('operatorNetworkId', op.id);
                       setIsOperatorNetworkOpen(false);
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        formData.operatorClient === op.id ? "opacity-100" : "opacity-0"
+                        formData.operatorNetworkId === op.id ? "opacity-100" : "opacity-0"
                       )}
                     />
                     {op.nome} {op.cognome}

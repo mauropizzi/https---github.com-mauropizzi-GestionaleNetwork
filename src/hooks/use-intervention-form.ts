@@ -14,7 +14,7 @@ interface InterventionFormData {
   endTime: string;
   fullAccess: 'si' | 'no' | undefined;
   vaultAccess: 'si' | 'no' | undefined;
-  operatorClient: string;
+  operatorNetworkId: string;
   gpgIntervention: string;
   anomalies: 'si' | 'no' | undefined;
   anomalyDescription: string;
@@ -62,7 +62,7 @@ export function useInterventionForm(eventId?: string): UseInterventionFormResult
     endTime: '',
     fullAccess: undefined,
     vaultAccess: undefined,
-    operatorClient: '',
+    operatorNetworkId: '',
     gpgIntervention: '',
     anomalies: undefined,
     anomalyDescription: '',
@@ -184,7 +184,7 @@ export function useInterventionForm(eventId?: string): UseInterventionFormResult
             endTime: endTimeString || startTimeString || requestTimeString, // Fallback to startTime, then requestTime
             fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
             vaultAccess: undefined, // Same as above
-            operatorClient: event.operator_client || '',
+            operatorNetworkId: event.operator_client || '',
             gpgIntervention: event.gpg_intervention || '',
             anomalies: anomalies,
             anomalyDescription: anomalyDescription,
