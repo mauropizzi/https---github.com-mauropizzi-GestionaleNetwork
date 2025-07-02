@@ -316,7 +316,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
             name="supplier_rate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Importo Fornitore (€)</Label>
+                <FormLabel>Importo Fornitore (€)</FormLabel> {/* Corrected closing tag */}
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
