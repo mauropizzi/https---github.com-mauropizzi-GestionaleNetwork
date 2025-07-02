@@ -19,14 +19,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText } from 'lucide-react';
+import { Printer, RefreshCcw, Edit, MessageSquareText, Trash2, FileText, Mail } from 'lucide-react'; // Added Mail icon
 import { showInfo, showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { printSingleServiceReport } from '@/utils/printReport';
+import { generateSingleServiceReportPdfBlob, printSingleServiceReport } from '@/utils/printReport'; // Modified import
 import { useNavigate } from 'react-router-dom';
 import { fetchPersonale, fetchPuntiServizio } from '@/lib/data-fetching';
 import { Personale, PuntoServizio, Procedure } from '@/lib/anagrafiche-data';
 import { ProcedureDetailsDialog } from '@/components/anagrafiche/ProcedureDetailsDialog';
+import { sendEmail } from '@/utils/email'; // Import sendEmail
 
 interface AllarmeIntervento {
   id: string;
@@ -160,6 +161,38 @@ export function AlarmEventsInProgressTable() {
     }
   }, [pattugliaPersonnelMap, puntiServizioMap]);
 
+  const handleEmailReport = useCallback(async (event: AllarmeIntervento) => {
+    showInfo("Generazione PDF per l'allegato email...");
+    const pdfBlob = await generateSingleServiceReportPdfBlob(event.id);
+
+    if (pdfBlob) {
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString().split(',')[1];
+        if (base64data) {
+          const servicePoint = puntiServizioMap.get(event.service_point_code);
+          const servicePointName = servicePoint?.nome_punto_servizio || event.service_point_code;
+          const subject = `Rapporto Intervento Allarme - ${servicePointName} - ${format(new Date(event.report_date), 'dd/MM/yyyy')}`;
+          const textBody = `Si trasmette in allegato il rapporto di intervento per l'evento di allarme con ID ${event.id}.\n\nCordiali saluti.`;
+          
+          sendEmail(subject, textBody, false, {
+            filename: `Rapporto_Allarme_${event.id}.pdf`,
+            content: base64data,
+            contentType: 'application/pdf'
+          });
+        } else {
+          showError("Errore nella conversione del PDF in Base64.");
+        }
+      };
+      reader.onerror = () => {
+        showError("Errore nella lettura del file PDF.");
+      };
+    } else {
+      showError("Impossibile generare il PDF per l'allegato.");
+    }
+  }, [puntiServizioMap]);
+
   const handleViewProcedure = useCallback((servicePointCode: string) => {
     const servicePoint = puntiServizioMap.get(servicePointCode);
     if (servicePoint && servicePoint.procedure) {
@@ -261,6 +294,9 @@ export function AlarmEventsInProgressTable() {
           <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEmailReport(row.original)} title="Invia Email">
+            <Mail className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
@@ -278,7 +314,7 @@ export function AlarmEventsInProgressTable() {
         </div>
       ),
     },
-  ], [handleEdit, handleWhatsAppMessage, handleDelete, handleViewProcedure, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
+  ], [handleEdit, handleWhatsAppMessage, handleDelete, handleViewProcedure, handleEmailReport, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const table = useReactTable({
     data: filteredData,

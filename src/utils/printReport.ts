@@ -26,9 +26,7 @@ interface AllarmeIntervento {
   end_longitude?: number;  // Rinomina da longitude
 }
 
-export const printSingleServiceReport = async (reportId: string) => {
-  showInfo(`Generazione PDF per il rapporto di allarme ${reportId}...`);
-
+export const generateSingleServiceReportPdfBlob = async (reportId: string): Promise<Blob | null> => {
   const { data: report, error } = await supabase
     .from('allarme_interventi')
     .select('*, start_latitude, start_longitude, end_latitude, end_longitude') // Explicitly select GPS fields
@@ -38,12 +36,12 @@ export const printSingleServiceReport = async (reportId: string) => {
   if (error) {
     showError(`Errore nel recupero del rapporto di allarme: ${error.message}`);
     console.error("Error fetching single alarm intervention report:", error);
-    return;
+    return null;
   }
 
   if (!report) {
     showError(`Rapporto di allarme con ID ${reportId} non trovato.`);
-    return;
+    return null;
   }
 
   // Fetch all service points to map the code to a name
@@ -111,6 +109,17 @@ export const printSingleServiceReport = async (reportId: string) => {
     y += (splitNotes.length * 5);
   }
 
-  doc.output('dataurlnewwindow');
-  showSuccess(`PDF del rapporto di allarme ${reportId} generato con successo!`);
+  return doc.output('blob');
+};
+
+export const printSingleServiceReport = async (reportId: string) => {
+  showInfo(`Generazione PDF per il rapporto di allarme ${reportId}...`);
+  const pdfBlob = await generateSingleServiceReportPdfBlob(reportId);
+  if (pdfBlob) {
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+    showSuccess(`PDF del rapporto di allarme ${reportId} generato con successo!`);
+  } else {
+    showError("Impossibile generare il PDF per la stampa.");
+  }
 };
