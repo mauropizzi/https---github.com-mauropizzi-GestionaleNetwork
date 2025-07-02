@@ -121,10 +121,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         if (event) {
           let anomalyDescription = '';
           let delayNotes = '';
-          let anomalies: 'si' | 'no' | undefined = undefined;
-          let delay: 'si' | 'no' | undefined = undefined;
-          let fullAccess: 'si' | 'no' | undefined = undefined;
-          let vaultAccess: 'si' | 'no' | undefined = undefined;
+          let anomalies: 'si' | 'no' | undefined = 'no'; // Default to 'no'
+          let delay: 'si' | 'no' | undefined = 'no';     // Default to 'no'
+          let fullAccess: 'si' | 'no' | undefined = 'no'; // Default to 'no'
+          let vaultAccess: 'si' | 'no' | undefined = 'no'; // Default to 'no'
 
           if (event.notes) {
             const notesArray = event.notes.split('; ').map((s: string) => s.trim());
@@ -136,14 +136,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             if (anomalyMatch) {
               anomalies = 'si';
               anomalyDescription = anomalyMatch.replace('Anomalie:', '').trim();
-            } else {
-              anomalies = 'no';
             }
             if (delayMatch) {
               delay = 'si';
               delayNotes = delayMatch.replace('Ritardo:', '').trim();
-            } else {
-              delay = 'no';
             }
             if (fullAccessMatch) {
               fullAccess = fullAccessMatch.replace('Accesso Completo:', '').trim().toLowerCase() as 'si' | 'no';
@@ -151,11 +147,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             if (vaultAccessMatch) {
               vaultAccess = vaultAccessMatch.replace('Accesso Caveau:', '').trim().toLowerCase() as 'si' | 'no';
             }
-          } else {
-            anomalies = 'no';
-            delay = 'no';
-            fullAccess = 'no'; // Default to 'no' if no notes, assuming no access unless specified
-            vaultAccess = 'no'; // Default to 'no' if no notes, assuming no access unless specified
           }
 
           const requestTimeString = event.report_date && event.report_time 
@@ -458,9 +449,34 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       return;
     }
 
+    // Validate and parse requestTime
+    const parsedRequestDateTime = parseISO(requestTime);
+    if (!isValid(parsedRequestDateTime)) {
+      showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    // Validate and parse startTime and endTime
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    if (startTime && !isValid(parsedStartTime)) {
+      showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
+    if (endTime && !isValid(parsedEndTime)) {
+      showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    // Additional validation for final submission
     if (isFinal) {
-      if (!startTime || !endTime) {
-        showError("Orario Inizio Intervento e Orario Fine Intervento sono obbligatori per la chiusura.");
+      if (!parsedStartTime) {
+        showError("Orario Inizio Intervento è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!parsedEndTime) {
+        showError("Orario Fine Intervento è obbligatorio per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
@@ -488,7 +504,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
-    const parsedRequestDateTime = parseISO(requestTime);
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
     const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
 
@@ -545,9 +560,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       showError("Impossibile determinare il cliente associato al punto servizio per l'analisi contabile.");
       return;
     }
-
-    const parsedStartTime = startTime ? parseISO(startTime) : null;
-    const parsedEndTime = endTime ? parseISO(endTime) : null;
 
     const costDetails = {
       type: "Intervento",
