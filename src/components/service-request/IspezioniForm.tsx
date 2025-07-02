@@ -42,7 +42,7 @@ const dailyHoursSchema = z.object({
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
-}).refines(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
+}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
   message: "Inserisci orari o seleziona H24.",
   path: ["startTime"],
 }).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
@@ -64,12 +64,7 @@ const formSchema = z.object({
     required_error: "Seleziona un tipo di ispezione.",
   }),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
-}).refine(data => {
-  return data.endDate.getTime() >= data.startDate.getTime();
-}, {
-  message: "La data di fine non può essere precedente alla data di inizio.",
-  path: ["endDate"],
-});
+}); // Removed .refine from here
 
 interface IspezioniFormProps {
   serviceId?: string;
@@ -164,6 +159,16 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Manual date validation
+    if (values.endDate.getTime() < values.startDate.getTime()) {
+      form.setError("endDate", {
+        type: "manual",
+        message: "La data di fine non può essere precedente alla data di inizio.",
+      });
+      showError("La data di fine non può essere precedente alla data di inizio.");
+      return;
+    }
+
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
