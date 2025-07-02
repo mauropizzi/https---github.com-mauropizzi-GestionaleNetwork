@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, parseISO, isValid } from "date-fns"; // Import parseISO and isValid
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +29,11 @@ import { AutomezzoItem } from "./AutomezzoItem";
 import { AttrezzoItem } from "./AttrezzoItem";
 import { addettiList, servizioOptions, tipologiaAutomezzoOptions, marcaAutomezzoOptions, tipologiaAttrezzoOptions, marcaAttrezzoOptions } from "@/lib/cantiere-data";
 import { RECIPIENT_EMAIL } from "@/lib/config";
-import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
-import { fetchClienti } from "@/lib/data-fetching"; // Import fetchClienti
-import { sendEmail } from "@/utils/email"; // Import the sendEmail utility
-import jsPDF from 'jspdf'; // Import jsPDF
-import 'jspdf-autotable'; // Import jspdf-autotable
+import { Cliente } from "@/lib/anagrafiche-data";
+import { fetchClienti } from "@/lib/data-fetching";
+import { sendEmail } from "@/utils/email";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -50,9 +50,11 @@ const attrezzoSchema = z.object({
 });
 
 const formSchema = z.object({
-  reportDate: z.string().min(1, "La data del rapporto è richiesta."),
+  reportDate: z.date({ // Changed to z.date()
+    required_error: "La data del rapporto è richiesta.",
+  }),
   reportTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  cliente: z.string().min(1, "Il cliente è richiesto."), // Now stores client ID
+  cliente: z.string().min(1, "Il cliente è richiesto."),
   cantiere: z.string().min(1, "Il cantiere è richiesto."),
   addetto: z.string().min(1, "L'addetto è richiesto."),
   servizio: z.string().min(1, "Il servizio è richiesto."),
@@ -61,8 +63,8 @@ const formSchema = z.object({
   noteVarie: z.string().optional(),
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
-  latitude: z.coerce.number().optional(), // New field for latitude
-  longitude: z.coerce.number().optional(), // New field for longitude
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
 });
 
 export function CantiereForm() {
@@ -79,7 +81,7 @@ export function CantiereForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      reportDate: format(new Date(), "yyyy-MM-dd"),
+      reportDate: new Date(), // Default to Date object
       reportTime: format(new Date(), "HH:mm"),
       cliente: "",
       cantiere: "",
@@ -90,8 +92,8 @@ export function CantiereForm() {
       noteVarie: "",
       automezzi: [],
       attrezzi: [],
-      latitude: undefined, // Default for new field
-      longitude: undefined, // Default for new field
+      latitude: undefined,
+      longitude: undefined,
     },
   });
 
@@ -108,12 +110,11 @@ export function CantiereForm() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log("Registro di Cantiere Data:", values);
     showSuccess("Rapporto di cantiere registrato con successo!");
-    // Qui si potrebbe inviare i dati a un backend
-    form.reset(); // Reset form after submission
+    form.reset();
   };
 
   const handleSetCurrentDate = () => {
-    form.setValue("reportDate", format(new Date(), "yyyy-MM-dd"));
+    form.setValue("reportDate", new Date()); // Set to Date object
   };
 
   const handleSetCurrentTime = () => {
@@ -146,10 +147,10 @@ export function CantiereForm() {
     const selectedClient = clienti.find(c => c.id === values.cliente);
     const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
 
-    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`;
+    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(values.reportDate, 'dd/MM/yyyy')}`; // Use values.reportDate directly
     
     let body = `Dettagli Rapporto di Cantiere:\n\n`;
-    body += `Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}\n`;
+    body += `Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}\n`; // Use values.reportDate directly
     body += `Ora Rapporto: ${values.reportTime}\n`;
     if (values.latitude !== undefined && values.longitude !== undefined) {
       body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
@@ -204,7 +205,7 @@ export function CantiereForm() {
     y += 10;
 
     doc.setFontSize(10);
-    doc.text(`Data Rapporto: ${format(new Date(values.reportDate), 'dd/MM/yyyy')}`, 14, y);
+    doc.text(`Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}`, 14, y); // Use values.reportDate directly
     y += 7;
     doc.text(`Ora Rapporto: ${values.reportTime}`, 14, y);
     y += 7;
@@ -243,9 +244,9 @@ export function CantiereForm() {
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
         margin: { left: 14, right: 14 },
-        didDrawPage: (data: any) => { y = data.cursor.y; } // Update y position after table
+        didDrawPage: (data: any) => { y = data.cursor.y; }
       });
-      y += 10; // Add some space after the table
+      y += 10;
     }
 
     if (values.attrezzi && values.attrezzi.length > 0) {
@@ -260,9 +261,9 @@ export function CantiereForm() {
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
         margin: { left: 14, right: 14 },
-        didDrawPage: (data: any) => { y = data.cursor.y; } // Update y position after table
+        didDrawPage: (data: any) => { y = data.cursor.y; }
       });
-      y += 10; // Add some space after the table
+      y += 10;
     }
 
     if (values.noteVarie) {
@@ -275,14 +276,13 @@ export function CantiereForm() {
       y += (splitNotes.length * 5);
     }
 
-    doc.output('dataurlnewwindow'); // Open in new tab
+    doc.output('dataurlnewwindow');
     showSuccess("PDF del rapporto di cantiere generato con successo!");
   };
 
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4">
-        {/* Dati Generali */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Dati Generali</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -294,7 +294,14 @@ export function CantiereForm() {
                   <FormLabel>Data Rapporto</FormLabel>
                   <div className="flex items-center space-x-2">
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="date"
+                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const date = parseISO(e.target.value);
+                          field.onChange(isValid(date) ? date : undefined);
+                        }}
+                      />
                     </FormControl>
                     <Button type="button" variant="outline" onClick={handleSetCurrentDate}>
                       Data Attuale
@@ -431,7 +438,6 @@ export function CantiereForm() {
           />
         </section>
 
-        {/* Descrizione Lavori */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Descrizione Lavori</h2>
           <FormField
@@ -449,7 +455,6 @@ export function CantiereForm() {
           />
         </section>
 
-        {/* Automezzi Utilizzati */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Automezzi Utilizzati</h2>
           <div className="space-y-4">
@@ -467,7 +472,6 @@ export function CantiereForm() {
           </Button>
         </section>
 
-        {/* Attrezzi Utilizzati */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Attrezzi Utilizzati</h2>
           <div className="space-y-4">
@@ -485,7 +489,6 @@ export function CantiereForm() {
           </Button>
         </section>
 
-        {/* Note Varie */}
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Note Varie</h2>
           <FormField
@@ -503,7 +506,6 @@ export function CantiereForm() {
           />
         </section>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
             INVIA EMAIL

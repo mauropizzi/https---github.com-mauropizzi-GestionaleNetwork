@@ -118,6 +118,11 @@ export function AlarmEventsInProgressTable() {
   }, [navigate]);
 
   const handleWhatsAppMessage = useCallback((event: AllarmeIntervento) => {
+    console.log("Event object for WhatsApp message:", event);
+    console.log("Event ID:", event.id);
+    console.log("Event start_latitude:", event.start_latitude);
+    console.log("Event start_longitude:", event.start_longitude);
+
     const gpgInterventionId = event.gpg_intervention;
     if (gpgInterventionId) {
       const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
@@ -133,7 +138,6 @@ export function AlarmEventsInProgressTable() {
         const tempoIntervento = servicePoint?.tempo_intervento !== undefined && servicePoint?.tempo_intervento !== null ? `${servicePoint.tempo_intervento} minuti` : 'N/A';
         
         let gpsLink = 'Posizione non disponibile';
-        // Modifica qui: verifica esplicita per null o undefined
         if (event.start_latitude !== undefined && event.start_latitude !== null && event.start_longitude !== undefined && event.start_longitude !== null) {
           gpsLink = `https://www.google.com/maps/search/?api=1&query=${event.start_latitude},${event.start_longitude}`;
         }
@@ -207,10 +211,6 @@ export function AlarmEventsInProgressTable() {
   }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const columns: ColumnDef<AllarmeIntervento>[] = useMemo(() => [
-    // {
-    //   accessorKey: 'id',
-    //   header: 'ID',
-    // },
     {
       accessorKey: 'report_date',
       header: 'Data',

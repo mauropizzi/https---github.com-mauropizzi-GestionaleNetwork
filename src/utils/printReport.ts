@@ -31,7 +31,7 @@ export const printSingleServiceReport = async (reportId: string) => {
 
   const { data: report, error } = await supabase
     .from('allarme_interventi')
-    .select('*')
+    .select('*, start_latitude, start_longitude, end_latitude, end_longitude') // Explicitly select GPS fields
     .eq('id', reportId)
     .single();
 
@@ -91,11 +91,11 @@ export const printSingleServiceReport = async (reportId: string) => {
   doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
 
-  if (report.start_latitude !== undefined && report.start_longitude !== undefined && report.start_latitude !== null && report.start_longitude !== null) {
+  if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
     doc.text(`GPS Inizio Intervento: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
     y += 7;
   }
-  if (report.end_latitude !== undefined && report.end_longitude !== undefined && report.end_latitude !== null && report.end_longitude !== null) {
+  if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
     doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
     y += 7;
   }
