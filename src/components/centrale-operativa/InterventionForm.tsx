@@ -36,7 +36,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorNetworkId: '', // Corrected from operatorClient
+    operatorNetworkId: '',
     gpgIntervention: '',
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
@@ -80,21 +80,27 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const loadEventDataForEdit = async () => {
       if (eventId) {
         setLoadingInitialData(true);
-        const { data: event, error } = await supabase
+        
+        const { data: event, error: eventError } = await supabase
           .from('allarme_interventi')
           .select('*')
           .eq('id', eventId)
           .single();
 
-        if (error) {
-          showError(`Errore nel recupero dell'evento: ${error.message}`);
-          console.error("Error fetching alarm event for edit:", error);
+        const { data: serviceTimes, error: serviceTimesError } = await supabase
+          .from('servizi_richiesti')
+          .select('start_date, start_time, end_date, end_time')
+          .eq('id', eventId)
+          .single();
+
+        if (eventError) {
+          showError(`Errore nel recupero dei dati dell'evento: ${eventError.message}`);
+          console.error("Error fetching event data for edit:", eventError);
           setLoadingInitialData(false);
           return;
         }
 
         if (event) {
-          // Parse notes back into anomalies/delay fields if they were combined
           let anomalyDescription = '';
           let delayNotes = '';
           let anomalies: 'si' | 'no' | undefined = undefined;
@@ -122,23 +128,35 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             delay = 'no';
           }
 
+          const requestTimeString = event.report_date && event.report_time 
+            ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
+            : '';
+          
+          const startTimeString = serviceTimes?.start_date && serviceTimes?.start_time
+            ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
+            : '';
+
+          const endTimeString = serviceTimes?.end_date && serviceTimes?.end_time
+            ? `${serviceTimes.end_date}T${serviceTimes.end_time.substring(0, 5)}`
+            : '';
+
           setFormData({
             servicePoint: event.service_point_code || '',
             requestType: event.request_type || '',
             coOperator: event.co_operator || '',
-            requestTime: event.report_date && event.report_time ? `${event.report_date}T${event.report_time}` : '',
-            startTime: event.start_time || '',
-            endTime: event.end_time || '',
-            fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
-            vaultAccess: undefined, // Same as above
-            operatorNetworkId: event.operator_client || '', // Corrected from operatorClient
+            requestTime: requestTimeString,
+            startTime: startTimeString,
+            endTime: endTimeString,
+            fullAccess: undefined,
+            vaultAccess: undefined,
+            operatorNetworkId: event.operator_client || '',
             gpgIntervention: event.gpg_intervention || '',
             anomalies: anomalies,
             anomalyDescription: anomalyDescription,
             delay: delay,
             delayNotes: delayNotes,
             serviceOutcome: event.service_outcome || '',
-            barcode: '', // Barcode is not stored in DB, so it remains empty
+            barcode: '',
             startLatitude: event.start_latitude || undefined,
             startLongitude: event.start_longitude || undefined,
             endLatitude: event.end_latitude || undefined,
@@ -273,7 +291,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId); // Corrected
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId);
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
@@ -377,7 +395,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endTime,
       fullAccess,
       vaultAccess,
-      operatorNetworkId, // Corrected
+      operatorNetworkId,
       gpgIntervention,
       anomalies,
       anomalyDescription,
@@ -391,13 +409,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endLongitude,
     } = formData;
 
-    // Basic validation for both save types
     if (!servicePoint || !requestType || !requestTime) {
       showError("Punto Servizio, Tipologia Servizio Richiesto e Orario Richiesta sono obbligatori.");
       return;
     }
 
-    // Additional validation for final submission
     if (isFinal) {
       if (!startTime || !endTime) {
         showError("Orario Inizio Intervento e Orario Fine Intervento sono obbligatori per la chiusura.");
@@ -421,14 +437,17 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       notesCombined.push(`Ritardo: ${delayNotes}`);
     }
 
-    // --- Save to allarme_interventi ---
+    const parsedRequestDateTime = parseISO(requestTime);
+    const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ss');
+
     const allarmeInterventoPayload = {
-      report_date: format(new Date(requestTime), 'yyyy-MM-dd'),
-      report_time: format(new Date(requestTime), 'HH:mm:ss'),
+      report_date: reportDateForDb,
+      report_time: reportTimeForDb,
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorNetworkId || null, // Corrected
+      operator_client: operatorNetworkId || null,
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
@@ -450,7 +469,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       allarmeResult = await supabase
         .from('allarme_interventi')
         .insert([allarmeInterventoPayload])
-        .select('id'); // Select the ID of the newly inserted row
+        .select('id');
       if (allarmeResult.data && allarmeResult.data.length > 0) {
         currentEventId = allarmeResult.data[0].id;
       }
@@ -462,7 +481,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       return;
     }
 
-    // --- Also save/update in servizi_richiesti for accounting analysis ---
     if (!currentEventId) {
       showError("Impossibile ottenere l'ID dell'evento per la registrazione del servizio.");
       return;
@@ -477,19 +495,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       return;
     }
 
-    const serviceStartDate = parseISO(format(new Date(requestTime), 'yyyy-MM-dd'));
-    const serviceEndDate = parseISO(format(new Date(endTime || requestTime), 'yyyy-MM-dd')); // Use end time date if available, else request time
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
 
     const costDetails = {
-      type: "Intervento", // Fixed type for this service
+      type: "Intervento",
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: serviceStartDate,
-      end_date: serviceEndDate,
-      start_time: startTime ? format(new Date(startTime), 'HH:mm:ss') : null, // Corrected format
-      end_time: endTime ? format(new Date(endTime), 'HH:mm:ss') : null, // Corrected format
-      num_agents: 1, // Assuming 1 agent for an intervention
+      start_date: parsedStartTime || parsedRequestDateTime,
+      end_date: parsedEndTime || parsedStartTime || parsedRequestDateTime,
+      start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ss') : null,
+      end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ss') : null,
+      num_agents: 1,
       cadence_hours: null,
       inspection_type: null,
       daily_hours_config: null,
@@ -509,7 +527,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         case "Intervento Annullato":
           serviceStatus = "Rejected";
           break;
-        case "Intervento in Corso": // Should not be final, but for completeness
         default:
           serviceStatus = "Pending";
           break;
@@ -517,18 +534,18 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     }
 
     const serviziRichiestiPayload = {
-      id: currentEventId, // Use the same ID to link records
+      id: currentEventId,
       type: "Intervento",
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: format(serviceStartDate, 'yyyy-MM-dd'),
-      start_time: startTime ? format(new Date(startTime), 'HH:mm:ss') : null, // Corrected format
-      end_date: endTime ? format(new Date(endTime), 'yyyy-MM-dd') : null,
-      end_time: endTime ? format(new Date(endTime), 'HH:mm:ss') : null, // Corrected format
+      start_date: parsedStartTime ? format(parsedStartTime, 'yyyy-MM-dd') : reportDateForDb,
+      start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ss') : null,
+      end_date: parsedEndTime ? format(parsedEndTime, 'yyyy-MM-dd') : null,
+      end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ss') : null,
       status: serviceStatus,
       calculated_cost: calculatedCost,
-      num_agents: 1, // Assuming 1 agent for an intervention
+      num_agents: 1,
       cadence_hours: null,
       inspection_type: null,
       daily_hours_config: null,
@@ -536,17 +553,16 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     const { error: serviziError } = await supabase
       .from('servizi_richiesti')
-      .upsert([serviziRichiestiPayload], { onConflict: 'id' }); // Use upsert to create or update
+      .upsert([serviziRichiestiPayload], { onConflict: 'id' });
 
     if (serviziError) {
       showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} del servizio per analisi contabile: ${serviziError.message}`);
       console.error(`Error ${eventId ? 'updating' : 'inserting'} servizi_richiesti:`, serviziError);
-      // Decide if you want to roll back allarme_interventi or just log this as a partial success/failure
       return;
     }
 
     showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} e servizio per analisi contabile aggiornato con successo!`);
-    setFormData({ // Reset form
+    setFormData({
       servicePoint: '',
       requestType: '',
       coOperator: '',
@@ -568,7 +584,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endLatitude: undefined,
       endLongitude: undefined,
     });
-    onSaveSuccess?.(); // Call success callback
+    onSaveSuccess?.();
   };
 
   const handleCloseEvent = (e: React.FormEvent) => {
