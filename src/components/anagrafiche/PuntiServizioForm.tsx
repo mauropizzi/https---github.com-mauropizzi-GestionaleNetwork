@@ -20,8 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Cliente, Fornitore, Procedure } from "@/lib/anagrafiche-data"; // Import Procedure interface
-import { fetchClienti, fetchFornitori, fetchProcedure } from "@/lib/data-fetching"; // Import fetchProcedure
+import { useAnagraficheData } from "@/hooks/use-anagrafiche-data"; // Import the new hook
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,21 +47,7 @@ const formSchema = z.object({
 });
 
 export function PuntiServizioForm() {
-  const [clienti, setClienti] = useState<Cliente[]>([]);
-  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-  const [procedureList, setProcedureList] = useState<Procedure[]>([]); // Nuovo stato per le procedure
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedClienti = await fetchClienti();
-      const fetchedFornitori = await fetchFornitori();
-      const fetchedProcedure = await fetchProcedure(); // Carica le procedure
-      setClienti(fetchedClienti);
-      setFornitori(fetchedFornitori);
-      setProcedureList(fetchedProcedure); // Imposta le procedure
-    };
-    loadData();
-  }, []);
+  const { clienti, fornitori, procedure: procedureList, loading } = useAnagraficheData(); // Use the hook
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -126,6 +111,10 @@ export function PuntiServizioForm() {
       form.reset();
     }
   };
+
+  if (loading) {
+    return <div>Caricamento dati anagrafici...</div>;
+  }
 
   return (
     <Form {...form}>

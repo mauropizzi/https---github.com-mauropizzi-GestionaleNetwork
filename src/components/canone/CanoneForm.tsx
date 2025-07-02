@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +7,6 @@ import { it } from 'date-fns/locale';
 import { CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -28,8 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
-import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchPuntiServizio, fetchFornitori } from "@/lib/data-fetching";
+import { useAnagraficheData } from "@/hooks/use-anagrafiche-data"; // Import the new hook
 import { supabase } from "@/integrations/supabase/client";
 
 const tipoCanoneOptions = [
@@ -64,18 +62,7 @@ const formSchema = z.object({
 });
 
 export function CanoneForm() {
-  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
-  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      const fetchedFornitori = await fetchFornitori();
-      setPuntiServizio(fetchedPuntiServizio);
-      setFornitori(fetchedFornitori);
-    };
-    loadData();
-  }, []);
+  const { puntiServizio, fornitori, loading } = useAnagraficheData(); // Use the hook
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -123,6 +110,10 @@ export function CanoneForm() {
       });
     }
   };
+
+  if (loading) {
+    return <div>Caricamento dati anagrafici...</div>;
+  }
 
   return (
     <Form {...form}>

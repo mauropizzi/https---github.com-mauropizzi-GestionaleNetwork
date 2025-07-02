@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Cliente } from "@/lib/anagrafiche-data";
-import { fetchClienti } from "@/lib/data-fetching";
+import { useAnagraficheData } from "@/hooks/use-anagrafiche-data"; // Import the new hook
 
 const formSchema = z.object({
   nome: z.string().min(2, "Il nome è richiesto."),
@@ -33,15 +32,7 @@ const formSchema = z.object({
 });
 
 export function OperatoriNetworkForm() {
-  const [clienti, setClienti] = useState<Cliente[]>([]);
-
-  useEffect(() => {
-    const loadClienti = async () => {
-      const fetchedClienti = await fetchClienti();
-      setClienti(fetchedClienti);
-    };
-    loadClienti();
-  }, []);
+  const { clienti, loading } = useAnagraficheData(); // Use the hook
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,6 +68,10 @@ export function OperatoriNetworkForm() {
       form.reset(); // Reset form after submission
     }
   };
+
+  if (loading) {
+    return <div>Caricamento dati anagrafici...</div>;
+  }
 
   return (
     <Form {...form}>
