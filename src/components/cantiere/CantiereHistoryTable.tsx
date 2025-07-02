@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
 import { Mail, Printer, RotateCcw, RefreshCcw } from "lucide-react";
 import { showInfo, showError } from "@/utils/toast";
@@ -111,7 +111,7 @@ export function CantiereHistoryTable() {
     {
       accessorKey: "report_date",
       header: "Data Rapporto",
-      cell: ({ row }) => <span>{format(new Date(row.original.report_date), "PPP", { locale: it })}</span>,
+      cell: ({ row }) => <span>{format(parseISO(row.original.report_date), "PPP", { locale: it })}</span>,
     },
     {
       accessorKey: "nome_cliente",

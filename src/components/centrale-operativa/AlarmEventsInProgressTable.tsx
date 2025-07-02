@@ -67,7 +67,7 @@ export function AlarmEventsInProgressTable() {
     setLoading(true);
     const { data, error } = await supabase
       .from('allarme_interventi')
-      .select('*, start_latitude, start_longitude, end_latitude, end_longitude')
+      .select('id, report_date, report_time, service_point_code, request_type, co_operator, operator_client, gpg_intervention, service_outcome, notes, start_latitude, start_longitude, end_latitude, end_longitude')
       .is('service_outcome', null);
 
     if (error) {
