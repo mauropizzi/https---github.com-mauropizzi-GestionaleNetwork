@@ -134,47 +134,65 @@ export function TariffeTable() {
     {
       accessorKey: "nome_cliente",
       header: "Cliente",
-      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.nome_cliente}</span>
+      ),
     },
     {
       accessorKey: "service_type",
       header: "Tipo Servizio",
-      cell: ({ row }) => <span>{row.original.service_type}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.service_type}</span>
+      ),
     },
     {
       accessorKey: "client_rate",
       header: "Tariffa Cliente (€)",
-      cell: ({ row }) => <span>{`${row.original.client_rate.toFixed(2)} €`}</span>,
+      cell: ({ row }) => (
+        <span>{`${row.original.client_rate.toFixed(2)} €`}</span>
+      ),
     },
     {
       accessorKey: "supplier_rate",
       header: "Tariffa Fornitore (€)",
-      cell: ({ row }) => <span>{`${row.original.supplier_rate.toFixed(2)} €`}</span>,
+      cell: ({ row }) => (
+        <span>{`${row.original.supplier_rate.toFixed(2)} €`}</span>
+      ),
     },
     {
       accessorKey: "unita_misura",
       header: "Unità Misura",
-      cell: ({ row }) => <span>{row.original.unita_misura}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.unita_misura}</span>
+      ),
     },
     {
       accessorKey: "nome_punto_servizio",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.nome_punto_servizio}</span>
+      ),
     },
     {
       accessorKey: "nome_fornitore",
       header: "Fornitore",
-      cell: ({ row }) => <span>{row.original.nome_fornitore}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.nome_fornitore}</span>
+      ),
     },
     {
       accessorKey: "data_inizio_validita",
       header: "Inizio Validità",
-      cell: ({ row }) => <span>{row.original.data_inizio_validita ? format(new Date(row.original.data_inizio_validita), "PPP", { locale: it }) : "N/A"}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.data_inizio_validita ? format(new Date(row.original.data_inizio_validita), "PPP", { locale: it }) : "N/A"}</span>
+      ),
     },
     {
       accessorKey: "data_fine_validita",
       header: "Fine Validità",
-      cell: ({ row }) => <span>{row.original.data_fine_validita ? format(new Date(row.original.data_fine_validita), "PPP", { locale: it }) : "N/A"}</span>,
+      cell: ({ row }) => (
+        <span>{row.original.data_fine_validita ? format(new Date(row.original.data_fine_validita), "PPP", { locale: it }) : "N/A"}</span>
+      ),
     },
     {
       id: "actions",
