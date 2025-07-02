@@ -1,15 +1,33 @@
-import React, { useState } from "react"; // Import React
+import React, { useState, useEffect } from "react"; // Import React and useEffect
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalisiContabileData } from "@/hooks/use-analisi-contabile-data";
 import { AnalysisFilters } from "@/components/analisi-contabile/AnalysisFilters";
 import { ServiceSummaryTable } from "@/components/analisi-contabile/ServiceSummaryTable";
 import { MissingTariffsTable } from "@/components/analisi-contabile/MissingTariffsTable";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client
 
 const AnalisiContabile = () => {
   console.log("AnalisiContabile: Component rendering.");
   const [currentTab, setCurrentTab] = useState("sintesi-contabile");
   
+  // Temporary test for direct query to servizi_canone
+  useEffect(() => {
+    const testServiziCanoneFetch = async () => {
+      console.log("AnalisiContabile: Running temporary direct fetch for 'servizi_canone'...");
+      const { data, error } = await supabase
+        .from('servizi_canone')
+        .select('*'); // Select all to see if any data is returned
+
+      if (error) {
+        console.error("AnalisiContabile: Direct fetch error for 'servizi_canone':", error);
+      } else {
+        console.log("AnalisiContabile: Direct fetch data for 'servizi_canone':", data);
+      }
+    };
+    testServiziCanoneFetch();
+  }, []); // Run once on component mount
+
   const hookResult = useAnalisiContabileData();
   console.log("AnalisiContabile: Result of useAnalisiContabileData:", hookResult);
 
@@ -67,7 +85,7 @@ const AnalisiContabile = () => {
                 startDateFilter={startDateFilter}
                 setStartDateFilter={setStartDateFilter}
                 endDateFilter={endDateFilter}
-                setEndDateFilter={setEndDateFilter}
+                setEndDateFilter={endDateFilter}
                 handleResetFilters={handleResetFilters}
                 onRefresh={fetchAndProcessServiceData}
                 loading={loadingSummary}
@@ -84,7 +102,7 @@ const AnalisiContabile = () => {
                 startDateFilter={startDateFilter}
                 setStartDateFilter={setStartDateFilter}
                 endDateFilter={endDateFilter}
-                setEndDateFilter={setEndDateFilter}
+                setEndDateFilter={endDateFilter}
                 handleResetFilters={handleResetFilters}
                 onRefresh={fetchAndIdentifyMissingTariffs}
                 loading={loadingMissingTariffs}
