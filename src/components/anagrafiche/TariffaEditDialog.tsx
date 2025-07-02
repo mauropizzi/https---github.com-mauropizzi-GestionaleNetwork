@@ -255,7 +255,7 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
                 name="supplier_rate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Importo Fornitore (€)</FormLabel>
+                    <FormLabel>Importo Fornitore (€)</Label>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                     </FormControl>
@@ -270,7 +270,7 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Unità di Misura</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento")}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento" || tipoServizio === "Disponibilità Pronto Intervento" || tipoServizio === "Videosorveglianza" || tipoServizio === "Impianto Allarme" || tipoServizio === "Bidirezionale" || tipoServizio === "Monodirezionale" || tipoServizio === "Tenuta Chiavi")}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona unità di misura" />

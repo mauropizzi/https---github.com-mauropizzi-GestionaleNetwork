@@ -134,6 +134,14 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
         case "Intervento":
           defaultUnitaMisura = "intervento";
           break;
+        case "Disponibilità Pronto Intervento":
+        case "Videosorveglianza":
+        case "Impianto Allarme":
+        case "Bidirezionale":
+        case "Monodirezionale":
+        case "Tenuta Chiavi":
+          defaultUnitaMisura = "mese";
+          break;
       }
       if (defaultUnitaMisura) {
         console.log("TariffeForm - Setting default unita_misura:", defaultUnitaMisura);
@@ -163,8 +171,14 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
       case "Intervento":
         defaultUnitaMisura = "intervento";
         break;
-      // Add other cases if needed, e.g., "Servizi a Canone" -> "mese"
-      // For now, if not matched, it remains empty or user can select manually
+      case "Disponibilità Pronto Intervento":
+      case "Videosorveglianza":
+      case "Impianto Allarme":
+      case "Bidirezionale":
+      case "Monodirezionale":
+      case "Tenuta Chiavi":
+        defaultUnitaMisura = "mese";
+        break;
     }
     if (defaultUnitaMisura) {
       form.setValue("unita_misura", defaultUnitaMisura, { shouldValidate: true });
@@ -302,7 +316,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
             name="supplier_rate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Importo Fornitore (€)</FormLabel>
+                <FormLabel>Importo Fornitore (€)</Label>
                 <FormControl>
                   <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
@@ -317,7 +331,7 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Unità di Misura</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento")}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento" || tipoServizio === "Disponibilità Pronto Intervento" || tipoServizio === "Videosorveglianza" || tipoServizio === "Impianto Allarme" || tipoServizio === "Bidirezionale" || tipoServizio === "Monodirezionale" || tipoServizio === "Tenuta Chiavi")}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona unità di misura" />
