@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-// import { visualizer } from "rollup-plugin-visualizer"; // Rimosso
 
 export default defineConfig(() => ({
   server: {
@@ -12,16 +11,16 @@ export default defineConfig(() => ({
   plugins: [
     dyadComponentTagger(),
     react(),
-    // visualizer({ // Rimosso
-    //   filename: "stats.html",
-    //   open: false, // Non aprire automaticamente il file
-    //   gzipSize: true,
-    //   brotliSize: true,
-    // }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: { // Aggiunto questo blocco
+    include: [
+      '@supabase/auth-ui-react',
+      '@supabase/auth-ui-shared',
+    ],
   },
 }));
