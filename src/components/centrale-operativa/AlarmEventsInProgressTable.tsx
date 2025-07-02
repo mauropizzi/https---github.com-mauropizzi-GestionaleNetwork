@@ -118,6 +118,7 @@ export function AlarmEventsInProgressTable() {
   }, [navigate]);
 
   const handleWhatsAppMessage = useCallback((event: AllarmeIntervento) => {
+    showInfo(`DEBUG: Lat: ${event.start_latitude}, Lon: ${event.start_longitude}`);
     console.log("Event object for WhatsApp message:", event);
     console.log("Event ID:", event.id);
     console.log("Event start_latitude:", event.start_latitude);

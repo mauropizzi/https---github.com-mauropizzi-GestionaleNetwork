@@ -101,7 +101,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         
         const { data: event, error: eventError } = await supabase
           .from('allarme_interventi')
-          .select('*')
+          .select('*, start_latitude, start_longitude, end_latitude, end_longitude')
           .eq('id', eventId)
           .single();
 
@@ -121,10 +121,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         if (event) {
           let anomalyDescription = '';
           let delayNotes = '';
-          let anomalies: 'si' | 'no' | undefined = undefined; // Initialize as undefined
-          let delay: 'si' | 'no' | undefined = undefined;     // Initialize as undefined
-          let fullAccess: 'si' | 'no' | undefined = undefined; // Initialize as undefined
-          let vaultAccess: 'si' | 'no' | undefined = undefined; // Initialize as undefined
+          let anomalies: 'si' | 'no' | undefined = undefined; // Initialized to undefined
+          let delay: 'si' | 'no' | undefined = undefined;     // Initialized to undefined
+          let fullAccess: 'si' | 'no' | undefined = undefined; // Initialized to undefined
+          let vaultAccess: 'si' | 'no' | undefined = undefined; // Initialized to undefined
 
           if (event.notes) {
             const notesArray = event.notes.split('; ').map((s: string) => s.trim());
@@ -625,7 +625,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       fornitore_id: fornitoreId,
       start_date: parsedStartTime ? format(parsedStartTime, 'yyyy-MM-dd') : reportDateForDb,
       start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ss') : null,
-      end_date: parsedEndTime ? format(parsedEndTime, 'yyyy-MM-dd') : null,
       end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ss') : null,
       status: serviceStatus,
       calculated_cost: calculatedCost,
