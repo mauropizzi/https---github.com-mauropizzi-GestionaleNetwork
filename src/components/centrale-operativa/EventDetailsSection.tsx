@@ -42,7 +42,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
   return (
     <section className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="service-point">Punto Servizio</Label>
+        <Label htmlFor="service-point">Punto Servizio *</Label>
         <Popover open={isServicePointOpen} onOpenChange={setIsServicePointOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -96,7 +96,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="request-type">Tipologia Servizio Richiesto</Label>
+        <Label htmlFor="request-type">Tipologia Servizio Richiesto *</Label>
         <Select
           onValueChange={(value) => handleSelectChange('requestType', value)}
           value={formData.requestType}
@@ -160,7 +160,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="request-time">Orario Richiesta C.O. Security Service</Label>
+        <Label htmlFor="request-time">Orario Richiesta C.O. Security Service *</Label>
         <div className="flex gap-2">
           <Input
             type="datetime-local"
