@@ -123,11 +123,15 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           let delayNotes = '';
           let anomalies: 'si' | 'no' | undefined = undefined;
           let delay: 'si' | 'no' | undefined = undefined;
+          let fullAccess: 'si' | 'no' | undefined = undefined;
+          let vaultAccess: 'si' | 'no' | undefined = undefined;
 
           if (event.notes) {
             const notesArray = event.notes.split('; ').map((s: string) => s.trim());
             const anomalyMatch = notesArray.find((note: string) => note.startsWith('Anomalie:'));
             const delayMatch = notesArray.find((note: string) => note.startsWith('Ritardo:'));
+            const fullAccessMatch = notesArray.find((note: string) => note.startsWith('Accesso Completo:'));
+            const vaultAccessMatch = notesArray.find((note: string) => note.startsWith('Accesso Caveau:'));
 
             if (anomalyMatch) {
               anomalies = 'si';
@@ -140,6 +144,12 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
               delayNotes = delayMatch.replace('Ritardo:', '').trim();
             } else {
               delay = 'no';
+            }
+            if (fullAccessMatch) {
+              fullAccess = fullAccessMatch.replace('Accesso Completo:', '').trim().toLowerCase() as 'si' | 'no';
+            }
+            if (vaultAccessMatch) {
+              vaultAccess = vaultAccessMatch.replace('Accesso Caveau:', '').trim().toLowerCase() as 'si' | 'no';
             }
           } else {
             anomalies = 'no';
@@ -165,8 +175,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             requestTime: requestTimeString,
             startTime: startTimeString,
             endTime: endTimeString,
-            fullAccess: undefined,
-            vaultAccess: undefined,
+            fullAccess: fullAccess,
+            vaultAccess: vaultAccess,
             operatorNetworkId: event.operator_client || '',
             gpgIntervention: event.gpg_intervention || '',
             anomalies: anomalies,
@@ -448,6 +458,12 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
 
     const notesCombined = [];
+    if (fullAccess !== undefined) {
+      notesCombined.push(`Accesso Completo: ${fullAccess.toUpperCase()}`);
+    }
+    if (vaultAccess !== undefined) {
+      notesCombined.push(`Accesso Caveau: ${vaultAccess.toUpperCase()}`);
+    }
     if (anomalies === 'si' && anomalyDescription) {
       notesCombined.push(`Anomalie: ${anomalyDescription}`);
     }
