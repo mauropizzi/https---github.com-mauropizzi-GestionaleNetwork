@@ -152,7 +152,8 @@ export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate
     query = query.gte('start_date', startDate);
   }
   if (endDate) {
-    query = query.lte('end_date', endDate);
+    // Modifica per includere servizi con end_date NULL o entro il periodo
+    query = query.or(`end_date.lte.${endDate},end_date.is.null`);
   }
 
   const { data, error } = await query;

@@ -133,7 +133,7 @@ export const useAnalisiContabileData = () => {
           inspection_type: null,
         })),
       ];
-      console.log("fetchAndProcessServiceData: allServices (combined) =", allServices);
+      console.log("fetchAndProcessServiceData: allServices (combined) =", allServices); // Nuovo log
 
       const summary: { [key: string]: ServiceSummary } = {};
 
@@ -231,7 +231,7 @@ export const useAnalisiContabileData = () => {
           daily_hours_config: s.daily_hours_config,
           inspection_type: s.inspection_type,
         })),
-        ...allServiziCanone.map(sc => ({
+        ...rawServiziCanone.map(sc => ({
           id: sc.id,
           type: sc.tipo_canone, // Map tipo_canone to type for consistent processing
           client_id: sc.client_id,
@@ -247,7 +247,7 @@ export const useAnalisiContabileData = () => {
           inspection_type: null,
         })),
       ];
-      console.log("fetchAndIdentifyMissingTariffs: allServices (combined) =", allServices);
+      console.log("fetchAndIdentifyMissingTariffs: allServices (combined) =", allServices); // Nuovo log
 
       const allClients = await fetchClienti();
 
