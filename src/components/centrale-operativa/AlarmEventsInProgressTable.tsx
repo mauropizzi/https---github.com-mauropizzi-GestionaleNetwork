@@ -143,10 +143,10 @@ export function AlarmEventsInProgressTable() {
         }
 
         const message = encodeURIComponent(
-          `Allarme presso ${servicePointName}. ` +
-          `Intervento da effettuarsi ENTRO ${tempoIntervento}. ` +
-          `Posizione: ${gpsLink}. ` +
-          `Compila rapporto: INTERVENTO ${servicePointName} ${publicEditUrl}`
+          `Allarme presso ${servicePointName}.\n` +
+          `Intervento da effettuarsi ENTRO ${tempoIntervento}.\n\n` +
+          `📍 Posizione: ${gpsLink}\n` +
+          `📝 Compila rapporto: ${publicEditUrl}`
         );
         
         const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}?text=${message}`;
