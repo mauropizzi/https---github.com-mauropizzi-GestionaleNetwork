@@ -35,13 +35,13 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     requestTime: '',
     startTime: '',
     endTime: '',
-    fullAccess: null as 'si' | 'no' | null, // Changed to null for initial state
-    vaultAccess: null as 'si' | 'no' | null, // Changed to null for initial state
+    fullAccess: undefined as 'si' | 'no' | undefined, // Initialized to undefined
+    vaultAccess: undefined as 'si' | 'no' | undefined, // Initialized to undefined
     operatorNetworkId: '',
     gpgIntervention: '',
-    anomalies: null as 'si' | 'no' | null, // Changed to null
+    anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
-    delay: null as 'si' | 'no' | null, // Changed to null
+    delay: undefined as 'si' | 'no' | undefined,
     delayNotes: '',
     serviceOutcome: '',
     barcode: '',
@@ -121,10 +121,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         if (event) {
           let anomalyDescription = '';
           let delayNotes = '';
-          let anomalies: 'si' | 'no' | null = null; // Initialize as null
-          let delay: 'si' | 'no' | null = null;     // Initialize as null
-          let fullAccess: 'si' | 'no' | null = null; // Initialize as null
-          let vaultAccess: 'si' | 'no' | null = null; // Initialize as null
+          let anomalies: 'si' | 'no' | undefined = undefined; // Initialize as undefined
+          let delay: 'si' | 'no' | undefined = undefined;     // Initialize as undefined
+          let fullAccess: 'si' | 'no' | undefined = undefined; // Initialize as undefined
+          let vaultAccess: 'si' | 'no' | undefined = undefined; // Initialize as undefined
 
           if (event.notes) {
             const notesArray = event.notes.split('; ').map((s: string) => s.trim());
@@ -149,15 +149,15 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             if (fullAccessMatch) {
               fullAccess = fullAccessMatch.replace('Accesso Completo:', '').trim().toLowerCase() as 'si' | 'no';
             }
-            // If not found, it remains null.
+            // If not found, it remains undefined.
 
             const vaultAccessMatch = notesArray.find((note: string) => note.startsWith('Accesso Caveau:'));
             if (vaultAccessMatch) {
               vaultAccess = vaultAccessMatch.replace('Accesso Caveau:', '').trim().toLowerCase() as 'si' | 'no';
             }
-            // If not found, it remains null.
+            // If not found, it remains undefined.
           }
-          // If event.notes is null, all these variables remain null, which is the desired "empty" state.
+          // If event.notes is null, all these variables remain undefined, which is the desired "empty" state.
 
           const requestTimeString = (event.report_date && event.report_time) 
             ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
@@ -489,7 +489,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         showError("Orario Fine Intervento è obbligatorio per la chiusura.");
         return;
       }
-      if (fullAccess === null || vaultAccess === null || anomalies === null || delay === null) { // Check for null
+      if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
         showError("Tutti i campi 'SI/NO' sono obbligatori per la chiusura.");
         return;
       }
@@ -500,9 +500,13 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
 
     const notesCombined = [];
-    // Always include fullAccess and vaultAccess in notes, defaulting to 'no' if null
-    notesCombined.push(`Accesso Completo: ${(fullAccess || 'no').toUpperCase()}`);
-    notesCombined.push(`Accesso Caveau: ${(vaultAccess || 'no').toUpperCase()}`);
+    // Only include fullAccess and vaultAccess in notes if they have been explicitly selected
+    if (fullAccess !== undefined) {
+      notesCombined.push(`Accesso Completo: ${fullAccess.toUpperCase()}`);
+    }
+    if (vaultAccess !== undefined) {
+      notesCombined.push(`Accesso Caveau: ${vaultAccess.toUpperCase()}`);
+    }
     
     if (anomalies === 'si' && anomalyDescription) {
       notesCombined.push(`Anomalie: ${anomalyDescription}`);
@@ -639,13 +643,13 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       requestTime: '',
       startTime: '',
       endTime: '',
-      fullAccess: null,
-      vaultAccess: null,
+      fullAccess: undefined,
+      vaultAccess: undefined,
       operatorNetworkId: '',
       gpgIntervention: '',
-      anomalies: null,
+      anomalies: undefined,
       anomalyDescription: '',
-      delay: null,
+      delay: undefined,
       delayNotes: '',
       serviceOutcome: '',
       barcode: '',
