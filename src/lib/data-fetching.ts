@@ -145,6 +145,7 @@ export async function fetchAllTariffe(): Promise<any[]> {
     return cachedTariffe;
   }
 
+  console.log("Fetching tariffs from Supabase...");
   const { data, error } = await supabase
     .from('tariffe')
     .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita, client_rate, supplier_rate, unita_misura'); // Fetch client_rate and unita_misura
