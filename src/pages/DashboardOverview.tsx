@@ -1,6 +1,6 @@
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Button } from "@/components/ui/button"; // Import Button component
-import { Link } from "react-router-dom"; // Import Link for navigation
+import { Button } from "@/components/ui/button";
+import { PrefetchLink } from "@/components/layout/PrefetchLink"; // Import PrefetchLink
 
 const Index = () => {
   return (
@@ -11,16 +11,16 @@ const Index = () => {
           Inizia a costruire il tuo fantastico progetto qui!
         </p>
         <div className="flex flex-col space-y-4">
-          <Link to="/service-request">
+          <PrefetchLink to="/service-request">
             <Button size="lg" className="px-8 py-4 text-lg w-full">
               Vai al Sistema di Richiesta Servizi
             </Button>
-          </Link>
-          <Link to="/anagrafiche">
+          </PrefetchLink>
+          <PrefetchLink to="/anagrafiche">
             <Button size="lg" className="px-8 py-4 text-lg w-full">
               Vai alla Gestione Anagrafiche
             </Button>
-          </Link>
+          </PrefetchLink>
         </div>
       </div>
       <MadeWithDyad />
