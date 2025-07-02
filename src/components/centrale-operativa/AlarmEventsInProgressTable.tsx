@@ -133,7 +133,8 @@ export function AlarmEventsInProgressTable() {
         const tempoIntervento = servicePoint?.tempo_intervento !== undefined && servicePoint?.tempo_intervento !== null ? `${servicePoint.tempo_intervento} minuti` : 'N/A';
         
         let gpsLink = 'Posizione non disponibile';
-        if (event.start_latitude && event.start_longitude) {
+        // Modifica qui: verifica esplicita per null o undefined
+        if (event.start_latitude !== undefined && event.start_latitude !== null && event.start_longitude !== undefined && event.start_longitude !== null) {
           gpsLink = `https://www.google.com/maps/search/?api=1&query=${event.start_latitude},${event.start_longitude}`;
         }
 
