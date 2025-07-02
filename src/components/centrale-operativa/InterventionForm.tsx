@@ -526,7 +526,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
 
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
-    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX');
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // Corrected format to include timezone
 
     const allarmeInterventoPayload = {
       report_date: reportDateForDb,
