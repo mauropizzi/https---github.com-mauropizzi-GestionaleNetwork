@@ -737,6 +737,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         handleRegisterEvent={handleRegisterEvent}
         handleCloseEvent={handleCloseEvent}
         onCancel={onCancel}
+        isPublicMode={isPublicMode} {/* Pass the isPublicMode prop */}
       />
     </form>
   );
