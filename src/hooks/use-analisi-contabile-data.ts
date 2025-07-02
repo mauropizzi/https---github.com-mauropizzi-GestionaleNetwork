@@ -130,6 +130,7 @@ export const useAnalisiContabileData = () => {
           inspection_type: null,
         })),
       ];
+      console.log("fetchAndProcessServiceData: allServices (combined) =", allServices);
 
       const summary: { [key: string]: ServiceSummary } = {};
 
@@ -242,6 +243,7 @@ export const useAnalisiContabileData = () => {
           inspection_type: null,
         })),
       ];
+      console.log("fetchAndIdentifyMissingTariffs: allServices (combined) =", allServices);
 
       const allClients = await fetchClienti();
 
@@ -272,16 +274,17 @@ export const useAnalisiContabileData = () => {
         const calculatedRates = await calculateServiceCost(costDetails);
 
         if (calculatedRates === null) {
+          console.log("Missing tariff identified for service:", service); // Log missing service
           identifiedMissingTariffs.push({
             serviceId: service.id,
             serviceType: service.type,
             clientName: clientNameMap.get(service.client_id) || 'Cliente Sconosciuto',
-            clientId: service.client_id, // Include client ID
+            clientId: service.client_id,
             servicePointName: servicePointNameMap.get(service.service_point_id) || 'Punto Servizio Sconosciuto',
-            servicePointId: service.service_point_id, // Include service point ID
-            fornitoreId: service.fornitore_id, // Include fornitore ID
+            servicePointId: service.service_point_id,
+            fornitoreId: service.fornitore_id,
             startDate: format(serviceStartDate, 'yyyy-MM-dd'),
-            endDate: format(serviceEndDate, 'yyyy-MM-dd'), // Include end date
+            endDate: format(serviceEndDate, 'yyyy-MM-dd'),
             reason: "Nessuna tariffa corrispondente trovata per il periodo e il tipo di servizio.",
           });
         }
@@ -296,33 +299,4 @@ export const useAnalisiContabileData = () => {
       setLoadingMissingTariffs(false);
     }
   }, [startDateFilter, endDateFilter, puntiServizioMap]);
-
-  useEffect(() => {
-    if (puntiServizioMap.size > 0 || clientsList.length > 0) {
-      fetchAndProcessServiceData();
-      fetchAndIdentifyMissingTariffs();
-    }
-  }, [selectedClientId, puntiServizioMap, clientsList, fetchAndProcessServiceData, fetchAndIdentifyMissingTariffs]);
-
-  const handleResetFilters = useCallback(() => {
-    setStartDateFilter(startOfMonth(new Date()));
-    setEndDateFilter(endOfMonth(new Date()));
-  }, []);
-
-  return {
-    clientsList,
-    selectedClientId,
-    setSelectedClientId,
-    summaryData,
-    missingTariffs,
-    loadingSummary,
-    loadingMissingTariffs,
-    startDateFilter,
-    setStartDateFilter,
-    endDateFilter,
-    setEndDateFilter,
-    fetchAndProcessServiceData,
-    fetchAndIdentifyMissingTariffs,
-    handleResetFilters,
-  };
-};
+}

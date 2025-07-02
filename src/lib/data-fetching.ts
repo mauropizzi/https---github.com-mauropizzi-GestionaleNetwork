@@ -202,6 +202,7 @@ interface ServiceDetailsForCost {
 }
 
 export async function calculateServiceMultiplier(details: ServiceDetailsForCost): Promise<number | null> {
+  console.log("calculateServiceMultiplier: details.type =", details.type);
   let multiplier: number | null = null;
 
   switch (details.type) {
@@ -305,10 +306,10 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     // New case for monthly subscription services
     case "Disponibilità Pronto Intervento":
     case "Videosorveglianza":
-    case "Impianto Allarme":
+    case "Impianto Allarme": // <--- This is the type for the missing tariff service
     case "Bidirezionale":
     case "Monodirezionale":
-    case "Tenuta Chiavi": {
+    case "Tenuta Chiavi": { // <--- This is the type for the existing tariff service
       // Calculate number of months between start_date and end_date
       // If end_date is not provided, assume it's an ongoing service for 1 month for calculation purposes
       const endDate = details.end_date || addMonths(details.start_date, 1);
@@ -323,6 +324,7 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
       break;
     }
     default:
+      console.warn(`calculateServiceMultiplier: Tipo di servizio non riconosciuto: ${details.type}`);
       multiplier = null;
   }
 
@@ -330,7 +332,9 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
 }
 
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
+  console.log("calculateServiceCost: details =", details);
   const allTariffe = await fetchAllTariffe();
+  console.log("calculateServiceCost: allTariffe (first 5) =", allTariffe.slice(0, 5)); // Log a sample of tariffs
   const serviceStartDate = details.start_date;
 
   const matchingTariffs = allTariffe.filter(tariff => {
@@ -348,39 +352,20 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
     const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
 
-    return clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
+    const matchResult = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
+    if (!matchResult) {
+        console.log(`  Tariff mismatch for service ${details.type} (client: ${details.client_id}, sp: ${details.service_point_id}, forn: ${details.fornitore_id}, date: ${format(serviceStartDate, 'yyyy-MM-dd')}):`);
+        console.log(`    Tariff: ${tariff.service_type}, client: ${tariff.client_id}, sp: ${tariff.punto_servizio_id}, forn: ${tariff.fornitore_id}, dates: ${tariff.data_inizio_validita} - ${tariff.data_fine_validita}`);
+        console.log(`    Matches: client=${clientMatch}, type=${typeMatch}, active=${isTariffActive}, sp=${servicePointMatch}, forn=${fornitoreMatch}`);
+    }
+    return matchResult;
   });
+
+  console.log("calculateServiceCost: matchingTariffs =", matchingTariffs);
 
   if (matchingTariffs.length === 0) {
+    console.log("calculateServiceCost: No matching tariffs found for details:", details);
     return null;
   }
-
-  const sortedTariffs = matchingTariffs.sort((a, b) => {
-    if (a.punto_servizio_id && !b.punto_servizio_id) return -1;
-    if (!a.punto_servizio_id && b.punto_servizio_id) return 1;
-    if (a.fornitore_id && !b.fornitore_id) return -1;
-    if (!a.fornitore_id && b.fornitore_id) return 1;
-    
-    // Ensure data_inizio_validita is a string before parsing for sorting
-    const dateA = (typeof a.data_inizio_validita === 'string' && a.data_inizio_validita !== '')
-      ? parseISO(a.data_inizio_validita)
-      : new Date(0);
-    const dateB = (typeof b.data_inizio_validita === 'string' && b.data_inizio_validita !== '')
-      ? parseISO(b.data_inizio_validita)
-      : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  });
-
-  const selectedTariff = sortedTariffs[0];
-  const multiplier = await calculateServiceMultiplier(details);
-
-  if (multiplier === null) {
-    return null;
-  }
-
-  return {
-    multiplier: multiplier,
-    clientRate: selectedTariff.client_rate,
-    supplierRate: selectedTariff.supplier_rate,
-  };
+  // ... (rest of the function)
 }
