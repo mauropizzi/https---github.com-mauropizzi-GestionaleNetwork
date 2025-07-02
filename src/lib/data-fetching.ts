@@ -139,6 +139,8 @@ export async function fetchServiceRequestsForAnalysis(clientId?: string, startDa
 }
 
 export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
+  console.log("fetchServiziCanoneForAnalysis: Function entered.");
+  console.log(`fetchServiziCanoneForAnalysis: Filters - Client ID: ${clientId}, Start Date: ${startDate}, End Date: ${endDate}`); // Nuovo log per i filtri
   let query = supabase
     .from('servizi_canone')
     .select('id, tipo_canone, client_id, service_point_id, fornitore_id, start_date, end_date, unita_misura'); // Select relevant fields
@@ -160,7 +162,7 @@ export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate
     console.error("Error fetching servizi_canone for analysis:", error);
     return [];
   }
-  console.log("fetchServiziCanoneForAnalysis: Fetched data =", data); // Nuovo log
+  console.log("fetchServiziCanoneForAnalysis: Fetched data =", data);
   return data || [];
 }
 
