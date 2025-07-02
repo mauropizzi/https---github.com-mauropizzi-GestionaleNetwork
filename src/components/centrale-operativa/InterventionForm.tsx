@@ -623,7 +623,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: parsedStartTime ? format(parsedStartTime, 'yyyy-MM-dd') : null,
+      start_date: parsedStartTime ? format(parsedStartTime, 'yyyy-MM-dd') : reportDateForDb, // Fallback to reportDateForDb
       start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ssXXX') : null,
       end_date: parsedEndTime ? format(parsedEndTime, 'yyyy-MM-dd') : null,
       end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ssXXX') : null,
