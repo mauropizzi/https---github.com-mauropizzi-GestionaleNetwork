@@ -65,7 +65,8 @@ export function ProcedureEditDialog({ isOpen, onClose, procedure, onSave }: Proc
         nome_procedura: procedure.nome_procedura,
         descrizione: procedure.descrizione || null,
         versione: procedure.versione || null,
-        data_ultima_revisione: procedure.data_ultima_revisione ? parseISO(procedure.data_ultima_revisione) : null,
+        // Add check for null/undefined/empty string before parsing
+        data_ultima_revisione: (procedure.data_ultima_revisione && typeof procedure.data_ultima_revisione === 'string') ? parseISO(procedure.data_ultima_revisione) : null,
         responsabile: procedure.responsabile || null,
         documento_url: procedure.documento_url || null,
         attivo: procedure.attivo ?? true,

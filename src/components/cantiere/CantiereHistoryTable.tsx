@@ -111,7 +111,11 @@ export function CantiereHistoryTable() {
     {
       accessorKey: "report_date",
       header: "Data Rapporto",
-      cell: ({ row }) => <span>{format(parseISO(row.original.report_date), "PPP", { locale: it })}</span>,
+      cell: ({ row }) => {
+        // Add check for null/undefined/empty string before parsing
+        const date = (row.original.report_date && typeof row.original.report_date === 'string') ? parseISO(row.original.report_date) : null;
+        return <span>{date ? format(date, "PPP", { locale: it }) : "N/A"}</span>;
+      },
     },
     {
       accessorKey: "nome_cliente",

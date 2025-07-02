@@ -157,18 +157,18 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           }
           // If event.notes is null, all these variables remain undefined, which is the desired "empty" state.
 
+          // Ensure requestTime, startTime, endTime are valid strings or empty before setting
           const requestTimeString = (event.report_date && event.report_time) 
             ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
-            : ''; // Ensure it's an empty string if parts are missing
-
+            : ''; 
 
           const startTimeString = (serviceTimes?.start_date && serviceTimes?.start_time)
             ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
-            : ''; // Ensure empty string
+            : ''; 
 
           const endTimeString = (serviceTimes?.end_date && serviceTimes?.end_time)
             ? `${serviceTimes.end_date}T${serviceTimes.end_time.substring(0, 5)}`
-            : ''; // Ensure empty string
+            : ''; 
 
           setFormData({
             servicePoint: event.service_point_code || '',
@@ -459,21 +459,21 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
 
     // Validate and parse requestTime
-    const parsedRequestDateTime = parseISO(requestTime);
-    if (!isValid(parsedRequestDateTime)) {
+    const parsedRequestDateTime = requestTime ? parseISO(requestTime) : null;
+    if (!parsedRequestDateTime || !isValid(parsedRequestDateTime)) {
       showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }
 
     // Validate and parse startTime and endTime
     const parsedStartTime = startTime ? parseISO(startTime) : null;
-    if (startTime && !isValid(parsedStartTime)) {
+    if (startTime && (!parsedStartTime || !isValid(parsedStartTime))) {
       showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }
 
     const parsedEndTime = endTime ? parseISO(endTime) : null;
-    if (endTime && !isValid(parsedEndTime)) {
+    if (endTime && (!parsedEndTime || !isValid(parsedEndTime))) {
       showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }

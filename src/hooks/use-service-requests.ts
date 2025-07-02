@@ -70,8 +70,9 @@ export function useServiceRequests(): UseServiceRequestsResult {
       setData([]);
     } else {
       const servicesWithMultiplier = await Promise.all(servicesData.map(async (service) => {
-        const serviceStartDate = parseISO(service.start_date);
-        const serviceEndDate = parseISO(service.end_date);
+        // Ensure dates are valid strings before parsing
+        const serviceStartDate = service.start_date ? parseISO(service.start_date) : new Date();
+        const serviceEndDate = service.end_date ? parseISO(service.end_date) : new Date();
 
         const detailsForMultiplier = {
           type: service.type,

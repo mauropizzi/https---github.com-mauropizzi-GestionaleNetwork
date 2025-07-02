@@ -125,8 +125,9 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
         unita_misura: tariffa.unita_misura,
         punto_servizio_id: tariffa.punto_servizio_id || null,
         fornitore_id: tariffa.fornitore_id || null,
-        data_inizio_validita: tariffa.data_inizio_validita ? parseISO(tariffa.data_inizio_validita) : null,
-        data_fine_validita: tariffa.data_fine_validita ? parseISO(tariffa.data_fine_validita) : null,
+        // Add checks for null/undefined/empty string before parsing
+        data_inizio_validita: (tariffa.data_inizio_validita && typeof tariffa.data_inizio_validita === 'string') ? parseISO(tariffa.data_inizio_validita) : null,
+        data_fine_validita: (tariffa.data_fine_validita && typeof tariffa.data_fine_validita === 'string') ? parseISO(tariffa.data_fine_validita) : null,
         note: tariffa.note || null,
       });
     }

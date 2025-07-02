@@ -111,14 +111,15 @@ export function PersonaleEditDialog({ isOpen, onClose, personale, onSave }: Pers
         ruolo: mapOldRoleToNew(personale.ruolo),
         telefono: personale.telefono || null,
         email: personale.email || null,
-        data_nascita: personale.data_nascita ? parseISO(personale.data_nascita) : null,
+        // Add checks for null/undefined/empty string before parsing
+        data_nascita: (personale.data_nascita && typeof personale.data_nascita === 'string') ? parseISO(personale.data_nascita) : null,
         luogo_nascita: personale.luogo_nascita || null,
         indirizzo: personale.indirizzo || null,
         cap: personale.cap || null,
         citta: personale.citta || null,
         provincia: personale.provincia || null,
-        data_assunzione: personale.data_assunzione ? parseISO(personale.data_assunzione) : null,
-        data_cessazione: personale.data_cessazione ? parseISO(personale.data_cessazione) : null,
+        data_assunzione: (personale.data_assunzione && typeof personale.data_assunzione === 'string') ? parseISO(personale.data_assunzione) : null,
+        data_cessazione: (personale.data_cessazione && typeof personale.data_cessazione === 'string') ? parseISO(personale.data_cessazione) : null,
         attivo: personale.attivo ?? true,
         note: personale.note || null,
       });
@@ -210,36 +211,36 @@ export function PersonaleEditDialog({ isOpen, onClose, personale, onSave }: Pers
               control={form.control}
               name="codice_fiscale"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Codice Fiscale</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Codice Fiscale" {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  <FormItem>
+                    <FormLabel>Codice Fiscale</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Codice Fiscale" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
               )}
             />
             <FormField
               control={form.control}
               name="ruolo"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ruolo</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleziona un ruolo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Pattuglia">Pattuglia</SelectItem>
-                      <SelectItem value="Operatore Network">Operatore Network</SelectItem>
-                      <SelectItem value="GPG">GPG</SelectItem>
-                      <SelectItem value="Operatore C.O.">Operatore C.O.</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                  <FormItem>
+                    <FormLabel>Ruolo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleziona un ruolo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Pattuglia">Pattuglia</SelectItem>
+                        <SelectItem value="Operatore Network">Operatore Network</SelectItem>
+                        <SelectItem value="GPG">GPG</SelectItem>
+                        <SelectItem value="Operatore C.O.">Operatore C.O.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
               )}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

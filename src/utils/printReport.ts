@@ -64,8 +64,9 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   doc.setFontSize(10);
   const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   
-  const parsedCreatedAt = report.created_at ? parseISO(report.created_at) : null;
-  const parsedReportDate = report.report_date ? parseISO(report.report_date) : null;
+  // Add checks for null/undefined/empty string before parsing
+  const parsedCreatedAt = (report.created_at && typeof report.created_at === 'string') ? parseISO(report.created_at) : null;
+  const parsedReportDate = (report.report_date && typeof report.report_date === 'string') ? parseISO(report.report_date) : null;
 
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
