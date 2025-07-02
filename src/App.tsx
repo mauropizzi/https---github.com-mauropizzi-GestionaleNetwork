@@ -4,29 +4,33 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet, useNavigate, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import PublicFormLayout from "./components/layout/PublicFormLayout";
-import DashboardOverview from "./pages/DashboardOverview";
-import NotFound from "./pages/NotFound";
-import ServiceRequest from "./pages/ServiceRequest";
-import Anagrafiche from "./pages/Anagrafiche";
-import ClientiPage from "./pages/ClientiPage";
-import PuntiServizioPage from "./pages/PuntiServizioPage";
-import PersonalePage from "./pages/PersonalePage";
-import OperatoriNetworkPage from "./pages/OperatoriNetworkPage";
-import FornitoriPage from "./pages/FornitoriPage";
-import TariffePage from "./pages/TariffePage";
-import ProcedurePage from "./pages/ProcedurePage";
-import DotazioniDiServizio from "./pages/DotazioniDiServizio";
-import ServiceList from "./pages/ServiceList";
-import RegistroDiCantiere from "./pages/RegistroDiCantiere";
-import CentraleOperativa from "./pages/CentraleOperativa";
-import ServiziCanone from "./pages/ServiziCanone";
-import EditAlarmEventPage from "./pages/EditAlarmEventPage";
-import PublicSuccessPage from "./pages/PublicSuccessPage";
-import Login from "./pages/Login";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
-import IncomingEmailsPage from "./pages/IncomingEmails";
-import AnalisiContabile from "./pages/AnalisiContabile";
-import EditServiceRequestPage from "./pages/EditServiceRequestPage"; // Import the new page
+import { Toaster } from "@/components/ui/toaster"; // Ensure Toaster is imported if needed globally
+import { Toaster as Sonner } from "@/components/ui/sonner"; // Ensure Sonner is imported if needed globally
+
+// Lazily load all page components
+const DashboardOverview = React.lazy(() => import("./pages/DashboardOverview"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const ServiceRequest = React.lazy(() => import("./pages/ServiceRequest"));
+const Anagrafiche = React.lazy(() => import("./pages/Anagrafiche"));
+const ClientiPage = React.lazy(() => import("./pages/ClientiPage"));
+const PuntiServizioPage = React.lazy(() => import("./pages/PuntiServizioPage"));
+const PersonalePage = React.lazy(() => import("./pages/PersonalePage"));
+const OperatoriNetworkPage = React.lazy(() => import("./pages/OperatoriNetworkPage"));
+const FornitoriPage = React.lazy(() => import("./pages/FornitoriPage"));
+const TariffePage = React.lazy(() => import("./pages/TariffePage"));
+const ProcedurePage = React.lazy(() => import("./pages/ProcedurePage"));
+const DotazioniDiServizio = React.lazy(() => import("./pages/DotazioniDiServizio"));
+const ServiceList = React.lazy(() => import("./pages/ServiceList"));
+const RegistroDiCantiere = React.lazy(() => import("./pages/RegistroDiCantiere"));
+const CentraleOperativa = React.lazy(() => import("./pages/CentraleOperativa"));
+const ServiziCanone = React.lazy(() => import("./pages/ServiziCanone"));
+const EditAlarmEventPage = React.lazy(() => import("./pages/EditAlarmEventPage"));
+const PublicSuccessPage = React.lazy(() => import("./pages/PublicSuccessPage"));
+const Login = React.lazy(() => import("./pages/Login"));
+const IncomingEmailsPage = React.lazy(() => import("./pages/IncomingEmails"));
+const AnalisiContabile = React.lazy(() => import("./pages/AnalisiContabile"));
+const EditServiceRequestPage = React.lazy(() => import("./pages/EditServiceRequestPage"));
 
 const queryClient = new QueryClient();
 
@@ -72,36 +76,123 @@ const App = () => (
           <SessionContextProvider>
             <Routes>
               {/* Public routes (no dashboard layout, no auth required) */}
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={
+                <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                  <Login />
+                </React.Suspense>
+              } />
               <Route path="/public" element={<PublicFormLayout />}>
-                <Route path="alarm-event/edit/:id" element={<EditAlarmEventPage />} />
-                <Route path="success" element={<PublicSuccessPage />} />
+                <Route path="alarm-event/edit/:id" element={
+                  <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                    <EditAlarmEventPage />
+                  </React.Suspense>
+                } />
+                <Route path="success" element={
+                  <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                    <PublicSuccessPage />
+                  </React.Suspense>
+                } />
               </Route>
 
               {/* Authenticated routes wrapped by ProtectedRoute */}
-              <Route element={<ProtectedRoute />}> {/* ProtectedRoute now wraps the DashboardLayout route */}
-                <Route path="/" element={<DashboardLayout />}> {/* DashboardLayout is now a direct child of the protected route */}
-                  <Route index element={<CentraleOperativa />} />
-                  <Route path="service-request" element={<ServiceRequest />} />
-                  <Route path="anagrafiche" element={<Anagrafiche />} /> 
-                  <Route path="anagrafiche/clienti" element={<ClientiPage />} />
-                  <Route path="anagrafiche/punti-servizio" element={<PuntiServizioPage />} />
-                  <Route path="anagrafiche/personale" element={<PersonalePage />} />
-                  <Route path="anagrafiche/operatori-network" element={<OperatoriNetworkPage />} />
-                  <Route path="anagrafiche/fornitori" element={<FornitoriPage />} />
-                  <Route path="anagrafiche/tariffe" element={<TariffePage />} />
-                  <Route path="anagrafiche/procedure" element={<ProcedurePage />} />
-                  <Route path="dotazioni-di-servizio" element={<DotazioniDiServizio />} />
-                  <Route path="service-list" element={<ServiceList />} />
-                  <Route path="service-list/edit/:id" element={<EditServiceRequestPage />} /> {/* New route for editing service requests */}
-                  <Route path="registro-di-cantiere" element={<RegistroDiCantiere />} />
-                  <Route path="centrale-operativa" element={<CentraleOperativa />} />
-                  <Route path="centrale-operativa/edit/:id" element={<EditAlarmEventPage />} />
-                  <Route path="servizi-a-canone" element={<ServiziCanone />} />
-                  <Route path="incoming-emails" element={<IncomingEmailsPage />} />
-                  <Route path="analisi-contabile" element={<AnalisiContabile />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<DashboardLayout />}>
+                  <Route index element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <CentraleOperativa />
+                    </React.Suspense>
+                  } />
+                  <Route path="service-request" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ServiceRequest />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <Anagrafiche />
+                    </React.Suspense>
+                  } /> 
+                  <Route path="anagrafiche/clienti" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ClientiPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/punti-servizio" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <PuntiServizioPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/personale" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <PersonalePage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/operatori-network" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <OperatoriNetworkPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/fornitori" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <FornitoriPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/tariffe" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <TariffePage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/procedure" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ProcedurePage />
+                    </React.Suspense>
+                  } />
+                  <Route path="dotazioni-di-servizio" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <DotazioniDiServizio />
+                    </React.Suspense>
+                  } />
+                  <Route path="service-list" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ServiceList />
+                    </React.Suspense>
+                  } />
+                  <Route path="service-list/edit/:id" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <EditServiceRequestPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="registro-di-cantiere" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <RegistroDiCantiere />
+                    </React.Suspense>
+                  } />
+                  <Route path="centrale-operativa/edit/:id" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <EditAlarmEventPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="servizi-a-canone" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ServiziCanone />
+                    </React.Suspense>
+                  } />
+                  <Route path="incoming-emails" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <IncomingEmailsPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="analisi-contabile" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <AnalisiContabile />
+                    </React.Suspense>
+                  } />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
+                  <Route path="*" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <NotFound />
+                    </React.Suspense>
+                  } />
                 </Route>
               </Route>
             </Routes>
