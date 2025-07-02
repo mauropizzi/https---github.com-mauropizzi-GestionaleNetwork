@@ -15,9 +15,12 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Aggiungi alias espliciti per React e ReactDOM
+      "react": path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
   },
-  optimizeDeps: { // Aggiunto questo blocco
+  optimizeDeps: {
     include: [
       '@supabase/auth-ui-react',
       '@supabase/auth-ui-shared',
