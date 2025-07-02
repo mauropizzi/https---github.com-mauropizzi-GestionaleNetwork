@@ -1,6 +1,6 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, parseISO, isValid } from "date-fns"; // Import isValid
 import { it } from 'date-fns/locale';
 
 interface ServiceRequest {
@@ -53,7 +53,7 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Data Inizio:</span>
-            <span className="col-span-2 text-sm">{format(service.startDate, "PPP", { locale: it })}</span>
+            <span className="col-span-2 text-sm">{isValid(service.startDate) ? format(service.startDate, "PPP", { locale: it }) : 'N/A'}</span>
           </div>
           {service.startTime && (
             <div className="grid grid-cols-3 items-center gap-4">
@@ -63,7 +63,7 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
           )}
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Data Fine:</span>
-            <span className="col-span-2 text-sm">{format(service.endDate, "PPP", { locale: it })}</span>
+            <span className="col-span-2 text-sm">{isValid(service.endDate) ? format(service.endDate, "PPP", { locale: it }) : 'N/A'}</span>
           </div>
           {service.endTime && (
             <div className="grid grid-cols-3 items-center gap-4">

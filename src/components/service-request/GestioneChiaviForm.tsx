@@ -89,7 +89,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             startTime: service.start_time || "09:00",
             keyManagementType: (service.inspection_type as "verifica chiavi" | "consegna chiavi" | "ritiro chiavi") || "verifica chiavi", // Populate new field from inspection_type
           });
@@ -132,6 +132,9 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       end_date: values.startDate, // End date is same as start date for one-off
       start_time: normalizedStartTime,
       end_time: normalizedStartTime, // End time is same as start time for one-off
+      num_agents: null, // Not applicable for Gestione Chiavi
+      cadence_hours: null, // Not applicable for Gestione Chiavi
+      daily_hours_config: null, // Not applicable for Gestione Chiavi
       inspection_type: values.keyManagementType, // Pass keyManagementType for cost calculation
     };
 

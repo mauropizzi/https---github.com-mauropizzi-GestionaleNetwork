@@ -120,9 +120,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             startTime: service.start_time || "09:00",
-            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             endTime: service.end_time || "17:00",
             operationType: (service.inspection_type as "Apertura" | "Chiusura" | "Entrambi") || "Apertura",
           });
@@ -166,6 +166,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       end_date: values.endDate,
       start_time: normalizedStartTime,
       end_time: normalizedEndTime,
+      num_agents: null, // Not applicable for Apertura/Chiusura
+      cadence_hours: null, // Not applicable for Apertura/Chiusura
+      daily_hours_config: null, // Not applicable for Apertura/Chiusura
       inspection_type: values.operationType,
     };
 

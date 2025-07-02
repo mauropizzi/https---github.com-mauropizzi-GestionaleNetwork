@@ -131,9 +131,9 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
+            startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             startTime: service.start_time || "09:00",
-            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             endTime: service.end_time || "17:00",
             numAgents: service.num_agents || 1,
             dailyHours: service.daily_hours_config || [
@@ -199,6 +199,7 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       end_time: normalizedEndTime,
       num_agents: values.numAgents,
       daily_hours_config: normalizedDailyHours,
+      inspection_type: null, // Not applicable for Servizi Fiduciari
     };
 
     const calculatedCost = await calculateServiceCost(costDetails);

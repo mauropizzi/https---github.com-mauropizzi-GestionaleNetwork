@@ -42,7 +42,7 @@ const dailyHoursSchema = z.object({
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
-}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
+}).refines(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
   message: "Inserisci orari o seleziona H24.",
   path: ["startTime"],
 }).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
@@ -125,8 +125,8 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            startDate: service.start_date ? parseISO(service.start_date) : new Date(),
-            endDate: service.end_date ? parseISO(service.end_date) : new Date(),
+            startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
+            endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             cadenceHours: service.cadence_hours || 2,
             inspectionType: (service.inspection_type as "perimetrale" | "interna" | "completa") || "perimetrale",
             dailyHours: service.daily_hours_config || [
