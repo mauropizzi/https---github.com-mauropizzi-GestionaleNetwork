@@ -40,7 +40,7 @@ export function CanoneTable() {
     setLoading(true);
     const { data: canoneData, error } = await supabase
       .from('servizi_canone')
-      .select('*, punti_servizio(nome_punto_servizio), fornitori(nome_fornitore), clienti(nome_cliente)');
+      .select('id, created_at, service_point_id, fornitore_id, tipo_canone, start_date, end_date, status, notes, client_id, unita_misura, punti_servizio(nome_punto_servizio), fornitori(nome_fornitore), clienti(nome_cliente)'); // Removed calculated_cost
 
     if (error) {
       showError(`Errore nel recupero dei servizi a canone: ${error.message}`);
@@ -151,11 +151,6 @@ export function CanoneTable() {
       accessorKey: "status",
       header: "Stato",
       cell: ({ row }) => <span>{row.original.status}</span>,
-    },
-    {
-      accessorKey: "calculated_cost",
-      header: "Costo Mensile (€)",
-      cell: ({ row }) => <span>{row.original.calculated_cost !== null ? `${row.original.calculated_cost.toFixed(2)} €` : 'N/A'}</span>,
     },
     {
       id: "actions",
