@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react"; // Import Eye icon
+import { Edit, Trash2, RefreshCcw, Eye, MapPin } from "lucide-react"; // Import MapPin icon
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
@@ -190,14 +190,20 @@ export function PuntiServizioTable() {
       header: "Città",
     },
     {
-      accessorKey: "latitude",
-      header: "Latitudine",
-      cell: ({ row }) => <span>{row.original.latitude ?? 'N/A'}</span>,
-    },
-    {
-      accessorKey: "longitude",
-      header: "Longitudine",
-      cell: ({ row }) => <span>{row.original.longitude ?? 'N/A'}</span>,
+      id: "posizione_gps", // New ID for the combined column
+      header: "Posizione GPS",
+      cell: ({ row }) => {
+        const { latitude, longitude } = row.original;
+        if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
+          const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+          return (
+            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
+              <MapPin className="h-4 w-4 mr-1" /> Visualizza
+            </a>
+          );
+        }
+        return <span>N/A</span>;
+      },
     },
     {
       id: "actions",
