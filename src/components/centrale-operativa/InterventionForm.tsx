@@ -64,7 +64,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     const loadDropdownData = async () => {
       if (isPublicMode) {
         // Fetch all data from the new edge function
-        console.log("Public mode: Fetching form data from edge function...");
         const { data, error } = await supabase.functions.invoke('get-intervention-form-data');
         if (error) {
           showError(`Errore nel caricamento dei dati per il modulo: ${error.message}`);
@@ -74,11 +73,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         setOperatoriNetworkList(data.operatoriNetworkList || []);
         setPattugliaPersonale(data.pattugliaPersonale || []);
         setPuntiServizioList(data.puntiServizioList || []);
-        console.log("Punti Servizio List fetched in InterventionForm (Public Mode):", data.puntiServizioList);
         setCoOperatorsPersonnel(data.coOperatorsPersonnel || []);
       } else {
         // Fetch data using existing client-side functions for authenticated users
-        console.log("Internal mode: Fetching form data from client...");
         const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
         setOperatoriNetworkList(fetchedOperatoriNetwork);
 
@@ -87,7 +84,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
 
         const fetchedPuntiServizio = await fetchPuntiServizio();
         setPuntiServizioList(fetchedPuntiServizio);
-        console.log("Punti Servizio List fetched in InterventionForm (Internal Mode):", fetchedPuntiServizio); // ADDED LOG
 
         const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
         setCoOperatorsPersonnel(fetchedCoOperators);
@@ -161,27 +157,18 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           }
           // If event.notes is null, all these variables remain undefined, which is the desired "empty" state.
 
-          console.log("Raw event.report_date:", event.report_date);
-          console.log("Raw event.report_time:", event.report_time);
           const requestTimeString = (event.report_date && event.report_time) 
             ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
             : ''; // Ensure it's an empty string if parts are missing
-          console.log("Constructed requestTimeString:", requestTimeString);
 
 
-          console.log("Raw serviceTimes?.start_date:", serviceTimes?.start_date);
-          console.log("Raw serviceTimes?.start_time:", serviceTimes?.start_time);
           const startTimeString = (serviceTimes?.start_date && serviceTimes?.start_time)
             ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
             : ''; // Ensure empty string
-          console.log("Constructed startTimeString:", startTimeString);
 
-          console.log("Raw serviceTimes?.end_date:", serviceTimes?.end_date);
-          console.log("Raw serviceTimes?.end_time:", serviceTimes?.end_time);
           const endTimeString = (serviceTimes?.end_date && serviceTimes?.end_time)
             ? `${serviceTimes.end_date}T${serviceTimes.end_time.substring(0, 5)}`
             : ''; // Ensure empty string
-          console.log("Constructed endTimeString:", endTimeString);
 
           setFormData({
             servicePoint: event.service_point_code || '',
