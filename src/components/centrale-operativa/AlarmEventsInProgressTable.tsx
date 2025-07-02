@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel, // Corrected typo here
+  getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import {
@@ -121,13 +121,29 @@ export function AlarmEventsInProgressTable() {
     const gpgInterventionId = event.gpg_intervention;
     if (gpgInterventionId) {
       const personnel = pattugliaPersonnelMap.get(gpgInterventionId);
+      const servicePoint = puntiServizioMap.get(event.service_point_code);
+
       if (personnel && personnel.telefono) {
         const cleanedPhoneNumber = personnel.telefono.replace(/\D/g, '');
         
         const publicBaseUrl = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
         const publicEditUrl = `${publicBaseUrl}/public/alarm-event/edit/${event.id}`;
         
-        const message = encodeURIComponent(`Ciao ${personnel.nome}, per favore compila il rapporto di intervento per l'evento ${event.id} al seguente link: ${publicEditUrl}`);
+        const servicePointName = servicePoint?.nome_punto_servizio || event.service_point_code;
+        const tempoIntervento = servicePoint?.tempo_intervento !== undefined && servicePoint?.tempo_intervento !== null ? `${servicePoint.tempo_intervento} minuti` : 'N/A';
+        
+        let gpsLink = 'Posizione non disponibile';
+        if (event.start_latitude && event.start_longitude) {
+          gpsLink = `https://www.google.com/maps/search/?api=1&query=${event.start_latitude},${event.start_longitude}`;
+        }
+
+        const message = encodeURIComponent(
+          `Allarme presso ${servicePointName}. ` +
+          `Intervento da effettuarsi ENTRO ${tempoIntervento}. ` +
+          `Posizione: ${gpsLink}. ` +
+          `Compila rapporto: INTERVENTO ${servicePointName} ${publicEditUrl}`
+        );
+        
         const whatsappUrl = `https://wa.me/${cleanedPhoneNumber}?text=${message}`;
         window.open(whatsappUrl, '_blank');
         showInfo(`Apertura chat WhatsApp per ${personnel.nome} ${personnel.cognome}`);
@@ -137,7 +153,7 @@ export function AlarmEventsInProgressTable() {
     } else {
       showError("Nessun G.P.G. associato a questo intervento.");
     }
-  }, [pattugliaPersonnelMap]);
+  }, [pattugliaPersonnelMap, puntiServizioMap]);
 
   const handleViewProcedure = useCallback((servicePointCode: string) => {
     const servicePoint = puntiServizioMap.get(servicePointCode);
