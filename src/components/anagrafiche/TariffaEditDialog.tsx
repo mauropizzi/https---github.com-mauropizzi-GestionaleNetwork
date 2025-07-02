@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 
@@ -72,15 +72,7 @@ const formSchema = z.object({
   data_inizio_validita: z.date().optional().nullable(),
   data_fine_validita: z.date().optional().nullable(),
   note: z.string().optional().nullable(),
-}).refine(data => {
-  if (data.data_inizio_validita && data.data_fine_validita) {
-    return data.data_fine_validita >= data.data_inizio_validita;
-  }
-  return true;
-}, {
-  message: "La data di fine validità non può essere precedente alla data di inizio.",
-  path: ["data_fine_validita"],
-});
+}); // Removed .refine from here
 
 export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaEditDialogProps) {
   const [clienti, setClienti] = useState<Cliente[]>([]);
@@ -137,6 +129,16 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
     if (!tariffa) {
       showError("Nessuna tariffa selezionata per la modifica.");
       onClose();
+      return;
+    }
+
+    // Manual date validation
+    if (values.data_inizio_validita && values.data_fine_validita && values.data_fine_validita < values.data_inizio_validita) {
+      form.setError("data_fine_validita", {
+        type: "manual",
+        message: "La data di fine validità non può essere precedente alla data di inizio.",
+      });
+      showError("La data di fine validità non può essere precedente alla data di inizio.");
       return;
     }
 

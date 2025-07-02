@@ -39,41 +39,15 @@ const formSchema = z.object({
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
-  startTime: z.string().regex(timeRegex, "Formato ora inizio non valido (HH:MM o HH.MM)."),
+  startTime: z.string().regex(timeRegex, "Formato ora inizio non valido (HH:MM o HH.MM).").or(z.literal("")), // Made optional for validation in onSubmit
   endDate: z.date({
     required_error: "La data di fine è richiesta.",
   }),
-  endTime: z.string().regex(timeRegex, "Formato ora fine non valido (HH:MM o HH.MM)."),
+  endTime: z.string().regex(timeRegex, "Formato ora fine non valido (HH:MM o HH.MM).").or(z.literal("")), // Made optional for validation in onSubmit
   operationType: z.enum(["Apertura", "Chiusura", "Entrambi"], {
     required_error: "Seleziona un tipo di operazione.",
   }),
-}).refine(data => {
-  const normalizedStartTime = data.startTime.replace('.', ':');
-  const normalizedEndTime = data.endTime.replace('.', ':');
-  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
-  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
-  const start = parseISO(startDateTimeStr);
-  const end = parseISO(endDateTimeStr);
-  return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
-}, {
-  message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
-  path: ["endDate"],
-}).refine(data => {
-  // Validate times based on operationType
-  if (data.operationType === "Apertura" && !data.startTime) { // Changed to startTime
-    return false;
-  }
-  if (data.operationType === "Chiusura" && !data.endTime) { // Changed to endTime
-    return false;
-  }
-  if (data.operationType === "Entrambi" && (!data.startTime || !data.endTime)) { // Changed to startTime/endTime
-    return false;
-  }
-  return true;
-}, {
-  message: "Inserisci l'orario/gli orari richiesti per il tipo di operazione.",
-  path: ["startTime"], // This path is a bit generic, but Zod will point to the first failing one.
-});
+}); // Removed .refine from here
 
 interface AperturaChiusuraFormProps {
   serviceId?: string;
@@ -92,9 +66,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       servicePointId: "",
       fornitoreId: "",
       startDate: new Date(),
-      startTime: "09:00",
+      startTime: "", // Default to empty string
       endDate: new Date(),
-      endTime: "17:00",
+      endTime: "", // Default to empty string
       operationType: "Apertura",
     },
   });
@@ -121,9 +95,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
             startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
-            startTime: service.start_time || "09:00",
+            startTime: service.start_time || "",
             endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
-            endTime: service.end_time || "17:00",
+            endTime: service.end_time || "",
             operationType: (service.inspection_type as "Apertura" | "Chiusura" | "Entrambi") || "Apertura",
           });
         }
@@ -145,6 +119,40 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
   }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Manual date/time validation
+    const normalizedStartTime = values.startTime.replace('.', ':');
+    const normalizedEndTime = values.endTime.replace('.', ':');
+    const startDateTimeStr = `${format(values.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
+    const endDateTimeStr = `${format(values.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
+    const start = parseISO(startDateTimeStr);
+    const end = parseISO(endDateTimeStr);
+
+    if (!isValid(start) || !isValid(end) || end.getTime() < start.getTime()) {
+      form.setError("endDate", {
+        type: "manual",
+        message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
+      });
+      showError("La data/ora di fine non può essere precedente alla data/ora di inizio.");
+      return;
+    }
+
+    // Validate times based on operationType
+    if (values.operationType === "Apertura" && !values.startTime) {
+      form.setError("startTime", { type: "manual", message: "L'ora di apertura è richiesta." });
+      showError("L'ora di apertura è richiesta.");
+      return;
+    }
+    if (values.operationType === "Chiusura" && !values.endTime) {
+      form.setError("endTime", { type: "manual", message: "L'ora di chiusura è richiesta." });
+      showError("L'ora di chiusura è richiesta.");
+      return;
+    }
+    if (values.operationType === "Entrambi" && (!values.startTime || !values.endTime)) {
+      form.setError("startTime", { type: "manual", message: "Entrambe le ore di apertura e chiusura sono richieste." });
+      showError("Entrambe le ore di apertura e chiusura sono richieste.");
+      return;
+    }
+
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
@@ -152,10 +160,6 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       showError("Impossibile determinare il cliente associato al punto servizio.");
       return;
     }
-
-    // Normalize time inputs
-    const normalizedStartTime = values.startTime.replace('.', ':');
-    const normalizedEndTime = values.endTime.replace('.', ':');
 
     const costDetails = {
       type: "Apertura/Chiusura",

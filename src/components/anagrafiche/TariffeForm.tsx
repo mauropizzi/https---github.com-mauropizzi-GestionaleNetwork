@@ -45,15 +45,7 @@ const formSchema = z.object({
   data_inizio_validita: z.date().optional().nullable(),
   data_fine_validita: z.date().optional().nullable(),
   note: z.string().optional().nullable(),
-}).refine(data => {
-  if (data.data_inizio_validita && data.data_fine_validita) {
-    return data.data_fine_validita >= data.data_inizio_validita;
-  }
-  return true;
-}, {
-  message: "La data di fine validità non può essere precedente alla data di inizio.",
-  path: ["data_fine_validita"],
-});
+}); // Removed .refine from here
 
 interface TariffeFormProps {
   prefillData?: {
@@ -180,6 +172,16 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
   }, [tipoServizio, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Manual date validation
+    if (values.data_inizio_validita && values.data_fine_validita && values.data_fine_validita < values.data_inizio_validita) {
+      form.setError("data_fine_validita", {
+        type: "manual",
+        message: "La data di fine validità non può essere precedente alla data di inizio.",
+      });
+      showError("La data di fine validità non può essere precedente alla data di inizio.");
+      return;
+    }
+
     console.log("Dati Tariffa:", values);
 
     const payload = {

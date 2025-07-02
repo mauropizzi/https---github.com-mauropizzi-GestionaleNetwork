@@ -63,18 +63,7 @@ const formSchema = z.object({
   endTime: z.string().regex(timeRegex, "Formato ora fine non valido (HH:MM o HH.MM)."),
   numAgents: z.coerce.number().min(1, "Il numero di agenti deve essere almeno 1."),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
-}).refine(data => {
-  const normalizedStartTime = data.startTime.replace('.', ':');
-  const normalizedEndTime = data.endTime.replace('.', ':');
-  const startDateTimeStr = `${format(data.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
-  const endDateTimeStr = `${format(data.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
-  const start = parseISO(startDateTimeStr);
-  const end = parseISO(endDateTimeStr);
-  return isValid(start) && isValid(end) && end.getTime() >= start.getTime();
-}, {
-  message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
-  path: ["endDate"],
-});
+}); // Removed .refine from here
 
 interface PiantonamentoFormProps {
   serviceId?: string; // Optional ID for editing
@@ -173,6 +162,23 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Manual date/time validation
+    const normalizedStartTime = values.startTime.replace('.', ':');
+    const normalizedEndTime = values.endTime.replace('.', ':');
+    const startDateTimeStr = `${format(values.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
+    const endDateTimeStr = `${format(values.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
+    const start = parseISO(startDateTimeStr);
+    const end = parseISO(endDateTimeStr);
+
+    if (!isValid(start) || !isValid(end) || end.getTime() < start.getTime()) {
+      form.setError("endDate", {
+        type: "manual",
+        message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
+      });
+      showError("La data/ora di fine non può essere precedente alla data/ora di inizio.");
+      return;
+    }
+
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
@@ -182,8 +188,6 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
     }
 
     // Normalize time inputs
-    const normalizedStartTime = values.startTime.replace('.', ':');
-    const normalizedEndTime = values.endTime.replace('.', ':');
     const normalizedDailyHours = values.dailyHours.map(dh => ({
       ...dh,
       startTime: dh.startTime.replace('.', ':'),
