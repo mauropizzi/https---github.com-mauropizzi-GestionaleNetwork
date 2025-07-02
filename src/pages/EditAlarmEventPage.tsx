@@ -111,7 +111,7 @@ const EditAlarmEventPage = () => {
           <CardDescription className="text-center">Apporta modifiche ai dettagli dell'evento.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InterventionForm eventId={id} onSaveSuccess={handleSaveSuccess} onCancel={handleCancel} />
+          <InterventionForm eventId={id} onSaveSuccess={handleSaveSuccess} onCancel={handleCancel} isPublicMode={isPublicMode} />
         </CardContent>
       </Card>
     </div>

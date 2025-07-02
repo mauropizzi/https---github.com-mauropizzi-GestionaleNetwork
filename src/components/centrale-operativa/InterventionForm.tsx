@@ -23,9 +23,10 @@ interface InterventionFormProps {
   eventId?: string; // Optional ID for editing
   onSaveSuccess?: () => void; // Callback for successful save/update
   onCancel?: () => void; // Callback for cancel
+  isPublicMode?: boolean;
 }
 
-export function InterventionForm({ eventId, onSaveSuccess, onCancel }: InterventionFormProps) {
+export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMode = false }: InterventionFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     servicePoint: '',
@@ -61,20 +62,37 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
   useEffect(() => {
     const loadDropdownData = async () => {
-      const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
-      setOperatoriNetworkList(fetchedOperatoriNetwork);
+      if (isPublicMode) {
+        // Fetch all data from the new edge function
+        console.log("Public mode: Fetching form data from edge function...");
+        const { data, error } = await supabase.functions.invoke('get-intervention-form-data');
+        if (error) {
+          showError(`Errore nel caricamento dei dati per il modulo: ${error.message}`);
+          console.error("Error invoking get-intervention-form-data:", error);
+          return;
+        }
+        setOperatoriNetworkList(data.operatoriNetworkList || []);
+        setPattugliaPersonale(data.pattugliaPersonale || []);
+        setPuntiServizioList(data.puntiServizioList || []);
+        setCoOperatorsPersonnel(data.coOperatorsPersonnel || []);
+      } else {
+        // Fetch data using existing client-side functions for authenticated users
+        console.log("Internal mode: Fetching form data from client...");
+        const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
+        setOperatoriNetworkList(fetchedOperatoriNetwork);
 
-      const fetchedPattuglia = await fetchPersonale('Pattuglia');
-      setPattugliaPersonale(fetchedPattuglia);
+        const fetchedPattuglia = await fetchPersonale('Pattuglia');
+        setPattugliaPersonale(fetchedPattuglia);
 
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      setPuntiServizioList(fetchedPuntiServizio);
+        const fetchedPuntiServizio = await fetchPuntiServizio();
+        setPuntiServizioList(fetchedPuntiServizio);
 
-      const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
-      setCoOperatorsPersonnel(fetchedCoOperators);
+        const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
+        setCoOperatorsPersonnel(fetchedCoOperators);
+      }
     };
     loadDropdownData();
-  }, []);
+  }, [isPublicMode]);
 
   useEffect(() => {
     const loadEventDataForEdit = async () => {
