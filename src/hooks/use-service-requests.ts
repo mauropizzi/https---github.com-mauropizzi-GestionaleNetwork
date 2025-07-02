@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateServiceCost } from "@/lib/data-fetching";
+import { calculateServiceMultiplier } from "@/lib/data-fetching";
 import { showError } from "@/utils/toast";
 import { PuntoServizio } from "@/lib/anagrafiche-data";
 
@@ -69,11 +69,11 @@ export function useServiceRequests(): UseServiceRequestsResult {
       console.error("Error fetching services:", error);
       setData([]);
     } else {
-      const servicesWithCalculatedCost = await Promise.all(servicesData.map(async (service) => {
+      const servicesWithMultiplier = await Promise.all(servicesData.map(async (service) => {
         const serviceStartDate = parseISO(service.start_date);
         const serviceEndDate = parseISO(service.end_date);
 
-        const costDetails = {
+        const detailsForMultiplier = {
           type: service.type,
           client_id: service.client_id,
           service_point_id: service.service_point_id,
@@ -87,14 +87,14 @@ export function useServiceRequests(): UseServiceRequestsResult {
           daily_hours_config: service.daily_hours_config,
           inspection_type: service.inspection_type,
         };
-        const calculatedRates = await calculateServiceCost(costDetails);
+        const calculatedMultiplier = await calculateServiceMultiplier(detailsForMultiplier);
         return { 
           ...service, 
-          calculated_cost: calculatedRates ? (calculatedRates.multiplier * calculatedRates.clientRate) : null,
-          multiplier: calculatedRates ? calculatedRates.multiplier : null, // Store the multiplier
+          calculated_cost: null, // Set cost to null
+          multiplier: calculatedMultiplier,
         };
       }));
-      setData(servicesWithCalculatedCost || []);
+      setData(servicesWithMultiplier || []);
     }
     setLoading(false);
   }, [startDateFilter, endDateFilter]);

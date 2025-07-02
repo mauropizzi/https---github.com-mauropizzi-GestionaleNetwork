@@ -11,7 +11,6 @@ interface ServiceRequest {
   startDate: Date;
   endDate: Date;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
-  cost?: number;
   // Add other fields if you want to display them in the details dialog
   startTime?: string;
   endTime?: string;
@@ -75,10 +74,6 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Stato:</span>
             <span className="col-span-2 text-sm">{service.status}</span>
-          </div>
-          <div className="grid grid-cols-3 items-center gap-4">
-            <span className="text-sm font-medium">Costo Stimato:</span>
-            <span className="col-span-2 text-sm">{service.cost !== undefined ? `${service.cost.toFixed(2)} €` : "N/A"}</span>
           </div>
           {service.numAgents && (
             <div className="grid grid-cols-3 items-center gap-4">

@@ -175,196 +175,95 @@ interface ServiceDetailsForCost {
   inspection_type?: string | null;
 }
 
-export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
-  const allTariffe = await fetchAllTariffe();
-  console.log("--- calculateServiceCost Debug Start ---");
-  console.log("Service Details (input):", {
-    type: details.type,
-    client_id: details.client_id,
-    service_point_id: details.service_point_id,
-    fornitore_id: details.fornitore_id,
-    startDate: format(details.start_date, 'yyyy-MM-dd'),
-    endDate: format(details.end_date, 'yyyy-MM-dd'),
-    cadence_hours: details.cadence_hours,
-    daily_hours_config_present: !!details.daily_hours_config,
-    daily_hours_config_value: details.daily_hours_config, // Log the actual value
-  });
-
-  const serviceStartDate = details.start_date;
-
-  const matchingTariffs = allTariffe.filter(tariff => {
-    // Handle null data_inizio_validita by treating it as the epoch start
-    const tariffStartDate = tariff.data_inizio_validita ? parseISO(tariff.data_inizio_validita) : new Date(0); 
-    const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31);
-
-    const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
-
-    const clientMatch = tariff.client_id === details.client_id;
-    const typeMatch = tariff.service_type === details.type;
-    // Prioritize specific service point match, then null (general)
-    const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
-    // Prioritize specific fornitore match, then null (general)
-    const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
-
-    const match = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
-
-    console.log(`  Tariff ID: ${tariff.id || 'N/A'}`);
-    console.log(`    Tariff Data: { type: "${tariff.service_type}", client_id: "${tariff.client_id}", sp_id: "${tariff.punto_servizio_id}", forn_id: "${tariff.fornitore_id}", start_date: "${tariff.data_inizio_validita}", end_date: "${tariff.data_fine_validita}" }`);
-    console.log(`    Match Criteria: Active: ${isTariffActive} (ServiceDate: ${format(serviceStartDate, 'yyyy-MM-dd')} vs TariffDates: ${format(tariffStartDate, 'yyyy-MM-dd')} - ${format(tariffEndDate, 'yyyy-MM-dd')})`);
-    console.log(`                    Client: ${clientMatch}, Type: ${typeMatch}, ServicePoint: ${servicePointMatch}, Fornitore: ${fornitoreMatch}`);
-    console.log(`    Overall Tariff Match for ID ${tariff.id}: ${match}`);
-
-    return match;
-  });
-
-  console.log("Matching Tariffs (after filter):", matchingTariffs);
-
-  if (matchingTariffs.length === 0) {
-    console.warn("No matching tariffs found for service details:", details);
-    console.log("--- calculateServiceCost Debug End (No Match) ---");
-    return null;
-  }
-
-  // Prioritize tariffs: specific service point > specific supplier > general client
-  // Then, if multiple, pick the one with the latest start date (most recent)
-  const sortedTariffs = matchingTariffs.sort((a, b) => {
-    // Prioritize by service point specificity (non-null comes first)
-    if (a.punto_servizio_id && !b.punto_servizio_id) return -1;
-    if (!a.punto_servizio_id && b.punto_servizio_id) return 1;
-
-    // Then by supplier specificity (non-null comes first)
-    if (a.fornitore_id && !b.fornitore_id) return -1;
-    if (!a.fornitore_id && b.fornitore_id) return 1;
-
-    // Then by latest start date
-    const dateA = a.data_inizio_validita ? parseISO(a.data_inizio_validita) : new Date(0);
-    const dateB = b.data_inizio_validita ? parseISO(b.data_inizio_validita) : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  });
-
-  const selectedTariff = sortedTariffs[0];
-  console.log("Selected Tariff (after sorting):", selectedTariff);
-  console.log("Selected Tariff unita_misura:", selectedTariff.unita_misura);
-
-
+export async function calculateServiceMultiplier(details: ServiceDetailsForCost): Promise<number | null> {
   let multiplier: number | null = null;
 
   switch (details.type) {
     case "Piantonamento":
     case "Servizi Fiduciari": {
-      if (selectedTariff.unita_misura === "ora") {
-        let totalHours = 0;
-        let currentDate = new Date(details.start_date);
-        const endDate = details.end_date;
+      let totalHours = 0;
+      let currentDate = new Date(details.start_date);
+      const endDate = details.end_date;
 
-        console.log(`Calculating hours for ${details.type} from ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-        console.log("Daily hours config:", details.daily_hours_config);
+      while (currentDate <= endDate) {
+        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
+        const isCurrentDayHoliday = isDateHoliday(currentDate);
 
-        while (currentDate <= endDate) {
-          const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-          const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-          let dayConfig;
-          if (isCurrentDayHoliday) {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-          } else if (dayOfWeek === "sabato") {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-          } else if (dayOfWeek === "domenica") {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-          } else {
-            // Map Italian day names to English for consistency with stored config if needed, or ensure stored config uses Italian
-            const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-          }
-          
-          console.log(`  Day: ${format(currentDate, 'yyyy-MM-dd')} (${dayOfWeek}), Holiday: ${isCurrentDayHoliday}, Found config:`, dayConfig);
-
-          if (dayConfig) {
-            if (dayConfig.is24h) {
-              totalHours += 24;
-              console.log(`    Added 24h. Current totalHours: ${totalHours}`);
-            } else if (dayConfig.startTime && dayConfig.endTime) {
-              const startOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.startTime + ':00');
-              const endOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.endTime + ':00');
-              
-              if (isValid(startOfDay) && isValid(endOfDay)) {
-                let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-                if (dailyDiffMs < 0) { // Handle overnight shifts
-                  dailyDiffMs += 24 * 60 * 60 * 1000;
-                }
-                const dailyHours = dailyDiffMs / (1000 * 60 * 60);
-                totalHours += dailyHours;
-                console.log(`    Added ${dailyHours.toFixed(2)}h. Current totalHours: ${totalHours}`);
-              } else {
-                console.warn(`    Invalid start/end times for ${dayConfig.day}: ${dayConfig.startTime} - ${dayConfig.endTime}`);
-              }
-            }
-          } else {
-            console.log(`    No specific config found for ${dayOfWeek}.`);
-          }
-          currentDate = addDays(currentDate, 1);
+        let dayConfig;
+        if (isCurrentDayHoliday) {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
+        } else if (dayOfWeek === "sabato") {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
+        } else if (dayOfWeek === "domenica") {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
+        } else {
+          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
         }
-        multiplier = totalHours * (details.num_agents || 1);
-        console.log(`Final totalHours: ${totalHours}, num_agents: ${details.num_agents || 1}, Multiplier: ${multiplier}`);
-      } else {
-        console.log(`Tariff unit of measure is not 'ora' (${selectedTariff.unita_misura}), setting multiplier to null.`);
-        multiplier = null;
+        
+        if (dayConfig) {
+          if (dayConfig.is24h) {
+            totalHours += 24;
+          } else if (dayConfig.startTime && dayConfig.endTime) {
+            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
+            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
+            
+            if (isValid(startOfDay) && isValid(endOfDay)) {
+              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
+              if (dailyDiffMs < 0) { // Handle overnight shifts
+                dailyDiffMs += 24 * 60 * 60 * 1000;
+              }
+              totalHours += dailyDiffMs / (1000 * 60 * 60);
+            }
+          }
+        }
+        currentDate = addDays(currentDate, 1);
       }
+      multiplier = totalHours * (details.num_agents || 1);
       break;
     }
     case "Ispezioni": {
-      if (selectedTariff.unita_misura === "intervento") {
-        let totalOperationalHours = 0;
-        let currentDate = new Date(details.start_date);
-        const endDate = details.end_date;
+      let totalOperationalHours = 0;
+      let currentDate = new Date(details.start_date);
+      const endDate = details.end_date;
 
-        console.log("Ispezioni: details.daily_hours_config", details.daily_hours_config);
-        console.log("Ispezioni: start_date", details.start_date, "end_date", details.end_date);
+      while (currentDate <= endDate) {
+        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
+        const isCurrentDayHoliday = isDateHoliday(currentDate);
 
-        while (currentDate <= endDate) {
-          const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-          const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-          let dayConfig;
-          if (isCurrentDayHoliday) {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-          } else if (dayOfWeek === "sabato") {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-          } else if (dayOfWeek === "domenica") {
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-          } else {
-            const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-            dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-          }
-          
-          console.log(`  Day: ${format(currentDate, 'yyyy-MM-dd')} (${dayOfWeek}), Holiday: ${isCurrentDayHoliday}, Found config:`, dayConfig);
-
-          if (dayConfig) {
-            if (dayConfig.is24h) {
-              totalOperationalHours += 24;
-            } else if (dayConfig.startTime && dayConfig.endTime) {
-              const startOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.startTime + ':00');
-              const endOfDay = parseISO(format(currentDate, 'yyyy-MM-dd') + 'T' + dayConfig.endTime + ':00');
-              
-              if (isValid(startOfDay) && isValid(endOfDay)) {
-                let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-                if (dailyDiffMs < 0) { // Handle overnight shifts
-                  dailyDiffMs += 24 * 60 * 60 * 1000;
-                }
-                totalOperationalHours += dailyDiffMs / (1000 * 60 * 60);
+        let dayConfig;
+        if (isCurrentDayHoliday) {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
+        } else if (dayOfWeek === "sabato") {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
+        } else if (dayOfWeek === "domenica") {
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
+        } else {
+          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
+        }
+        
+        if (dayConfig) {
+          if (dayConfig.is24h) {
+            totalOperationalHours += 24;
+          } else if (dayConfig.startTime && dayConfig.endTime) {
+            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
+            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
+            
+            if (isValid(startOfDay) && isValid(endOfDay)) {
+              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
+              if (dailyDiffMs < 0) {
+                dailyDiffMs += 24 * 60 * 60 * 1000;
               }
+              totalOperationalHours += dailyDiffMs / (1000 * 60 * 60);
             }
           }
-          currentDate = addDays(currentDate, 1);
         }
-        console.log("Ispezioni: totalOperationalHours", totalOperationalHours);
-        console.log("Ispezioni: details.cadence_hours", details.cadence_hours);
+        currentDate = addDays(currentDate, 1);
+      }
 
-        if (details.cadence_hours && details.cadence_hours > 0) {
-          multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
-        } else {
-          multiplier = null;
-        }
+      if (details.cadence_hours && details.cadence_hours > 0) {
+        multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
       } else {
         multiplier = null;
       }
@@ -374,27 +273,53 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     case "Gestione Chiavi":
     case "Apertura/Chiusura":
     case "Intervento": {
-      if (selectedTariff.unita_misura === "intervento") {
-        multiplier = 1; // Fixed cost per intervention, so multiplier is 1
-      } else {
-        multiplier = null;
-      }
+      multiplier = 1;
       break;
     }
     default:
       multiplier = null;
   }
 
-  if (multiplier === null) {
-    console.warn("Multiplier is null, cannot calculate cost.");
-    console.log("--- calculateServiceCost Debug End (No Match) ---");
+  return multiplier;
+}
+
+export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
+  const allTariffe = await fetchAllTariffe();
+  const serviceStartDate = details.start_date;
+
+  const matchingTariffs = allTariffe.filter(tariff => {
+    const tariffStartDate = tariff.data_inizio_validita ? parseISO(tariff.data_inizio_validita) : new Date(0); 
+    const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31);
+
+    const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
+    const clientMatch = tariff.client_id === details.client_id;
+    const typeMatch = tariff.service_type === details.type;
+    const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
+    const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
+
+    return clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
+  });
+
+  if (matchingTariffs.length === 0) {
     return null;
   }
 
-  console.log("Calculated Multiplier:", multiplier);
-  console.log("Client Rate:", selectedTariff.client_rate);
-  console.log("Supplier Rate:", selectedTariff.supplier_rate);
-  console.log("--- calculateServiceCost Debug End (Success) ---");
+  const sortedTariffs = matchingTariffs.sort((a, b) => {
+    if (a.punto_servizio_id && !b.punto_servizio_id) return -1;
+    if (!a.punto_servizio_id && b.punto_servizio_id) return 1;
+    if (a.fornitore_id && !b.fornitore_id) return -1;
+    if (!a.fornitore_id && b.fornitore_id) return 1;
+    const dateA = a.data_inizio_validita ? parseISO(a.data_inizio_validita) : new Date(0);
+    const dateB = b.data_inizio_validita ? parseISO(b.data_inizio_validita) : new Date(0);
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  const selectedTariff = sortedTariffs[0];
+  const multiplier = await calculateServiceMultiplier(details);
+
+  if (multiplier === null) {
+    return null;
+  }
 
   return {
     multiplier: multiplier,

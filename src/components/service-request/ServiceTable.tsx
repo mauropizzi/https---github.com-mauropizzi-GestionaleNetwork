@@ -22,7 +22,7 @@ import { Eye, Edit, Trash2 } from "lucide-react";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 // import { ServiceEditDialog } from "./ServiceEditDialog"; // REMOVE THIS IMPORT
 import { supabase } from "@/integrations/supabase/client";
-import { calculateServiceCost } from "@/lib/data-fetching";
+import { calculateServiceMultiplier } from "@/lib/data-fetching";
 import { useServiceRequests } from "@/hooks/use-service-requests";
 import { ServiceTableFilters } from "./ServiceTableFilters";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
@@ -78,7 +78,6 @@ export function ServiceTable() {
       location: servicePointName,
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
-      cost: service.calculated_cost || undefined,
       // The following fields are already part of ServiceRequest, but were explicitly added to the dialog's interface
       // and might need to be mapped if the dialog's interface is not directly ServiceRequest
       startTime: service.start_time || undefined,
@@ -331,7 +330,6 @@ export function ServiceTable() {
           startDate: new Date(selectedService.start_date),
           endDate: new Date(selectedService.end_date),
           status: selectedService.status,
-          cost: selectedService.calculated_cost || undefined,
           startTime: selectedService.start_time || undefined,
           endTime: selectedService.end_time || undefined,
           numAgents: selectedService.num_agents || undefined,
