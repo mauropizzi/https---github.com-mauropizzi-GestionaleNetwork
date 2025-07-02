@@ -1,7 +1,7 @@
 import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
-import { showSuccess, showError } from "@/utils/toast";
+import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { calculateServiceCost } from '@/lib/data-fetching';
 import { useInterventionForm } from '@/hooks/use-intervention-form'; // Import the new hook
@@ -82,31 +82,37 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     } = formData;
 
     // 1. Validate and parse requestTime
-    let parsedRequestDateTime: Date;
-    if (requestTime && isValid(parseISO(requestTime))) {
-      parsedRequestDateTime = parseISO(requestTime);
-    } else {
-      showError("Orario Richiesta è obbligatorio e deve essere un valore valido.");
+    if (!requestTime) {
+      showError("Orario Richiesta è obbligatorio.");
+      return;
+    }
+    const parsedRequestDateTime = parseISO(requestTime);
+    if (!isValid(parsedRequestDateTime)) {
+      showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }
 
     // 2. Validate and parse startTime and endTime
-    let parsedStartTime: Date | null = startTime ? parseISO(startTime) : null;
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
     if (startTime && !isValid(parsedStartTime)) {
-      showError("Formato Orario Inizio Intervento non valido.");
+      showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }
 
-    let parsedEndTime: Date | null = endTime ? parseISO(endTime) : null;
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
     if (endTime && !isValid(parsedEndTime)) {
-      showError("Formato Orario Fine Intervento non valido.");
+      showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
       return;
     }
 
     // 3. Additional validation for final submission
     if (isFinal) {
-      if (!parsedStartTime || !parsedEndTime) {
-        showError("Orario Inizio e Fine Intervento sono obbligatori per la chiusura.");
+      if (!parsedStartTime) {
+        showError("Orario Inizio Intervento è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!parsedEndTime) {
+        showError("Orario Fine Intervento è obbligatorio per la chiusura.");
         return;
       }
       if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
