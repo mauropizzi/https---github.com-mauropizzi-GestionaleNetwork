@@ -237,8 +237,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     if (!a.fornitore_id && b.fornitore_id) return 1;
 
     // Then by latest start date
-    const dateA = parseISO(a.data_inizio_validita);
-    const dateB = parseISO(b.data_inizio_validita);
+    const dateA = a.data_inizio_validita ? parseISO(a.data_inizio_validita) : new Date(0);
+    const dateB = b.data_inizio_validita ? parseISO(b.data_inizio_validita) : new Date(0);
     return dateB.getTime() - dateA.getTime();
   });
 
