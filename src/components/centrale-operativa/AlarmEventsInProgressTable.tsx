@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ColumnDef,
@@ -118,11 +120,7 @@ export function AlarmEventsInProgressTable() {
   }, [navigate]);
 
   const handleWhatsAppMessage = useCallback((event: AllarmeIntervento) => {
-    showInfo(`DEBUG: Lat: ${event.start_latitude}, Lon: ${event.start_longitude}`);
     console.log("Event object for WhatsApp message:", event);
-    console.log("Event ID:", event.id);
-    console.log("Event start_latitude:", event.start_latitude);
-    console.log("Event start_longitude:", event.start_longitude);
 
     const gpgInterventionId = event.gpg_intervention;
     if (gpgInterventionId) {
@@ -139,8 +137,9 @@ export function AlarmEventsInProgressTable() {
         const tempoIntervento = servicePoint?.tempo_intervento !== undefined && servicePoint?.tempo_intervento !== null ? `${servicePoint.tempo_intervento} minuti` : 'N/A';
         
         let gpsLink = 'Posizione non disponibile';
-        if (event.start_latitude !== undefined && event.start_latitude !== null && event.start_longitude !== undefined && event.start_longitude !== null) {
-          gpsLink = `https://www.google.com/maps/search/?api=1&query=${event.start_latitude},${event.start_longitude}`;
+        // Use service point's latitude and longitude for the GPS link
+        if (servicePoint?.latitude !== undefined && servicePoint?.latitude !== null && servicePoint?.longitude !== undefined && servicePoint?.longitude !== null) {
+          gpsLink = `https://www.google.com/maps/search/?api=1&query=${servicePoint.latitude},${servicePoint.longitude}`;
         }
 
         const message = encodeURIComponent(
