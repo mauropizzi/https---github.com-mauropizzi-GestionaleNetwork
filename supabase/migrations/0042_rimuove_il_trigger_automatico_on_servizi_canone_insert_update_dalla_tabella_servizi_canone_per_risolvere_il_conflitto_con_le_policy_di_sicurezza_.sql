@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS on_servizi_canone_insert_update ON public.servizi_canone;

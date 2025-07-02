@@ -36,7 +36,7 @@ const queryClient = new QueryClient();
 
 // Flag per disabilitare temporaneamente l'autenticazione durante lo sviluppo
 // Imposta a `false` per riabilitare il login.
-const IS_AUTH_DISABLED_TEMPORARILY = true; 
+const IS_AUTH_DISABLED_TEMPORARILY = false;
 
 // Componente per proteggere le rotte
 const ProtectedRoute = () => {
@@ -111,7 +111,7 @@ const App = () => (
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
                       <Anagrafiche />
                     </React.Suspense>
-                  } /> 
+                  } />
                   <Route path="anagrafiche/clienti" element={
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
                       <ClientiPage />
