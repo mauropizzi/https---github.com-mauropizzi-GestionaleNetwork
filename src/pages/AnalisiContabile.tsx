@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Import React
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalisiContabileData } from "@/hooks/use-analisi-contabile-data";
@@ -7,7 +7,25 @@ import { ServiceSummaryTable } from "@/components/analisi-contabile/ServiceSumma
 import { MissingTariffsTable } from "@/components/analisi-contabile/MissingTariffsTable";
 
 const AnalisiContabile = () => {
+  console.log("AnalisiContabile: Component rendering.");
   const [currentTab, setCurrentTab] = useState("sintesi-contabile");
+  
+  const hookResult = useAnalisiContabileData();
+  console.log("AnalisiContabile: Result of useAnalisiContabileData:", hookResult);
+
+  // Controllo per prevenire il crash se l'hook restituisce undefined
+  if (!hookResult) {
+    console.error("AnalisiContabile: useAnalisiContabileData ha restituito undefined!");
+    return (
+      <div className="container mx-auto p-4 text-center">
+        <Card className="w-full max-w-6xl mx-auto">
+          <CardHeader><CardTitle className="text-3xl font-bold text-center">Errore di Caricamento Dati</CardTitle></CardHeader>
+          <CardContent><p className="text-xl text-gray-600 dark:text-gray-400">Impossibile caricare i dati di analisi. Riprova o contatta il supporto.</p></CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const {
     clientsList,
     selectedClientId,
@@ -23,7 +41,7 @@ const AnalisiContabile = () => {
     fetchAndProcessServiceData,
     fetchAndIdentifyMissingTariffs,
     handleResetFilters,
-  } = useAnalisiContabileData();
+  } = hookResult; // Destruttura da hookResult
 
   return (
     <div className="container mx-auto p-4">

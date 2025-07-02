@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react"; // Aggiunto import di React
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { it } from 'date-fns/locale';
 import {
   fetchClienti,
   fetchPuntiServizio,
   fetchServiceRequestsForAnalysis,
-  fetchServiziCanoneForAnalysis, // Import the new function
+  fetchServiziCanoneForAnalysis,
   fetchAllTariffe,
   calculateServiceCost
 } from "@/lib/data-fetching";
@@ -37,6 +37,7 @@ interface MissingTariffEntry {
 }
 
 export const useAnalisiContabileData = () => {
+  console.log("useAnalisiContabileData: Hook function entered."); // Nuovo log
   const [clientsList, setClientsList] = useState<Cliente[]>([]);
   const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio>>(new Map());
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export const useAnalisiContabileData = () => {
 
   // Fetch initial data: clients and service points
   useEffect(() => {
+    console.log("useAnalisiContabileData: useEffect for initial data running."); // Nuovo log
     const loadInitialData = async () => {
       setLoadingSummary(true);
       setLoadingMissingTariffs(true);
@@ -80,6 +82,7 @@ export const useAnalisiContabileData = () => {
 
   // Fetch and process service data for summary based on selected client and date filters
   const fetchAndProcessServiceData = useCallback(async () => {
+    console.log("useAnalisiContabileData: fetchAndProcessServiceData called."); // Nuovo log
     setLoadingSummary(true);
     try {
       const formattedStartDate = startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined;
@@ -195,6 +198,7 @@ export const useAnalisiContabileData = () => {
 
   // Fetch and identify missing tariffs
   const fetchAndIdentifyMissingTariffs = useCallback(async () => {
+    console.log("useAnalisiContabileData: fetchAndIdentifyMissingTariffs called."); // Nuovo log
     setLoadingMissingTariffs(true);
     try {
       const formattedStartDate = startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined;
@@ -274,7 +278,7 @@ export const useAnalisiContabileData = () => {
         const calculatedRates = await calculateServiceCost(costDetails);
 
         if (calculatedRates === null) {
-          console.log("Missing tariff identified for service:", service); // Log missing service
+          console.log("Missing tariff identified for service:", service); // Nuovo log
           identifiedMissingTariffs.push({
             serviceId: service.id,
             serviceType: service.type,
@@ -299,4 +303,27 @@ export const useAnalisiContabileData = () => {
       setLoadingMissingTariffs(false);
     }
   }, [startDateFilter, endDateFilter, puntiServizioMap]);
-}
+
+  const handleResetFilters = useCallback(() => {
+    setStartDateFilter(startOfMonth(new Date()));
+    setEndDateFilter(endOfMonth(new Date()));
+    setSelectedClientId(null); // Reset client filter
+  }, []);
+
+  return {
+    clientsList,
+    selectedClientId,
+    setSelectedClientId,
+    summaryData,
+    missingTariffs,
+    loadingSummary,
+    loadingMissingTariffs,
+    startDateFilter,
+    setStartDateFilter,
+    endDateFilter,
+    setEndDateFilter,
+    fetchAndProcessServiceData,
+    fetchAndIdentifyMissingTariffs,
+    handleResetFilters,
+  };
+};
