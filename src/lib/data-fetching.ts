@@ -175,121 +175,17 @@ interface ServiceDetailsForCost {
   inspection_type?: string | null;
 }
 
-export async function calculateServiceMultiplier(details: ServiceDetailsForCost): Promise<number | null> {
-  let multiplier: number | null = null;
-
-  switch (details.type) {
-    case "Piantonamento":
-    case "Servizi Fiduciari": {
-      let totalHours = 0;
-      let currentDate = new Date(details.start_date);
-      const endDate = details.end_date;
-
-      while (currentDate <= endDate) {
-        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-        const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-        let dayConfig;
-        if (isCurrentDayHoliday) {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-        } else if (dayOfWeek === "sabato") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-        } else if (dayOfWeek === "domenica") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-        } else {
-          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-        }
-        
-        if (dayConfig) {
-          if (dayConfig.is24h) {
-            totalHours += 24;
-          } else if (dayConfig.startTime && dayConfig.endTime) {
-            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
-            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
-            
-            if (isValid(startOfDay) && isValid(endOfDay)) {
-              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-              if (dailyDiffMs < 0) { // Handle overnight shifts
-                dailyDiffMs += 24 * 60 * 60 * 1000;
-              }
-              totalHours += dailyDiffMs / (1000 * 60 * 60);
-            }
-          }
-        }
-        currentDate = addDays(currentDate, 1);
-      }
-      multiplier = totalHours * (details.num_agents || 1);
-      break;
-    }
-    case "Ispezioni": {
-      let totalOperationalHours = 0;
-      let currentDate = new Date(details.start_date);
-      const endDate = details.end_date;
-
-      while (currentDate <= endDate) {
-        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-        const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-        let dayConfig;
-        if (isCurrentDayHoliday) {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-        } else if (dayOfWeek === "sabato") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-        } else if (dayOfWeek === "domenica") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-        } else {
-          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-        }
-        
-        if (dayConfig) {
-          if (dayConfig.is24h) {
-            totalOperationalHours += 24;
-          } else if (dayConfig.startTime && dayConfig.endTime) {
-            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
-            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
-            
-            if (isValid(startOfDay) && isValid(endOfDay)) {
-              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-              if (dailyDiffMs < 0) {
-                dailyDiffMs += 24 * 60 * 60 * 1000;
-              }
-              totalOperationalHours += dailyDiffMs / (1000 * 60 * 60);
-            }
-          }
-        }
-        currentDate = addDays(currentDate, 1);
-      }
-
-      if (details.cadence_hours && details.cadence_hours > 0) {
-        multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
-      } else {
-        multiplier = null;
-      }
-      break;
-    }
-    case "Bonifiche":
-    case "Gestione Chiavi":
-    case "Apertura/Chiusura":
-    case "Intervento": {
-      multiplier = 1;
-      break;
-    }
-    default:
-      multiplier = null;
-  }
-
-  return multiplier;
-}
-
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
   const allTariffe = await fetchAllTariffe();
   const serviceStartDate = details.start_date;
 
   const matchingTariffs = allTariffe.filter(tariff => {
-    const tariffStartDate = tariff.data_inizio_validita ? parseISO(tariff.data_inizio_validita) : new Date(0); 
-    const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31);
+    const tariffStartDate = (typeof tariff.data_inizio_validita === 'string' && tariff.data_inizio_validita)
+      ? parseISO(tariff.data_inizio_validita)
+      : new Date(0);
+    const tariffEndDate = (typeof tariff.data_fine_validita === 'string' && tariff.data_fine_validita)
+      ? parseISO(tariff.data_fine_validita)
+      : new Date(9999, 11, 31);
 
     const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
     const clientMatch = tariff.client_id === details.client_id;
@@ -309,8 +205,13 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     if (!a.punto_servizio_id && b.punto_servizio_id) return 1;
     if (a.fornitore_id && !b.fornitore_id) return -1;
     if (!a.fornitore_id && b.fornitore_id) return 1;
-    const dateA = a.data_inizio_validita ? parseISO(a.data_inizio_validita) : new Date(0);
-    const dateB = b.data_inizio_validita ? parseISO(b.data_inizio_validita) : new Date(0);
+    
+    const dateA = (typeof a.data_inizio_validita === 'string' && a.data_inizio_validita)
+      ? parseISO(a.data_inizio_validita)
+      : new Date(0);
+    const dateB = (typeof b.data_inizio_validita === 'string' && b.data_inizio_validita)
+      ? parseISO(b.data_inizio_validita)
+      : new Date(0);
     return dateB.getTime() - dateA.getTime();
   });
 
