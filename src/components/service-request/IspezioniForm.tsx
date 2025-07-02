@@ -42,13 +42,7 @@ const dailyHoursSchema = z.object({
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
-}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
-  message: "Inserisci orari o seleziona H24.",
-  path: ["startTime"],
-}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
-  message: "Inserisci orari o seleziona H24.",
-  path: ["endTime"],
-});
+}); // Removed .refine from here
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -167,6 +161,22 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       });
       showError("La data di fine non può essere precedente alla data di inizio.");
       return;
+    }
+
+    // Manual validation for dailyHours
+    for (const [index, dayConfig] of values.dailyHours.entries()) {
+      if (!dayConfig.is24h && (!dayConfig.startTime || !dayConfig.endTime)) {
+        form.setError(`dailyHours.${index}.startTime`, {
+          type: "manual",
+          message: "Inserisci orari o seleziona H24.",
+        });
+        form.setError(`dailyHours.${index}.endTime`, {
+          type: "manual",
+          message: "Inserisci orari o seleziona H24.",
+        });
+        showError(`Per ${dayConfig.day}: Inserisci orari o seleziona H24.`);
+        return;
+      }
     }
 
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
