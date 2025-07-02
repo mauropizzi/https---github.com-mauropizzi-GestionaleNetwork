@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
-import { showSuccess, showError, showInfo } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
-import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio, calculateServiceCost } from '@/lib/data-fetching';
-import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
-import { useInterventionReportActions } from '@/hooks/use-intervention-report-actions'; // Import the new hook
+import { calculateServiceCost } from '@/lib/data-fetching';
+import { useInterventionForm } from '@/hooks/use-intervention-form'; // Import the new hook
+import { useInterventionReportActions } from '@/hooks/use-intervention-report-actions';
 
-// Import new modular components
+// Import modular components
 import { EventDetailsSection } from './EventDetailsSection';
 import { InterventionTimesSection } from './InterventionTimesSection';
 import { AccessDetailsSection } from './AccessDetailsSection';
@@ -24,37 +24,29 @@ interface InterventionFormProps {
 
 export function InterventionForm({ eventId, onSaveSuccess, onCancel }: InterventionFormProps) {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    servicePoint: '',
-    requestType: '',
-    coOperator: '',
-    requestTime: '',
-    startTime: '',
-    endTime: '',
-    fullAccess: undefined as 'si' | 'no' | undefined,
-    vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '',
-    gpgIntervention: '',
-    anomalies: undefined as 'si' | 'no' | undefined,
-    anomalyDescription: '',
-    delay: undefined as 'si' | 'no' | undefined,
-    delayNotes: '',
-    serviceOutcome: '',
-    barcode: '',
-    startLatitude: undefined as number | undefined,
-    startLongitude: undefined as number | undefined,
-    endLatitude: undefined as number | undefined,
-    endLongitude: undefined as number | undefined,
-  });
-  const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
-  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
-  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
-  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]);
-  const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
-  const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
-  const [isServicePointOpen, setIsServicePointOpen] = useState(false);
-  const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false);
-  const [loadingInitialData, setLoadingInitialData] = useState(!!eventId);
+  const {
+    formData,
+    setFormData,
+    operatoriNetworkList,
+    pattugliaPersonale,
+    puntiServizioList,
+    coOperatorsPersonnel,
+    isOperatorNetworkOpen,
+    setIsOperatorNetworkOpen,
+    isGpgInterventionOpen,
+    setIsGpgInterventionOpen,
+    isServicePointOpen,
+    setIsServicePointOpen,
+    isCoOperatorOpen,
+    setIsCoOperatorOpen,
+    loadingInitialData,
+    handleInputChange,
+    handleSelectChange,
+    handleRadioChange,
+    handleSetCurrentTime,
+    handleStartGpsTracking,
+    handleEndGpsTracking,
+  } = useInterventionForm(eventId);
 
   // Use the new hook for report actions
   const { handlePrintPdf, handleEmail } = useInterventionReportActions({
@@ -64,183 +56,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     operatoriNetworkList,
     pattugliaPersonale,
   });
-
-  useEffect(() => {
-    const loadDropdownData = async () => {
-      const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
-      setOperatoriNetworkList(fetchedOperatoriNetwork);
-
-      const fetchedPattuglia = await fetchPersonale('Pattuglia');
-      setPattugliaPersonale(fetchedPattuglia);
-
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      setPuntiServizioList(fetchedPuntiServizio);
-
-      const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
-      setCoOperatorsPersonnel(fetchedCoOperators);
-    };
-    loadDropdownData();
-  }, []);
-
-  useEffect(() => {
-    const loadEventDataForEdit = async () => {
-      if (eventId) {
-        setLoadingInitialData(true);
-        
-        const { data: event, error: eventError } = await supabase
-          .from('allarme_interventi')
-          .select('*')
-          .eq('id', eventId)
-          .single();
-
-        const { data: service, error: serviceError } = await supabase
-          .from('servizi_richiesti')
-          .select('start_date, start_time, end_date, end_time')
-          .eq('id', eventId)
-          .single();
-
-        if (eventError) {
-          showError(`Errore nel recupero dei dati dell'evento: ${eventError.message}`);
-          console.error("Error fetching event data for edit:", eventError);
-          setLoadingInitialData(false);
-          return;
-        }
-
-        if (event) {
-          // Helper to safely format DB time (HH:mm:ss) to form time (HH:mm)
-          const formatDbTimeToForm = (dbTime: string | null | undefined): string => {
-            if (!dbTime) return '';
-            // The time from DB is HH:mm:ss, we just need HH:mm
-            return dbTime.substring(0, 5);
-          };
-
-          // Helper to safely construct a datetime-local string
-          const createDateTimeString = (date: string | null | undefined, time: string | null | undefined): string => {
-            if (!date || !time) return '';
-            const formattedTime = formatDbTimeToForm(time);
-            if (!formattedTime) return '';
-            return `${date}T${formattedTime}`;
-          };
-
-          const requestTimeString = createDateTimeString(event.report_date, event.report_time);
-          const startTimeString = createDateTimeString(service?.start_date, service?.start_time);
-          const endTimeString = createDateTimeString(service?.end_date, service?.end_time);
-
-          let anomalyDescription = '';
-          let delayNotes = '';
-          let anomalies: 'si' | 'no' | undefined = undefined;
-          let delay: 'si' | 'no' | undefined = undefined;
-
-          if (event.notes) {
-            const notesArray = event.notes.split('; ').map((s: string) => s.trim());
-            const anomalyMatch = notesArray.find((note: string) => note.startsWith('Anomalie:'));
-            const delayMatch = notesArray.find((note: string) => note.startsWith('Ritardo:'));
-
-            if (anomalyMatch) {
-              anomalies = 'si';
-              anomalyDescription = anomalyMatch.replace('Anomalie:', '').trim();
-            } else {
-              anomalies = 'no';
-            }
-            if (delayMatch) {
-              delay = 'si';
-              delayNotes = delayMatch.replace('Ritardo:', '').trim();
-            } else {
-              delay = 'no';
-            }
-          } else {
-            anomalies = 'no';
-            delay = 'no';
-          }
-
-          setFormData({
-            servicePoint: event.service_point_code || '',
-            requestType: event.request_type || '',
-            coOperator: event.co_operator || '',
-            requestTime: requestTimeString,
-            startTime: startTimeString || requestTimeString,
-            endTime: endTimeString || startTimeString || requestTimeString,
-            fullAccess: undefined,
-            vaultAccess: undefined,
-            operatorClient: event.operator_client || '',
-            gpgIntervention: event.gpg_intervention || '',
-            anomalies: anomalies,
-            anomalyDescription: anomalyDescription,
-            delay: delay,
-            delayNotes: delayNotes,
-            serviceOutcome: event.service_outcome || '',
-            barcode: '',
-            startLatitude: event.start_latitude || undefined,
-            startLongitude: event.start_longitude || undefined,
-            endLatitude: event.end_latitude || undefined,
-            endLongitude: event.end_longitude || undefined,
-          });
-        }
-        setLoadingInitialData(false);
-      }
-    };
-    loadEventDataForEdit();
-  }, [eventId]);
-
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleRadioChange = (name: string, value: 'si' | 'no') => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSetCurrentTime = (field: string) => {
-    const now = new Date();
-    const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm");
-    setFormData(prev => ({ ...prev, [field]: formattedDateTime }));
-  };
-
-  const handleStartGpsTracking = () => {
-    if (navigator.geolocation) {
-      showInfo("Acquisizione posizione GPS inizio intervento...");
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setFormData(prev => ({ ...prev, startLatitude: latitude, startLongitude: longitude }));
-          showSuccess(`Posizione GPS inizio intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
-        },
-        (error) => {
-          showError(`Errore acquisizione GPS inizio intervento: ${error.message}`);
-          console.error("Error getting start GPS position:", error);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      showError("La geolocalizzazione non è supportata dal tuo browser.");
-    }
-  };
-
-  const handleEndGpsTracking = () => {
-    if (navigator.geolocation) {
-      showInfo("Acquisizione posizione GPS fine intervento...");
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setFormData(prev => ({ ...prev, endLatitude: latitude, endLongitude: longitude }));
-          showSuccess(`Posizione GPS fine intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
-        },
-        (error) => {
-          showError(`Errore acquisizione GPS fine intervento: ${error.message}`);
-          console.error("Error getting end GPS position:", error);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      showError("La geolocalizzazione non è supportata dal tuo browser.");
-    }
-  };
 
   const saveIntervention = async (isFinal: boolean) => {
     const {
@@ -314,7 +129,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     // --- Time processing for DB ---
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
-    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // ADDED TIMEZONE
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
 
     // Determine final dates and times for the payload
     // Use request time as a fallback for start time.
@@ -323,10 +138,10 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     const finalEndDate = parsedEndTime || finalStartDate;
 
     const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
-    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ssXXX'); // ADDED TIMEZONE
+    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
     
     const finalEndDateForDb = format(finalEndDate, 'yyyy-MM-dd');
-    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ssXXX'); // ADDED TIMEZONE
+    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
