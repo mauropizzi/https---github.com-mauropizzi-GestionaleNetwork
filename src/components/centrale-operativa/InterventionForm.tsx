@@ -680,65 +680,67 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
   }
 
   return (
-    <form onSubmit={handleCloseEvent} className="space-y-6">
-      <EventDetailsSection
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleSelectChange={handleSelectChange}
-        handleSetCurrentTime={handleSetCurrentTime}
-        handleStartGpsTracking={handleStartGpsTracking}
-        puntiServizioList={puntiServizioList}
-        coOperatorsPersonnel={coOperatorsPersonnel}
-        isServicePointOpen={isServicePointOpen}
-        setIsServicePointOpen={setIsServicePointOpen}
-        isCoOperatorOpen={isCoOperatorOpen}
-        setIsCoOperatorOpen={setIsCoOperatorOpen}
-      />
+    <React.Fragment>
+      <form onSubmit={handleCloseEvent} className="space-y-6">
+        <EventDetailsSection
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSelectChange={handleSelectChange}
+          handleSetCurrentTime={handleSetCurrentTime}
+          handleStartGpsTracking={handleStartGpsTracking}
+          puntiServizioList={puntiServizioList}
+          coOperatorsPersonnel={coOperatorsPersonnel}
+          isServicePointOpen={isServicePointOpen}
+          setIsServicePointOpen={setIsServicePointOpen}
+          isCoOperatorOpen={isCoOperatorOpen}
+          setIsCoOperatorOpen={setIsCoOperatorOpen}
+        />
 
-      <InterventionTimesSection
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleSetCurrentTime={handleSetCurrentTime}
-        handleEndGpsTracking={handleEndGpsTracking}
-      />
+        <InterventionTimesSection
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSetCurrentTime={handleSetCurrentTime}
+          handleEndGpsTracking={handleEndGpsTracking}
+        />
 
-      <AccessDetailsSection
-        formData={formData}
-        handleRadioChange={handleRadioChange}
-      />
+        <AccessDetailsSection
+          formData={formData}
+          handleRadioChange={handleRadioChange}
+        />
 
-      <PersonnelSection
-        formData={formData}
-        handleSelectChange={handleSelectChange}
-        operatoriNetworkList={operatoriNetworkList}
-        pattugliaPersonale={pattugliaPersonale}
-        isOperatorNetworkOpen={isOperatorNetworkOpen}
-        setIsOperatorNetworkOpen={setIsOperatorNetworkOpen}
-        isGpgInterventionOpen={isGpgInterventionOpen}
-        setIsGpgInterventionOpen={setIsGpgInterventionOpen}
-      />
+        <PersonnelSection
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          operatoriNetworkList={operatoriNetworkList}
+          pattugliaPersonale={pattugliaPersonale}
+          isOperatorNetworkOpen={isOperatorNetworkOpen}
+          setIsOperatorNetworkOpen={setIsOperatorNetworkOpen}
+          isGpgInterventionOpen={isGpgInterventionOpen}
+          setIsGpgInterventionOpen={setIsGpgInterventionOpen}
+        />
 
-      <AnomaliesDelaySection
-        formData={formData}
-        handleRadioChange={handleRadioChange}
-        handleInputChange={handleInputChange}
-      />
+        <AnomaliesDelaySection
+          formData={formData}
+          handleRadioChange={handleRadioChange}
+          handleInputChange={handleInputChange}
+        />
 
-      <OutcomeBarcodeSection
-        formData={formData}
-        handleSelectChange={handleSelectChange}
-        handleInputChange={handleInputChange}
-      />
+        <OutcomeBarcodeSection
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          handleInputChange={handleInputChange}
+        />
 
-      <InterventionActionButtons
-        eventId={eventId}
-        handleEmail={handleEmail}
-        handlePrintPdf={handlePrintPdf}
-        handleRegisterEvent={handleRegisterEvent}
-        handleCloseEvent={handleCloseEvent}
-        onCancel={onCancel}
-        isPublicMode={isPublicMode} {/* Pass the isPublicMode prop */}
-      />
-    </form>
+        <InterventionActionButtons
+          eventId={eventId}
+          handleEmail={handleEmail}
+          handlePrintPdf={handlePrintPdf}
+          handleRegisterEvent={handleRegisterEvent}
+          handleCloseEvent={handleCloseEvent}
+          onCancel={onCancel}
+          isPublicMode={isPublicMode} {/* Pass the isPublicMode prop */}
+        />
+      </form>
+    </React.Fragment>
   );
 }
