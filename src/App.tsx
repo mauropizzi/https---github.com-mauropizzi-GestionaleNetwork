@@ -30,10 +30,19 @@ import EditServiceRequestPage from "./pages/EditServiceRequestPage"; // Import t
 
 const queryClient = new QueryClient();
 
+// Flag per disabilitare temporaneamente l'autenticazione durante lo sviluppo
+// Imposta a `false` per riabilitare il login.
+const IS_AUTH_DISABLED_TEMPORARILY = true; 
+
 // Componente per proteggere le rotte
 const ProtectedRoute = () => {
   const { session, loading } = useSession();
   console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null');
+
+  if (IS_AUTH_DISABLED_TEMPORARILY) {
+    console.log('ProtectedRoute: Authentication is temporarily disabled. Bypassing login.');
+    return <Outlet />; // Bypass login
+  }
 
   if (loading) {
     console.log('ProtectedRoute: Session is loading, showing loading message.');
