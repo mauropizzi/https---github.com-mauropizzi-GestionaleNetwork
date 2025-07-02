@@ -32,6 +32,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Cliente, PuntoServizio, Fornitore, serviceTypeRateOptions } from '@/lib/anagrafiche-data';
 import { fetchClienti, fetchPuntiServizio, fetchFornitori } from '@/lib/data-fetching';
+import { getUnitaMisuraForServizio } from '@/lib/tariff-utils';
 
 interface Tariffa {
   id: string;
@@ -46,7 +47,6 @@ interface Tariffa {
   data_inizio_validita?: string | null;
   data_fine_validita?: string | null;
   note?: string | null;
-  // Joined fields (not part of form schema, but useful for display)
   nome_cliente?: string;
   nome_punto_servizio?: string;
   nome_fornitore?: string;
@@ -72,7 +72,15 @@ const formSchema = z.object({
   data_inizio_validita: z.date().optional().nullable(),
   data_fine_validita: z.date().optional().nullable(),
   note: z.string().optional().nullable(),
-}); // Removed .refine from here
+}).refine(data => {
+    if (data.data_inizio_validita && data.data_fine_validita) {
+        return data.data_fine_validita >= data.data_inizio_validita;
+    }
+    return true;
+}, {
+    message: "La data di fine validità non può essere precedente alla data di inizio.",
+    path: ["data_fine_validita"],
+});
 
 export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaEditDialogProps) {
   const [clienti, setClienti] = useState<Cliente[]>([]);
@@ -117,7 +125,6 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
         unita_misura: tariffa.unita_misura,
         punto_servizio_id: tariffa.punto_servizio_id || null,
         fornitore_id: tariffa.fornitore_id || null,
-        // Add checks for null/undefined/empty string before parsing
         data_inizio_validita: (tariffa.data_inizio_validita && typeof tariffa.data_inizio_validita === 'string') ? parseISO(tariffa.data_inizio_validita) : null,
         data_fine_validita: (tariffa.data_fine_validita && typeof tariffa.data_fine_validita === 'string') ? parseISO(tariffa.data_fine_validita) : null,
         note: tariffa.note || null,
@@ -125,20 +132,16 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
     }
   }, [tariffa, form]);
 
+  const tipoServizio = form.watch("service_type");
+  useEffect(() => {
+    const unita = getUnitaMisuraForServizio(tipoServizio);
+    form.setValue("unita_misura", unita, { shouldValidate: true });
+  }, [tipoServizio, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!tariffa) {
       showError("Nessuna tariffa selezionata per la modifica.");
       onClose();
-      return;
-    }
-
-    // Manual date validation
-    if (values.data_inizio_validita && values.data_fine_validita && values.data_fine_validita < values.data_inizio_validita) {
-      form.setError("data_fine_validita", {
-        type: "manual",
-        message: "La data di fine validità non può essere precedente alla data di inizio.",
-      });
-      showError("La data di fine validità non può essere precedente alla data di inizio.");
       return;
     }
 
@@ -170,8 +173,6 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
     }
     onClose();
   };
-
-  const tipoServizio = form.watch("service_type");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -255,7 +256,7 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
                 name="supplier_rate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Importo Fornitore (€)</FormLabel> {/* Corrected closing tag */}
+                    <FormLabel>Importo Fornitore (€)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                     </FormControl>
@@ -270,10 +271,10 @@ export function TariffaEditDialog({ isOpen, onClose, tariffa, onSave }: TariffaE
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Unità di Misura</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!!tipoServizio && (tipoServizio === "Piantonamento" || tipoServizio === "Servizi Fiduciari" || tipoServizio === "Ispezioni" || tipoServizio === "Bonifiche" || tipoServizio === "Gestione Chiavi" || tipoServizio === "Apertura/Chiusura" || tipoServizio === "Intervento" || tipoServizio === "Disponibilità Pronto Intervento" || tipoServizio === "Videosorveglianza" || tipoServizio === "Impianto Allarme" || tipoServizio === "Bidirezionale" || tipoServizio === "Monodirezionale" || tipoServizio === "Tenuta Chiavi")}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleziona unità di misura" />
+                        <SelectValue placeholder="Impostata automaticamente" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
