@@ -160,6 +160,7 @@ export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate
     console.error("Error fetching servizi_canone for analysis:", error);
     return [];
   }
+  console.log("fetchServiziCanoneForAnalysis: Fetched data =", data); // Nuovo log
   return data || [];
 }
 
