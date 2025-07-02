@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare i clienti." ON public.clienti;

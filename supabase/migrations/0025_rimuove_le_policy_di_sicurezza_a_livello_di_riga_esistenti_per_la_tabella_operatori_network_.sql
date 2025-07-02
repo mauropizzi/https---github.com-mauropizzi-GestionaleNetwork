@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare gli operatori network." ON public.operatori_network;

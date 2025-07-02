@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated users can view servizi_canone." ON public.servizi_canone;

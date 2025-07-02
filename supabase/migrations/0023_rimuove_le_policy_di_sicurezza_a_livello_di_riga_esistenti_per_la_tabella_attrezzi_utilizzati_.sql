@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare gli attrezzi utilizzati" ON public.attrezzi_utilizzati;

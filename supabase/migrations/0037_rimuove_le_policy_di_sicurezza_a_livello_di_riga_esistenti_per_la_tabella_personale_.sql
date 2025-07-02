@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare il personale." ON public.personale;

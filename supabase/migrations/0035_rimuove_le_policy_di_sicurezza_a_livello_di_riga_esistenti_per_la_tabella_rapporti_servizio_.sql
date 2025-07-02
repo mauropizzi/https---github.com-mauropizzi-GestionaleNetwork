@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare i rapporti di servizio." ON public.rapporti_servizio;

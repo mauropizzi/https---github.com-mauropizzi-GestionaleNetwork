@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Public procedures are viewable by everyone." ON public.procedure;

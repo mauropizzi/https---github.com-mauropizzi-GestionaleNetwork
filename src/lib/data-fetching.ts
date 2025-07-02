@@ -193,7 +193,8 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
   const serviceStartDate = details.start_date;
 
   const matchingTariffs = allTariffe.filter(tariff => {
-    const tariffStartDate = parseISO(tariff.data_inizio_validita);
+    // Handle null data_inizio_validita by treating it as the epoch start
+    const tariffStartDate = tariff.data_inizio_validita ? parseISO(tariff.data_inizio_validita) : new Date(0); 
     const tariffEndDate = tariff.data_fine_validita ? parseISO(tariff.data_fine_validita) : new Date(9999, 11, 31);
 
     const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;

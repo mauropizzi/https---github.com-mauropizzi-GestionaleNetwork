@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Utenti autenticati possono visualizzare i registri di cantiere." ON public.registri_cantiere;
