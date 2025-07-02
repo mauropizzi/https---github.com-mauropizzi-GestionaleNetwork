@@ -52,15 +52,7 @@ const formSchema = z.object({
     required_error: "Seleziona uno stato.",
   }).default("Attivo"),
   notes: z.string().optional().nullable(),
-}).refine(data => {
-  if (data.startDate && data.endDate) {
-    return data.endDate >= data.startDate;
-  }
-  return true;
-}, {
-  message: "La data di fine non può essere precedente alla data di inizio.",
-  path: ["endDate"],
-});
+}); // Removed .refine from here
 
 export function CanoneForm() {
   const { puntiServizio, fornitori, clienti, loading } = useAnagraficheData(); // Use the hook and get clienti
@@ -79,6 +71,16 @@ export function CanoneForm() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Manual date validation
+    if (values.startDate && values.endDate && values.endDate < values.startDate) {
+      form.setError("endDate", {
+        type: "manual",
+        message: "La data di fine non può essere precedente alla data di inizio.",
+      });
+      showError("La data di fine non può essere precedente alla data di inizio.");
+      return;
+    }
+
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 

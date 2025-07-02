@@ -60,15 +60,7 @@ const formSchema = z.object({
     required_error: "Seleziona uno stato.",
   }).default("Attivo"),
   notes: z.string().optional().nullable(),
-}).refine(data => {
-  if (data.startDate && data.endDate) {
-    return data.endDate >= data.startDate;
-  }
-  return true;
-}, {
-  message: "La data di fine non può essere precedente alla data di inizio.",
-  path: ["endDate"],
-});
+}); // Removed .refine from here
 
 export function CanoneEditDialog({ isOpen, onClose, canone, onSave }: CanoneEditDialogProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
@@ -115,6 +107,16 @@ export function CanoneEditDialog({ isOpen, onClose, canone, onSave }: CanoneEdit
     if (!canone) {
       showError("Nessun servizio a canone selezionato per la modifica.");
       onClose();
+      return;
+    }
+
+    // Manual date validation
+    if (values.startDate && values.endDate && values.endDate < values.startDate) {
+      form.setError("endDate", {
+        type: "manual",
+        message: "La data di fine non può essere precedente alla data di inizio.",
+      });
+      showError("La data di fine non può essere precedente alla data di inizio.");
       return;
     }
 
@@ -351,7 +353,7 @@ export function CanoneEditDialog({ isOpen, onClose, canone, onSave }: CanoneEdit
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleziona stato" />
-                      </SelectTrigger>
+                    </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Attivo">Attivo</SelectItem>
