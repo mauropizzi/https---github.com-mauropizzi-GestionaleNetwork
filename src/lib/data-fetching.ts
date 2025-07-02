@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
 import { showError } from "@/utils/toast";
-import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes } from "date-fns";
+import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes, differenceInMonths, addMonths } from "date-fns";
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 
@@ -275,6 +275,26 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     case "Apertura/Chiusura":
     case "Intervento": {
       multiplier = 1;
+      break;
+    }
+    // New case for monthly subscription services
+    case "Disponibilità Pronto Intervento":
+    case "Videosorveglianza":
+    case "Impianto Allarme":
+    case "Bidirezionale":
+    case "Monodirezionale":
+    case "Tenuta Chiavi": {
+      // Calculate number of months between start_date and end_date
+      // If end_date is not provided, assume it's an ongoing service for 1 month for calculation purposes
+      const endDate = details.end_date || addMonths(details.start_date, 1);
+      let months = differenceInMonths(endDate, details.start_date);
+      // If there's any partial month, count it as a full month
+      if (months === 0 && details.start_date.getDate() !== endDate.getDate()) {
+          months = 1;
+      } else if (months > 0 && endDate.getDate() > details.start_date.getDate()) {
+          months += 1; // Add 1 for the partial month at the end
+      }
+      multiplier = Math.max(1, months); // Ensure at least 1 month
       break;
     }
     default:

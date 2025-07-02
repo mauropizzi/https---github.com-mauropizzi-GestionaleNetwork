@@ -88,6 +88,21 @@ export interface Procedure {
   note?: string;
 }
 
+export interface ServiziCanone {
+  id: string;
+  created_at?: string;
+  service_point_id: string;
+  fornitore_id?: string | null;
+  tipo_canone: string;
+  start_date: string;
+  end_date?: string | null;
+  status: "Attivo" | "Inattivo" | "Sospeso";
+  notes?: string | null;
+  calculated_cost?: number | null; // New field
+  client_id?: string | null; // New field
+  unita_misura?: string | null; // New field
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",
@@ -95,5 +110,11 @@ export const serviceTypeRateOptions: string[] = [
   "Bonifiche",
   "Gestione Chiavi",
   "Apertura/Chiusura",
-  "Intervento", // Added 'Intervento'
+  "Intervento",
+  "Disponibilità Pronto Intervento", // Added from tipoCanoneOptions
+  "Videosorveglianza", // Added from tipoCanoneOptions
+  "Impianto Allarme", // Added from tipoCanoneOptions
+  "Bidirezionale", // Added from tipoCanoneOptions
+  "Monodirezionale", // Added from tipoCanoneOptions
+  "Tenuta Chiavi", // Added from tipoCanoneOptions
 ];

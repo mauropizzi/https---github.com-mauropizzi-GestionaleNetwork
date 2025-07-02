@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
 import { CalendarIcon } from "lucide-react";
 
@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { useAnagraficheData } from "@/hooks/use-anagrafiche-data"; // Import the new hook
 import { supabase } from "@/integrations/supabase/client";
+import { calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
 
 const tipoCanoneOptions = [
   "Disponibilità Pronto Intervento",
@@ -46,11 +47,11 @@ const formSchema = z.object({
   startDate: z.date({
     required_error: "La data di inizio è richiesta.",
   }),
-  endDate: z.date().optional(),
+  endDate: z.date().optional().nullable(),
   status: z.enum(["Attivo", "Inattivo", "Sospeso"], {
     required_error: "Seleziona uno stato.",
   }).default("Attivo"),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 }).refine(data => {
   if (data.startDate && data.endDate) {
     return data.endDate >= data.startDate;
@@ -62,7 +63,7 @@ const formSchema = z.object({
 });
 
 export function CanoneForm() {
-  const { puntiServizio, fornitori, loading } = useAnagraficheData(); // Use the hook
+  const { puntiServizio, fornitori, clienti, loading } = useAnagraficheData(); // Use the hook and get clienti
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,13 +72,40 @@ export function CanoneForm() {
       fornitoreId: "",
       tipoCanone: "",
       startDate: new Date(),
-      endDate: undefined,
+      endDate: null, // Changed to null for consistency
       status: "Attivo",
-      notes: "",
+      notes: null, // Changed to null for consistency
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    const clientId = selectedServicePoint?.id_cliente || null;
+
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio.");
+      return;
+    }
+
+    const costDetails = {
+      type: values.tipoCanone, // Use tipoCanone as service type for cost calculation
+      client_id: clientId,
+      service_point_id: values.servicePointId,
+      fornitore_id: values.fornitoreId || null,
+      start_date: values.startDate,
+      end_date: values.endDate || values.startDate, // If no end date, assume 1 month from start
+      start_time: null, // Not applicable for monthly
+      end_time: null, // Not applicable for monthly
+      num_agents: null, // Not applicable for monthly
+      cadence_hours: null, // Not applicable for monthly
+      daily_hours_config: null, // Not applicable for monthly
+      inspection_type: null, // Not applicable for monthly
+    };
+
+    const calculatedCostResult = await calculateServiceCost(costDetails);
+    const calculatedCost = calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null;
+    const unitaMisura = calculatedCostResult ? "mese" : null; // Set unit to 'mese' if cost is calculated
+
     const payload = {
       service_point_id: values.servicePointId,
       fornitore_id: values.fornitoreId || null,
@@ -86,6 +114,9 @@ export function CanoneForm() {
       end_date: values.endDate ? format(values.endDate, 'yyyy-MM-dd') : null,
       status: values.status,
       notes: values.notes || null,
+      calculated_cost: calculatedCost, // Save the calculated cost
+      client_id: clientId, // Save the client ID
+      unita_misura: unitaMisura, // Save the unit of measure
     };
 
     const { data, error } = await supabase
@@ -104,9 +135,9 @@ export function CanoneForm() {
         fornitoreId: "",
         tipoCanone: "",
         startDate: new Date(),
-        endDate: undefined,
+        endDate: null,
         status: "Attivo",
-        notes: "",
+        notes: null,
       });
     }
   };
@@ -263,7 +294,7 @@ export function CanoneForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
                       locale={it}
@@ -304,7 +335,7 @@ export function CanoneForm() {
             <FormItem>
               <FormLabel>Note</FormLabel>
               <FormControl>
-                <Textarea placeholder="Note aggiuntive..." {...field} />
+                <Textarea placeholder="Note aggiuntive..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
