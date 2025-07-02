@@ -138,6 +138,31 @@ export async function fetchServiceRequestsForAnalysis(clientId?: string, startDa
   return data || [];
 }
 
+export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
+  let query = supabase
+    .from('servizi_canone')
+    .select('id, tipo_canone, client_id, service_point_id, fornitore_id, start_date, end_date, unita_misura'); // Select relevant fields
+
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+  if (startDate) {
+    query = query.gte('start_date', startDate);
+  }
+  if (endDate) {
+    query = query.lte('end_date', endDate);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    showError(`Errore nel recupero dei servizi a canone per analisi: ${error.message}`);
+    console.error("Error fetching servizi_canone for analysis:", error);
+    return [];
+  }
+  return data || [];
+}
+
 export async function fetchAllTariffe(): Promise<any[]> {
   const now = Date.now();
   if (cachedTariffe && (now - lastTariffeFetchTime < TARIFEE_CACHE_DURATION)) {

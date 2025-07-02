@@ -5,6 +5,7 @@ import {
   fetchClienti,
   fetchPuntiServizio,
   fetchServiceRequestsForAnalysis,
+  fetchServiziCanoneForAnalysis, // Import the new function
   fetchAllTariffe,
   calculateServiceCost
 } from "@/lib/data-fetching";
@@ -14,9 +15,9 @@ import { Cliente, PuntoServizio } from "@/lib/anagrafiche-data";
 interface ServiceSummary {
   servicePointId: string;
   servicePointName: string;
-  serviceType: string; // Added serviceType
+  serviceType: string;
   totalServices: number;
-  totalHours: number;
+  totalHours: number; // This will now represent total units (hours, interventions, months)
   totalClientCost: number;
   totalSupplierCost: number;
   costDelta: number;
@@ -26,12 +27,12 @@ interface MissingTariffEntry {
   serviceId: string;
   serviceType: string;
   clientName: string;
-  clientId: string; // Added
+  clientId: string;
   servicePointName?: string;
-  servicePointId?: string; // Added
-  fornitoreId?: string; // Added
+  servicePointId?: string;
+  fornitoreId?: string;
   startDate: string;
-  endDate: string; // Added for pre-filling tariff form
+  endDate: string;
   reason: string;
 }
 
@@ -81,19 +82,62 @@ export const useAnalisiContabileData = () => {
   const fetchAndProcessServiceData = useCallback(async () => {
     setLoadingSummary(true);
     try {
-      const rawServices = await fetchServiceRequestsForAnalysis(
+      const formattedStartDate = startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined;
+      const formattedEndDate = endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined;
+
+      const rawServicesRichiesti = await fetchServiceRequestsForAnalysis(
         selectedClientId || undefined,
-        startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined,
-        endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined
+        formattedStartDate,
+        formattedEndDate
       );
+
+      const rawServiziCanone = await fetchServiziCanoneForAnalysis(
+        selectedClientId || undefined,
+        formattedStartDate,
+        formattedEndDate
+      );
+
+      // Combine and normalize services
+      const allServices = [
+        ...rawServicesRichiesti.map(s => ({
+          id: s.id,
+          type: s.type,
+          client_id: s.client_id,
+          service_point_id: s.service_point_id,
+          fornitore_id: s.fornitore_id,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          num_agents: s.num_agents,
+          cadence_hours: s.cadence_hours,
+          daily_hours_config: s.daily_hours_config,
+          inspection_type: s.inspection_type,
+        })),
+        ...rawServiziCanone.map(sc => ({
+          id: sc.id,
+          type: sc.tipo_canone, // Map tipo_canone to type for consistent processing
+          client_id: sc.client_id,
+          service_point_id: sc.service_point_id,
+          fornitore_id: sc.fornitore_id,
+          start_date: sc.start_date,
+          end_date: sc.end_date,
+          start_time: null, // Not applicable for monthly
+          end_time: null, // Not applicable for monthly
+          num_agents: null,
+          cadence_hours: null,
+          daily_hours_config: null,
+          inspection_type: null,
+        })),
+      ];
 
       const summary: { [key: string]: ServiceSummary } = {};
 
-      for (const service of rawServices) {
+      for (const service of allServices) {
         const servicePoint = puntiServizioMap.get(service.service_point_id);
         if (servicePoint) {
           const serviceStartDate = parseISO(service.start_date);
-          const serviceEndDate = parseISO(service.end_date);
+          const serviceEndDate = service.end_date ? parseISO(service.end_date) : serviceStartDate; // Use start date if end date is null
 
           const costDetails = {
             type: service.type,
@@ -152,11 +196,53 @@ export const useAnalisiContabileData = () => {
   const fetchAndIdentifyMissingTariffs = useCallback(async () => {
     setLoadingMissingTariffs(true);
     try {
-      const allServices = await fetchServiceRequestsForAnalysis(
+      const formattedStartDate = startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined;
+      const formattedEndDate = endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined;
+
+      const allServicesRichiesti = await fetchServiceRequestsForAnalysis(
         undefined,
-        startDateFilter ? format(startDateFilter, 'yyyy-MM-dd') : undefined,
-        endDateFilter ? format(endDateFilter, 'yyyy-MM-dd') : undefined
+        formattedStartDate,
+        formattedEndDate
       );
+      const allServiziCanone = await fetchServiziCanoneForAnalysis(
+        undefined,
+        formattedStartDate,
+        formattedEndDate
+      );
+
+      const allServices = [
+        ...allServicesRichiesti.map(s => ({
+          id: s.id,
+          type: s.type,
+          client_id: s.client_id,
+          service_point_id: s.service_point_id,
+          fornitore_id: s.fornitore_id,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          num_agents: s.num_agents,
+          cadence_hours: s.cadence_hours,
+          daily_hours_config: s.daily_hours_config,
+          inspection_type: s.inspection_type,
+        })),
+        ...allServiziCanone.map(sc => ({
+          id: sc.id,
+          type: sc.tipo_canone, // Map tipo_canone to type for consistent processing
+          client_id: sc.client_id,
+          service_point_id: sc.service_point_id,
+          fornitore_id: sc.fornitore_id,
+          start_date: sc.start_date,
+          end_date: sc.end_date,
+          start_time: null,
+          end_time: null,
+          num_agents: null,
+          cadence_hours: null,
+          daily_hours_config: null,
+          inspection_type: null,
+        })),
+      ];
+
       const allClients = await fetchClienti();
 
       const clientNameMap = new Map(allClients.map(c => [c.id, c.nome_cliente]));
@@ -166,7 +252,7 @@ export const useAnalisiContabileData = () => {
 
       for (const service of allServices) {
         const serviceStartDate = parseISO(service.start_date);
-        const serviceEndDate = parseISO(service.end_date);
+        const serviceEndDate = service.end_date ? parseISO(service.end_date) : serviceStartDate;
 
         const costDetails = {
           type: service.type,

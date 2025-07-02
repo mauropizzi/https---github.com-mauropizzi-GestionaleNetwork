@@ -19,7 +19,7 @@ interface ServiceSummary {
   servicePointName: string;
   serviceType: string; // Added serviceType
   totalServices: number;
-  totalHours: number;
+  totalHours: number; // This will now represent total units (hours, interventions, months)
   totalClientCost: number;
   totalSupplierCost: number;
   costDelta: number;
@@ -49,7 +49,7 @@ export const ServiceSummaryTable: React.FC<ServiceSummaryTableProps> = ({ data, 
     },
     {
       accessorKey: "totalHours",
-      header: "Ore/Interventi Totali",
+      header: "Quantità Totale (Ore/Interventi/Mesi)", // Updated header
       cell: ({ row }) => <span>{row.original.totalHours.toFixed(2)}</span>,
     },
     {
