@@ -202,7 +202,8 @@ interface ServiceDetailsForCost {
 }
 
 export async function calculateServiceMultiplier(details: ServiceDetailsForCost): Promise<number | null> {
-  console.log("calculateServiceMultiplier: details.type =", details.type);
+  console.log(`[Multiplier Calc] Calculating for type: ${details.type}, client: ${details.client_id}, SP: ${details.service_point_id}, Forn: ${details.fornitore_id}`);
+  console.log(`[Multiplier Calc] Dates: ${format(details.start_date, 'yyyy-MM-dd')} to ${format(details.end_date, 'yyyy-MM-dd')}`);
   let multiplier: number | null = null;
 
   switch (details.type) {
@@ -247,6 +248,7 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
         currentDate = addDays(currentDate, 1);
       }
       multiplier = totalHours * (details.num_agents || 1);
+      console.log(`[Multiplier Calc] Hourly/Fiduciary - Total Hours: ${totalHours}, Num Agents: ${details.num_agents || 1}, Multiplier: ${multiplier}`);
       break;
     }
     case "Ispezioni": {
@@ -294,6 +296,7 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
       } else {
         multiplier = null;
       }
+      console.log(`[Multiplier Calc] Inspections - Total Operational Hours: ${totalOperationalHours}, Cadence: ${details.cadence_hours}, Multiplier: ${multiplier}`);
       break;
     }
     case "Bonifiche":
@@ -301,17 +304,16 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     case "Apertura/Chiusura":
     case "Intervento": {
       multiplier = 1;
+      console.log(`[Multiplier Calc] One-off service - Multiplier: ${multiplier}`);
       break;
     }
     // New case for monthly subscription services
     case "Disponibilità Pronto Intervento":
     case "Videosorveglianza":
-    case "Impianto Allarme": // <--- This is the type for the missing tariff service
+    case "Impianto Allarme":
     case "Bidirezionale":
     case "Monodirezionale":
-    case "Tenuta Chiavi": { // <--- This is the type for the existing tariff service
-      // Calculate number of months between start_date and end_date
-      // If end_date is not provided, assume it's an ongoing service for 1 month for calculation purposes
+    case "Tenuta Chiavi": {
       const endDate = details.end_date || addMonths(details.start_date, 1);
       let months = differenceInMonths(endDate, details.start_date);
       // If there's any partial month, count it as a full month
@@ -321,10 +323,11 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
           months += 1; // Add 1 for the partial month at the end
       }
       multiplier = Math.max(1, months); // Ensure at least 1 month
+      console.log(`[Multiplier Calc] Monthly service - Start: ${format(details.start_date, 'yyyy-MM-dd')}, End: ${format(endDate, 'yyyy-MM-dd')}, Months: ${months}, Multiplier: ${multiplier}`);
       break;
     }
     default:
-      console.warn(`calculateServiceMultiplier: Tipo di servizio non riconosciuto: ${details.type}`);
+      console.warn(`[Multiplier Calc] Tipo di servizio non riconosciuto: ${details.type}`);
       multiplier = null;
   }
 
@@ -332,19 +335,21 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
 }
 
 export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
-  console.log("calculateServiceCost: details =", details);
+  console.log(`[Cost Calc] Starting calculation for service: ${details.type}`);
+  console.log(`[Cost Calc] Details: Client ID: ${details.client_id}, Service Point ID: ${details.service_point_id}, Fornitore ID: ${details.fornitore_id}, Start Date: ${format(details.start_date, 'yyyy-MM-dd')}`);
+  
   const allTariffe = await fetchAllTariffe();
-  console.log("calculateServiceCost: allTariffe (first 5) =", allTariffe.slice(0, 5)); // Log a sample of tariffs
+  console.log(`[Cost Calc] Total tariffs fetched: ${allTariffe.length}`);
+  
   const serviceStartDate = details.start_date;
 
   const matchingTariffs = allTariffe.filter(tariff => {
-    // Ensure data_inizio_validita and data_fine_validita are strings before parsing
     const tariffStartDate = (typeof tariff.data_inizio_validita === 'string' && tariff.data_inizio_validita !== '')
       ? parseISO(tariff.data_inizio_validita)
-      : new Date(0); // Default to epoch start if null or empty string
+      : new Date(0);
     const tariffEndDate = (typeof tariff.data_fine_validita === 'string' && tariff.data_fine_validita !== '')
       ? parseISO(tariff.data_fine_validita)
-      : new Date(9999, 11, 31); // Default to far future if null or empty string
+      : new Date(9999, 11, 31);
 
     const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
     const clientMatch = tariff.client_id === details.client_id;
@@ -353,19 +358,46 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
 
     const matchResult = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
-    if (!matchResult) {
-        console.log(`  Tariff mismatch for service ${details.type} (client: ${details.client_id}, sp: ${details.service_point_id}, forn: ${details.fornitore_id}, date: ${format(serviceStartDate, 'yyyy-MM-dd')}):`);
-        console.log(`    Tariff: ${tariff.service_type}, client: ${tariff.client_id}, sp: ${tariff.punto_servizio_id}, forn: ${tariff.fornitore_id}, dates: ${tariff.data_inizio_validita} - ${tariff.data_fine_validita}`);
-        console.log(`    Matches: client=${clientMatch}, type=${typeMatch}, active=${isTariffActive}, sp=${servicePointMatch}, forn=${fornitoreMatch}`);
-    }
+    
+    console.log(`  [Cost Calc] Checking tariff ID: ${tariff.id || 'N/A'}, Type: ${tariff.service_type}, Client: ${tariff.client_id}, SP: ${tariff.punto_servizio_id}, Forn: ${tariff.fornitore_id}, Dates: ${tariff.data_inizio_validita} - ${tariff.data_fine_validita}`);
+    console.log(`    Matches: Client=${clientMatch}, Type=${typeMatch}, Active=${isTariffActive}, SP=${servicePointMatch}, Forn=${fornitoreMatch} -> Overall: ${matchResult}`);
+    
     return matchResult;
   });
 
-  console.log("calculateServiceCost: matchingTariffs =", matchingTariffs);
+  console.log(`[Cost Calc] Found ${matchingTariffs.length} matching tariffs.`);
 
   if (matchingTariffs.length === 0) {
-    console.log("calculateServiceCost: No matching tariffs found for details:", details);
+    console.log("[Cost Calc] No matching tariffs found. Returning null.");
     return null;
   }
-  // ... (rest of the function)
+
+  // Prefer the most specific tariff (i.e., with specific service_point_id and fornitore_id)
+  // If multiple specific tariffs, pick the first one.
+  const bestMatchTariff = matchingTariffs.sort((a, b) => {
+    const aSpecificity = (a.punto_servizio_id ? 1 : 0) + (a.fornitore_id ? 1 : 0);
+    const bSpecificity = (b.punto_servizio_id ? 1 : 0) + (b.fornitore_id ? 1 : 0);
+    return bSpecificity - aSpecificity; // Sort by most specific first
+  })[0];
+
+  if (!bestMatchTariff) {
+    console.log("[Cost Calc] No best matching tariff found after sorting. This should not happen if matchingTariffs is not empty. Returning null.");
+    return null;
+  }
+
+  console.log(`[Cost Calc] Best matching tariff selected: ID ${bestMatchTariff.id}, Type: ${bestMatchTariff.service_type}, Client Rate: ${bestMatchTariff.client_rate}, Supplier Rate: ${bestMatchTariff.supplier_rate}`);
+
+  const multiplier = await calculateServiceMultiplier(details);
+  console.log(`[Cost Calc] Multiplier calculated: ${multiplier}`);
+
+  if (multiplier === null || multiplier === 0) {
+    console.log("[Cost Calc] Multiplier is null or zero. Returning null.");
+    return null;
+  }
+
+  const clientRate = bestMatchTariff.client_rate;
+  const supplierRate = bestMatchTariff.supplier_rate;
+
+  console.log(`[Cost Calc] Final calculation: Multiplier: ${multiplier}, Client Rate: ${clientRate}, Supplier Rate: ${supplierRate}`);
+  return { multiplier, clientRate, supplierRate };
 }
