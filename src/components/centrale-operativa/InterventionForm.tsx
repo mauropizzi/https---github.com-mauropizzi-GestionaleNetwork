@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import JsBarcode from 'jsbarcode';
@@ -36,7 +36,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     endTime: '',
     fullAccess: undefined as 'si' | 'no' | undefined,
     vaultAccess: undefined as 'si' | 'no' | undefined,
-    operatorClient: '',
+    operatorNetworkId: '', // Corrected from operatorClient
     gpgIntervention: '',
     anomalies: undefined as 'si' | 'no' | undefined,
     anomalyDescription: '',
@@ -131,7 +131,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
             endTime: event.end_time || '',
             fullAccess: undefined, // These fields are not stored in DB, so they remain undefined or need to be inferred from notes
             vaultAccess: undefined, // Same as above
-            operatorClient: event.operator_client || '',
+            operatorNetworkId: event.operator_client || '', // Corrected from operatorClient
             gpgIntervention: event.gpg_intervention || '',
             anomalies: anomalies,
             anomalyDescription: anomalyDescription,
@@ -273,7 +273,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorClient);
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId); // Corrected
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
@@ -377,7 +377,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endTime,
       fullAccess,
       vaultAccess,
-      operatorClient,
+      operatorNetworkId, // Corrected
       gpgIntervention,
       anomalies,
       anomalyDescription,
@@ -428,7 +428,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       service_point_code: servicePoint,
       request_type: requestType,
       co_operator: coOperator || null,
-      operator_client: operatorClient || null,
+      operator_client: operatorNetworkId || null, // Corrected
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
@@ -524,7 +524,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       fornitore_id: fornitoreId,
       start_date: format(serviceStartDate, 'yyyy-MM-dd'),
       start_time: startTime ? format(new Date(startTime), 'HH:mm:ss') : null, // Corrected format
-      end_date: format(serviceEndDate, 'yyyy-MM-dd'),
+      end_date: endTime ? format(new Date(endTime), 'yyyy-MM-dd') : null,
       end_time: endTime ? format(new Date(endTime), 'HH:mm:ss') : null, // Corrected format
       status: serviceStatus,
       calculated_cost: calculatedCost,
@@ -555,7 +555,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endTime: '',
       fullAccess: undefined,
       vaultAccess: undefined,
-      operatorClient: '',
+      operatorNetworkId: '',
       gpgIntervention: '',
       anomalies: undefined,
       anomalyDescription: '',
