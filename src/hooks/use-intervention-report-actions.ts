@@ -16,7 +16,7 @@ interface InterventionFormData {
   endTime: string;
   fullAccess: 'si' | 'no' | undefined;
   vaultAccess: 'si' | 'no' | undefined;
-  operatorClient: string;
+  operatorNetworkId: string;
   gpgIntervention: string;
   anomalies: 'si' | 'no' | undefined;
   anomalyDescription: string;
@@ -121,7 +121,7 @@ export const useInterventionReportActions = ({
       y += 7;
       doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorClient);
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId);
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
