@@ -135,19 +135,11 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     // --- Time processing for DB ---
     const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
-    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX');
 
-    // Determine final dates and times for the payload
-    // Use request time as a fallback for start time.
-    // Use start time (or its fallback) as a fallback for end time.
-    const finalStartDate = parsedStartTime || parsedRequestDateTime;
-    const finalEndDate = parsedEndTime || finalStartDate;
-
-    const finalStartDateForDb = format(finalStartDate, 'yyyy-MM-dd');
-    const finalStartTimeForDb = format(finalStartDate, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
-    
-    const finalEndDateForDb = format(finalEndDate, 'yyyy-MM-dd');
-    const finalEndTimeForDb = format(finalEndDate, 'HH:mm:ssXXX'); // Correct format for 'time with time zone'
+    const finalStartTimeForDb = parsedStartTime ? format(parsedStartTime, 'HH:mm:ssXXX') : null;
+    const finalEndDateForDb = parsedEndTime ? format(parsedEndTime, 'yyyy-MM-dd') : null;
+    const finalEndTimeForDb = parsedEndTime ? format(parsedEndTime, 'HH:mm:ssXXX') : null;
 
     // --- Save to allarme_interventi ---
     const allarmeInterventoPayload = {
@@ -178,7 +170,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       allarmeResult = await supabase
         .from('allarme_interventi')
         .insert([allarmeInterventoPayload])
-        .select('id'); // Select the ID of the newly inserted row
+        .select('id');
       if (allarmeResult.data && allarmeResult.data.length > 0) {
         currentEventId = allarmeResult.data[0].id;
       }
@@ -206,15 +198,15 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     }
 
     const costDetails = {
-      type: "Intervento", // Fixed type for this service
+      type: "Intervento",
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: finalStartDate,
-      end_date: finalEndDate,
+      start_date: parsedRequestDateTime,
+      end_date: parsedEndTime || parsedStartTime || parsedRequestDateTime,
       start_time: finalStartTimeForDb,
       end_time: finalEndTimeForDb,
-      num_agents: 1, // Assuming 1 agent for an intervention
+      num_agents: 1,
       cadence_hours: null,
       inspection_type: null,
       daily_hours_config: null,
@@ -234,7 +226,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
         case "Intervento Annullato":
           serviceStatus = "Rejected";
           break;
-        case "Intervento in Corso": // Should not be final, but for completeness
+        case "Intervento in Corso":
         default:
           serviceStatus = "Pending";
           break;
@@ -242,18 +234,18 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
     }
 
     const serviziRichiestiPayload = {
-      id: currentEventId, // Use the same ID to link records
+      id: currentEventId,
       type: "Intervento",
       client_id: clientId,
       service_point_id: servicePoint,
       fornitore_id: fornitoreId,
-      start_date: finalStartDateForDb,
+      start_date: reportDateForDb,
       start_time: finalStartTimeForDb,
       end_date: finalEndDateForDb,
       end_time: finalEndTimeForDb,
       status: serviceStatus,
       calculated_cost: calculatedCost,
-      num_agents: 1, // Assuming 1 agent for an intervention
+      num_agents: 1,
       cadence_hours: null,
       inspection_type: null,
       daily_hours_config: null,
@@ -261,17 +253,16 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
 
     const { error: serviziError } = await supabase
       .from('servizi_richiesti')
-      .upsert([serviziRichiestiPayload], { onConflict: 'id' }); // Use upsert to create or update
+      .upsert([serviziRichiestiPayload], { onConflict: 'id' });
 
     if (serviziError) {
       showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} del servizio per analisi contabile: ${serviziError.message}`);
       console.error(`Error ${eventId ? 'updating' : 'inserting'} servizi_richiesti:`, serviziError);
-      // Decide if you want to roll back allarme_interventi or just log this as a partial success/failure
       return;
     }
 
     showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} e servizio per analisi contabile aggiornato con successo!`);
-    setFormData({ // Reset form
+    setFormData({
       servicePoint: '',
       requestType: '',
       coOperator: '',
@@ -293,7 +284,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel }: Intervent
       endLatitude: undefined,
       endLongitude: undefined,
     });
-    onSaveSuccess?.(); // Call success callback
+    onSaveSuccess?.();
   };
 
   const handleCloseEvent = (e: React.FormEvent) => {
