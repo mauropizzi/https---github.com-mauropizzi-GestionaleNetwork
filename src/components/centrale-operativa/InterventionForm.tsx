@@ -154,6 +154,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           } else {
             anomalies = 'no';
             delay = 'no';
+            fullAccess = 'no'; // Default to 'no' if no notes, assuming no access unless specified
+            vaultAccess = 'no'; // Default to 'no' if no notes, assuming no access unless specified
           }
 
           const requestTimeString = event.report_date && event.report_time 
@@ -276,6 +278,64 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
   };
 
+  const formatDateTimeForPdf = (dateTimeString: string | null | undefined): string => {
+    if (!dateTimeString) return 'N/A';
+    try {
+      const date = parseISO(dateTimeString);
+      if (isValid(date)) {
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: it });
+      }
+      return 'N/A (Data non valida)';
+    } catch (e) {
+      console.error("Error formatting date for PDF:", e);
+      return 'N/A (Errore formato)';
+    }
+  };
+
+  const handlePrintPdf = async () => {
+    showInfo("Generazione PDF per la stampa...");
+    const pdfBlob = await generatePdfBlob();
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      showSuccess("PDF generato con successo!");
+    } else {
+      showError("Impossibile generare il PDF.");
+    }
+  };
+
+  const handleEmail = async () => {
+    const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+    const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+    const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
+    
+    showInfo("Generazione PDF per l'allegato email...");
+    const pdfBlob = await generatePdfBlob();
+
+    if (pdfBlob) {
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString().split(',')[1];
+        if (base64data) {
+          sendEmail(subject, textBody, false, {
+            filename: `Rapporto_Intervento_Centrale_Operativa_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
+            content: base64data,
+            contentType: 'application/pdf'
+          });
+        } else {
+          showError("Errore nella conversione del PDF in Base64.");
+        }
+      };
+      reader.onerror = () => {
+        showError("Errore nella lettura del file PDF.");
+      };
+    } else {
+      showError("Impossibile generare il PDF per l'allegato.");
+    }
+  };
+
   const generatePdfBlob = (): Promise<Blob | null> => {
     return new Promise((resolve) => {
       const doc = new jsPDF();
@@ -301,19 +361,19 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       y += 7;
       doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
       y += 7;
-      doc.text(`Orario Richiesta C.O. Security Service: ${formData.requestTime ? format(new Date(formData.requestTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(formData.requestTime)}`, 14, y);
       y += 7;
       if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
         doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Inizio Intervento: ${formData.startTime ? format(new Date(formData.startTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(formData.startTime)}`, 14, y);
       y += 7;
       if (formData.endLatitude !== undefined && formData.endLongitude !== undefined) {
         doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Fine Intervento: ${formData.endTime ? format(new Date(formData.endTime), 'dd/MM/yyyy HH:mm') : 'N/A'}`, 14, y);
+      doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(formData.endTime)}`, 14, y);
       y += 7;
       doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
@@ -369,50 +429,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     });
   };
 
-  const handlePrintPdf = async () => {
-    showInfo("Generazione PDF per la stampa...");
-    const pdfBlob = await generatePdfBlob();
-    if (pdfBlob) {
-      const url = URL.createObjectURL(pdfBlob);
-      window.open(url, '_blank');
-      showSuccess("PDF generato con successo!");
-    } else {
-      showError("Impossibile generare il PDF.");
-    }
-  };
-
-  const handleEmail = async () => {
-    const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
-    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
-    const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
-    const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
-    
-    showInfo("Generazione PDF per l'allegato email...");
-    const pdfBlob = await generatePdfBlob();
-
-    if (pdfBlob) {
-      const reader = new FileReader();
-      reader.readAsDataURL(pdfBlob);
-      reader.onloadend = () => {
-        const base64data = reader.result?.toString().split(',')[1];
-        if (base64data) {
-          sendEmail(subject, textBody, false, {
-            filename: `Rapporto_Intervento_Centrale_Operativa_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
-            content: base64data,
-            contentType: 'application/pdf'
-          });
-        } else {
-          showError("Errore nella conversione del PDF in Base64.");
-        }
-      };
-      reader.onerror = () => {
-        showError("Errore nella lettura del file PDF.");
-      };
-    } else {
-      showError("Impossibile generare il PDF per l'allegato.");
-    }
-  };
-
   const saveIntervention = async (isFinal: boolean) => {
     const {
       servicePoint,
@@ -458,6 +474,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     }
 
     const notesCombined = [];
+    // Always include fullAccess and vaultAccess in notes if they have a value
     if (fullAccess !== undefined) {
       notesCombined.push(`Accesso Completo: ${fullAccess.toUpperCase()}`);
     }

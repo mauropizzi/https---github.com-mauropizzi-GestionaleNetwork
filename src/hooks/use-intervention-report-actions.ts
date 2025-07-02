@@ -95,6 +95,7 @@ export const useInterventionReportActions = ({
       const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === formData.coOperator);
       const coOperatorName = selectedCoOperatorForPdf ? `${selectedCoOperatorForPdf.nome} ${selectedCoOperatorForPdf.cognome || ''}` : 'N/A';
 
+
       doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
       doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
