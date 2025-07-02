@@ -6,11 +6,24 @@ export interface Cliente {
 export interface PuntoServizio {
   id: string;
   nome_punto_servizio: string;
-  id_cliente: string; // Assuming a link back to Cliente
-  tempo_intervento?: number; // Added tempo_intervento
-  codice_sicep?: string; // Added for mapping in InterventionForm
-  codice_cliente?: string; // Added for mapping in InterventionForm
-  procedure_id?: string | null; // Nuovo campo per l'associazione con la procedura
+  id_cliente: string;
+  indirizzo?: string | null;
+  citta?: string | null;
+  cap?: string | null;
+  provincia?: string | null;
+  referente?: string | null;
+  telefono_referente?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  telefono?: string | null;
+  email?: string | null;
+  note?: string | null;
+  tempo_intervento?: number | null;
+  fornitore_id?: string | null;
+  codice_cliente?: string | null;
+  codice_sicep?: string | null;
+  codice_fatturazione?: string | null;
+  procedure_id?: string | null;
 }
 
 export interface Fornitore {

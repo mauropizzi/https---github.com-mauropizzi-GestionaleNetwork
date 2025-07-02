@@ -190,29 +190,14 @@ export function PuntiServizioTable() {
       header: "Città",
     },
     {
-      accessorKey: "referente",
-      header: "Referente",
+      accessorKey: "latitude",
+      header: "Latitudine",
+      cell: ({ row }) => <span>{row.original.latitude ?? 'N/A'}</span>,
     },
     {
-      accessorKey: "telefono",
-      header: "Telefono",
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-    },
-    {
-      accessorKey: "tempo_intervento",
-      header: "Tempo Intervento (min)",
-    },
-    {
-      accessorKey: "nome_fornitore",
-      header: "Fornitore",
-    },
-    {
-      accessorKey: "procedure.nome_procedura", // Nuovo accessorKey per il nome della procedura
-      header: "Procedura Associata",
-      cell: ({ row }) => row.original.procedure?.nome_procedura || 'N/A',
+      accessorKey: "longitude",
+      header: "Longitudine",
+      cell: ({ row }) => <span>{row.original.longitude ?? 'N/A'}</span>,
     },
     {
       id: "actions",
