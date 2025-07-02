@@ -37,6 +37,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
   isCoOperatorOpen,
   setIsCoOperatorOpen,
 }) => {
+  console.log("EventDetailsSection: Punti Servizio List received:", puntiServizioList); // ADDED LOG
   const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
 
   return (

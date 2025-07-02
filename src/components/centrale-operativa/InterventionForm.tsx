@@ -74,6 +74,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         setOperatoriNetworkList(data.operatoriNetworkList || []);
         setPattugliaPersonale(data.pattugliaPersonale || []);
         setPuntiServizioList(data.puntiServizioList || []);
+        console.log("Punti Servizio List fetched in InterventionForm (Public Mode):", data.puntiServizioList);
         setCoOperatorsPersonnel(data.coOperatorsPersonnel || []);
       } else {
         // Fetch data using existing client-side functions for authenticated users
@@ -86,6 +87,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
 
         const fetchedPuntiServizio = await fetchPuntiServizio();
         setPuntiServizioList(fetchedPuntiServizio);
+        console.log("Punti Servizio List fetched in InterventionForm (Internal Mode):", fetchedPuntiServizio); // ADDED LOG
 
         const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
         setCoOperatorsPersonnel(fetchedCoOperators);
