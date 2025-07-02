@@ -208,7 +208,7 @@ export function CanoneTable() {
                         )}
                   </TableHead>
                 ))}
-              </TableHead>
+              </TableRow>
             ))}
           </TableHeader>
           <TableBody>
