@@ -712,7 +712,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       endLongitude: undefined,
     });
     // Call onSaveSuccess if it's a new event (no eventId) or if it's a non-final save of an existing event
-    if (onSaveSuccess && (!eventId || isFinal || isPublicMode)) { // Call onSaveSuccess if it's a new event, a final save, or a public mode save
+    if (onSaveSuccess && (!eventId || isFinal || isPublicMode || (eventId && !isFinal))) { // Call onSaveSuccess if it's a new event, a final save, a public mode save, or a non-final save of an existing event
       onSaveSuccess();
     }
   };
