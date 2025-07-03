@@ -5,7 +5,7 @@ import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPuntiServizio, fetchPersonale, fetchOperatoriNetwork } from "@/lib/data-fetching";
-import { PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data";
+import { PuntoServizio, Personale, OperatoreNetwork, RichiestaManutenzione } from "@/lib/anagrafiche-data"; // Import RichiestaManutenzione
 import JsBarcode from 'jsbarcode';
 
 // Define the structure of an alarm intervention report from Supabase
@@ -458,4 +458,42 @@ export const printDotazioniReport = async (reportId: string) => {
   } else {
     showError("Impossibile generare il PDF per la stampa.");
   }
+};
+
+export const generateMaintenanceReportPdfBlob = async (request: RichiestaManutenzione): Promise<Blob | null> => {
+  const doc = new jsPDF();
+  let y = 20;
+
+  doc.setFontSize(18);
+  doc.text("Richiesta di Manutenzione Veicolo", 14, y);
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.text(`ID Richiesta: ${request.id}`, 14, y);
+  y += 7;
+  doc.text(`Data Richiesta: ${format(parseISO(request.requested_at), "PPP HH:mm", { locale: it })}`, 14, y);
+  y += 7;
+  doc.text(`Punto Servizio: ${request.service_point?.nome_punto_servizio || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Targa Veicolo: ${request.vehicle_plate || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Richiesto da: ${request.requested_by_employee ? `${request.requested_by_employee.nome} ${request.requested_by_employee.cognome}` : 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Priorità: ${request.priority || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Stato: ${request.status || 'N/A'}`, 14, y);
+  y += 7;
+
+  if (request.issue_description) {
+    y += 5;
+    doc.setFontSize(12);
+    doc.text("Descrizione Problema:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    const splitDescription = doc.splitTextToSize(request.issue_description, 180);
+    doc.text(splitDescription, 14, y);
+    y += (splitDescription.length * 4);
+  }
+
+  return doc.output('blob');
 };

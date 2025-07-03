@@ -61,16 +61,16 @@ const formSchema = z.object({
   servizio: z.string().min(1, "Il servizio è richiesto."),
   startDateTime: z.date({ required_error: "La data e ora di inizio sono richieste." }),
   endDateTime: z.date({ required_error: "La data e ora di fine sono richieste." }),
-  noteVarie: z.string().optional(),
+  noteVarie: z.string().optional().nullable(),
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
+  latitude: z.coerce.number().optional().nullable(),
+  longitude: z.coerce.number().optional().nullable(),
   // New fields for Riconsegna Cantiere
-  addettoRiconsegnaSecurityService: z.string().optional().or(z.literal("")),
-  responsabileCommittenteRiconsegna: z.string().optional(),
-  esitoServizio: z.string().optional(),
-  consegneServizio: z.string().optional(),
+  addettoRiconsegnaSecurityService: z.string().uuid("Seleziona un addetto valido.").optional().nullable(), // Changed to UUID and nullable
+  responsabileCommittenteRiconsegna: z.string().optional().nullable(),
+  esitoServizio: z.string().optional().nullable(),
+  consegneServizio: z.string().optional().nullable(),
   status: z.enum(["attivo", "terminato"]).default("attivo"),
   isCompleted: z.boolean().default(false), // New field for UI control
 }).refine(data => data.endDateTime >= data.startDateTime, {
@@ -134,15 +134,15 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       servizio: "",
       startDateTime: undefined,
       endDateTime: undefined,
-      noteVarie: "",
+      noteVarie: null,
       automezzi: [],
       attrezzi: [],
-      latitude: undefined,
-      longitude: undefined,
-      addettoRiconsegnaSecurityService: "",
-      responsabileCommittenteRiconsegna: "",
-      esitoServizio: "",
-      consegneServizio: "",
+      latitude: null,
+      longitude: null,
+      addettoRiconsegnaSecurityService: null,
+      responsabileCommittenteRiconsegna: null,
+      esitoServizio: null,
+      consegneServizio: null,
       status: "attivo",
       isCompleted: false, // Default to false
     },
@@ -201,15 +201,15 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
             servizio: report.service_provided || "",
             startDateTime: (report.start_datetime && typeof report.start_datetime === 'string') ? parseISO(report.start_datetime) : undefined,
             endDateTime: (report.end_datetime && typeof report.end_datetime === 'string') ? parseISO(report.end_datetime) : undefined,
-            noteVarie: report.notes || "",
+            noteVarie: report.notes || null,
             automezzi: report.automezzi_utilizzati || [],
             attrezzi: report.attrezzi_utilizzati || [],
-            latitude: report.latitude || undefined,
-            longitude: report.longitude || undefined,
-            addettoRiconsegnaSecurityService: report.addetto_riconsegna_security_service || "",
-            responsabileCommittenteRiconsegna: report.responsabile_committente_riconsegna || "",
-            esitoServizio: report.esito_servizio || "",
-            consegneServizio: report.consegne_servizio || "",
+            latitude: report.latitude || null,
+            longitude: report.longitude || null,
+            addettoRiconsegnaSecurityService: report.addetto_riconsegna_security_service || null,
+            responsabileCommittenteRiconsegna: report.responsabile_committente_riconsegna || null,
+            esitoServizio: report.esito_servizio || null,
+            consegneServizio: report.consegne_servizio || null,
             status: report.status || "attivo",
             isCompleted: report.status === "terminato", // Set isCompleted based on fetched status
           });
@@ -461,7 +461,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
           <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700 mb-4" onClick={handleGpsTracking}>
             ACQUISIZIONE POSIZIONE GPS
           </Button>
-          {form.watch("latitude") !== undefined && form.watch("longitude") !== undefined && (
+          {form.watch("latitude") !== null && form.watch("longitude") !== null && (
             <p className="text-sm text-gray-500 mt-1 text-center mb-4">
               Latitudine: {form.watch("latitude")?.toFixed(6)}, Longitudine: {form.watch("longitude")?.toFixed(6)}
             </p>
@@ -476,7 +476,9 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                        {field.value ? puntiServizio.find(p => p.id === field.value)?.nome_punto_servizio : "Seleziona un punto servizio"}
+                        {field.value
+                          ? puntiServizio.find(p => p.id === field.value)?.nome_punto_servizio
+                          : "Seleziona un punto servizio"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
@@ -665,7 +667,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
               <FormItem>
                 <FormLabel>Eventuali Note Aggiuntive</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Inserisci qui eventuali note..." rows={3} {...field} />
+                  <Textarea placeholder="Inserisci qui eventuali note..." rows={3} {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -726,7 +728,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
               <FormItem className="mb-4">
                 <FormLabel>Responsabile Committente Riconsegna</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome Responsabile" {...field} />
+                  <Input placeholder="Nome Responsabile" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -738,7 +740,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
             render={({ field }) => (
               <FormItem className="mb-4">
                 <FormLabel>ESITO SERVIZIO</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleziona esito" />
@@ -763,7 +765,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
               <FormItem>
                 <FormLabel>CONSEGNE di Servizio</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Dettagli sulle consegne di servizio..." rows={3} {...field} />
+                  <Textarea placeholder="Dettagli sulle consegne di servizio..." rows={3} {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
