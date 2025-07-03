@@ -206,7 +206,7 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       inspection_type: null, // Not applicable for Servizi Fiduciari
     };
 
-    const calculatedCost = await calculateServiceCost(costDetails);
+    const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Servizi Fiduciari", // Fixed type for this form
@@ -218,7 +218,7 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: normalizedEndTime,
       status: "Pending", // Default status
-      calculated_cost: calculatedCost, // Now including the calculated cost
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
       num_agents: values.numAgents,
       cadence_hours: null, // Not applicable for Servizi Fiduciari
       inspection_type: null, // Not applicable for Servizi Fiduciari

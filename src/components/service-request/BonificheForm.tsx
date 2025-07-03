@@ -132,7 +132,7 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
       inspection_type: null, // Not applicable for Bonifiche
     };
 
-    const calculatedCost = await calculateServiceCost(costDetails);
+    const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Bonifiche",
@@ -144,7 +144,7 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
       end_date: format(values.startDate, 'yyyy-MM-dd'), // Set end_date to start_date
       end_time: normalizedStartTime, // Set end_time to start_time
       status: "Pending",
-      calculated_cost: calculatedCost,
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
       num_agents: null,
       cadence_hours: null,
       inspection_type: null,

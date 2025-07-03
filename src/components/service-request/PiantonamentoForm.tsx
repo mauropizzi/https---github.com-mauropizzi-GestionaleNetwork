@@ -208,7 +208,7 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
       inspection_type: null, // Not applicable for Piantonamento
     };
 
-    const calculatedCost = await calculateServiceCost(costDetails);
+    const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Piantonamento", // Fixed type for this form
@@ -220,7 +220,7 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: normalizedEndTime,
       status: "Pending", // Default status
-      calculated_cost: calculatedCost, // Now including the calculated cost
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
       num_agents: values.numAgents,
       cadence_hours: null, // Not applicable for Piantonamento
       inspection_type: null, // Not applicable for Piantonamento

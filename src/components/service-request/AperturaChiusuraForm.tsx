@@ -176,7 +176,7 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       inspection_type: values.operationType,
     };
 
-    const calculatedCost = await calculateServiceCost(costDetails);
+    const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Apertura/Chiusura",
@@ -188,7 +188,7 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: normalizedEndTime,
       status: "Pending",
-      calculated_cost: calculatedCost,
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
       num_agents: null,
       cadence_hours: null,
       inspection_type: values.operationType,

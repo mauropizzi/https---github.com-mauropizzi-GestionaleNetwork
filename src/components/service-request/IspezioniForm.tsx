@@ -221,7 +221,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       end_time: effectiveEndTime, // Pass to cost calculation
     };
 
-    const calculatedCost = await calculateServiceCost(costDetails);
+    const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Ispezioni",
@@ -233,7 +233,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: effectiveEndTime,
       status: "Pending",
-      calculated_cost: calculatedCost,
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
       num_agents: null,
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
