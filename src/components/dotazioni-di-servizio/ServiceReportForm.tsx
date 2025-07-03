@@ -752,7 +752,7 @@ export default function ServiceReportForm() {
 
         <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button type="button" className="bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
-            INVIA EMAIL
+            EMAIL RICHIESTA MANUTENZIONE
           </Button>
           <Button type="button" className="bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
             STAMPA PDF
