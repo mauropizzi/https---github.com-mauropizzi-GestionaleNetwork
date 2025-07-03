@@ -513,7 +513,11 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
                     <FormControl>
                       <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
                         {field.value
-                          ? personaleList.find((p) => p.id === field.value)?.nome + ' ' + personaleList.find((p) => p.id === field.value)?.cognome
+                          ? personaleList.find(
+                              (personale) => personale.id === field.value
+                            )?.nome + " " + personaleList.find(
+                              (personale) => personale.id === field.value
+                            )?.cognome
                           : "Seleziona un addetto"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
