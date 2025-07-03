@@ -214,7 +214,8 @@ export const useAnalisiContabileData = () => {
         formattedStartDate,
         formattedEndDate
       );
-      const allServiziCanone = await fetchServiziCanoneForAnalysis(
+      // Re-fetch rawServiziCanone here
+      const rawServiziCanone = await fetchServiziCanoneForAnalysis(
         undefined,
         formattedStartDate,
         formattedEndDate
