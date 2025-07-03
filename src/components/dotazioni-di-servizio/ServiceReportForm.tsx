@@ -41,8 +41,8 @@ import {
   vehicleInitialStateOptions,
   bodyworkDamageOptions,
 } from "@/lib/dotazioni-data";
-import { Personale, PuntoServizio } from "@/lib/anagrafiche-data"; // Import PuntoServizio
-import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching"; // Import fetchPuntiServizio
+import { Personale, PuntoServizio } from "@/lib/anagrafiche-data";
+import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 const formSchema = z.object({
@@ -50,7 +50,7 @@ const formSchema = z.object({
     required_error: "La data del servizio è richiesta.",
   }),
   employeeId: z.string().uuid("Seleziona un dipendente valido.").nonempty("Il dipendente è richiesto."),
-  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."), // Changed from serviceLocation
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   serviceType: z.string().min(1, "Il tipo di servizio è richiesto."),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
@@ -61,14 +61,14 @@ const formSchema = z.object({
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo è richiesto."),
   bodyworkDamage: z.string().min(1, "Danni carrozzeria è richiesto."),
   vehicleAnomalies: z.string().optional(),
-  gps: z.boolean().default(false),
-  radioVehicle: z.boolean().default(false),
-  swivelingLamp: z.boolean().default(false),
-  radioPortable: z.boolean().default(false),
-  flashlight: z.boolean().default(false),
-  extinguisher: z.boolean().default(false),
-  spareTire: z.boolean().default(false),
-  highVisibilityVest: z.boolean().default(false),
+  gps: z.enum(['si', 'no'], { required_error: 'Il campo GPS è obbligatorio.' }),
+  radioVehicle: z.enum(['si', 'no'], { required_error: 'Il campo Radio Veicolare è obbligatorio.' }),
+  swivelingLamp: z.enum(['si', 'no'], { required_error: 'Il campo Faro Girevole è obbligatorio.' }),
+  radioPortable: z.enum(['si', 'no'], { required_error: 'Il campo Radio Portatile è obbligatorio.' }),
+  flashlight: z.enum(['si', 'no'], { required_error: 'Il campo Torcia è obbligatorio.' }),
+  extinguisher: z.enum(['si', 'no'], { required_error: 'Il campo Estintore è obbligatorio.' }),
+  spareTire: z.enum(['si', 'no'], { required_error: 'Il campo Ruota di Scorta è obbligatorio.' }),
+  highVisibilityVest: z.enum(['si', 'no'], { required_error: 'Il campo Giubbotto Alta Visibilità è obbligatorio.' }),
 }).refine(data => data.endKm >= data.startKm, {
   message: "I KM finali non possono essere inferiori ai KM iniziali.",
   path: ["endKm"],
@@ -76,15 +76,15 @@ const formSchema = z.object({
 
 export default function ServiceReportForm() {
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
-  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]); // New state for puntiServizio
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
-  const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false); // New state for service point select
+  const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
-      const fetchedPuntiServizio = await fetchPuntiServizio(); // Fetch punti servizio
+      const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
     };
     loadData();
@@ -95,7 +95,7 @@ export default function ServiceReportForm() {
     defaultValues: {
       serviceDate: new Date(),
       employeeId: "",
-      servicePointId: "", // Changed from serviceLocation
+      servicePointId: "",
       serviceType: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -106,20 +106,19 @@ export default function ServiceReportForm() {
       vehicleInitialState: "",
       bodyworkDamage: "",
       vehicleAnomalies: "",
-      gps: false,
-      radioVehicle: false,
-      swivelingLamp: false,
-      radioPortable: false,
-      flashlight: false,
-      extinguisher: false,
-      spareTire: false,
-      highVisibilityVest: false,
+      gps: undefined, // Set to undefined for initial empty state
+      radioVehicle: undefined,
+      swivelingLamp: undefined,
+      radioPortable: undefined,
+      flashlight: undefined,
+      extinguisher: undefined,
+      spareTire: undefined,
+      highVisibilityVest: undefined,
     },
   });
 
   const selectedVehiclePlate = form.watch("vehiclePlate");
-  const vehicleInitialState = form.watch("vehicleInitialState"); // Watch the vehicleInitialState field
-  const selectedServicePointId = form.watch("servicePointId"); // Watch the selected service point ID
+  const vehicleInitialState = form.watch("vehicleInitialState");
 
   useEffect(() => {
     const fetchLastKm = async () => {
@@ -133,18 +132,18 @@ export default function ServiceReportForm() {
           .limit(1)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (error && error.code !== 'PGRST116') {
           showError(`Errore nel recupero dei KM precedenti: ${error.message}`);
           console.error("Error fetching last KM:", error);
         } else if (data) {
           form.setValue("startKm", data.end_km, { shouldValidate: true });
           showInfo(`KM Iniziali pre-compilati con l'ultimo KM finale (${data.end_km}) per la targa ${selectedVehiclePlate}.`);
         } else {
-          form.setValue("startKm", 0, { shouldValidate: true }); // Reset if no previous data
+          form.setValue("startKm", 0, { shouldValidate: true });
           showInfo(`Nessun KM precedente trovato per la targa ${selectedVehiclePlate}. KM Iniziali impostati a 0.`);
         }
       } else {
-        form.setValue("startKm", 0, { shouldValidate: true }); // Reset if no plate selected
+        form.setValue("startKm", 0, { shouldValidate: true });
       }
     };
 
@@ -160,7 +159,7 @@ export default function ServiceReportForm() {
     const payload = {
       service_date: format(values.serviceDate, 'yyyy-MM-dd'),
       employee_id: values.employeeId,
-      service_location: servicePointName, // Use the name of the service point
+      service_location: servicePointName,
       service_type: values.serviceType,
       start_time: values.startTime,
       end_time: values.endTime,
@@ -171,14 +170,14 @@ export default function ServiceReportForm() {
       vehicle_initial_state: values.vehicleInitialState,
       bodywork_damage: values.bodyworkDamage,
       vehicle_anomalies: values.vehicleAnomalies || null,
-      gps: values.gps,
-      radio_vehicle: values.radioVehicle,
-      swiveling_lamp: values.swivelingLamp,
-      radio_portable: values.radioPortable,
-      flashlight: values.flashlight,
-      extinguisher: values.extinguisher,
-      spare_tire: values.spareTire,
-      high_visibility_vest: values.highVisibilityVest,
+      gps: values.gps === 'si', // Convert 'si'/'no' to boolean
+      radio_vehicle: values.radioVehicle === 'si',
+      swiveling_lamp: values.swivelingLamp === 'si',
+      radio_portable: values.radioPortable === 'si',
+      flashlight: values.flashlight === 'si',
+      extinguisher: values.extinguisher === 'si',
+      spare_tire: values.spareTire === 'si',
+      high_visibility_vest: values.highVisibilityVest === 'si',
     };
 
     const { data, error } = await supabase
@@ -191,7 +190,7 @@ export default function ServiceReportForm() {
     } else {
       showSuccess("Rapporto di servizio registrato con successo!");
       console.log("Service report saved successfully:", data);
-      form.reset(); // Reset form after successful submission
+      form.reset();
     }
   };
 
@@ -222,7 +221,7 @@ export default function ServiceReportForm() {
       y += 7;
       doc.text(`Dipendente: ${employeeFullName}`, 14, y);
       y += 7;
-      doc.text(`Punto Servizio: ${servicePointName}`, 14, y); // Changed from Segmento
+      doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
       doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
       y += 7;
@@ -248,19 +247,19 @@ export default function ServiceReportForm() {
       doc.text("Dotazioni Controllate:", 14, y);
       y += 5;
       doc.setFontSize(10);
-      doc.text(`GPS: ${values.gps ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`GPS: ${values.gps === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Radio Veicolare: ${values.radioVehicle ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Radio Veicolare: ${values.radioVehicle === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Faro Girevole: ${values.swivelingLamp ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Faro Girevole: ${values.swivelingLamp === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Radio Portatile: ${values.radioPortable ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Radio Portatile: ${values.radioPortable === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Estintore: ${values.extinguisher ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Estintore: ${values.extinguisher === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Ruota di Scorta: ${values.spareTire ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Ruota di Scorta: ${values.spareTire === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 5;
-      doc.text(`Giubbotto Alta Visibilità: ${values.highVisibilityVest ? 'SI' : 'NO'}`, 14, y);
+      doc.text(`Giubbotto Alta Visibilità: ${values.highVisibilityVest === 'si' ? 'SI' : 'NO'}`, 14, y);
       y += 10;
 
       const pdfBlob = doc.output('blob');
@@ -281,7 +280,6 @@ export default function ServiceReportForm() {
   });
 
   const handleEmail = form.handleSubmit(async (values) => {
-    // Only send email if vehicleInitialState is "RICHIESTA MANUTENZIONE"
     if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
       showError("L'email di richiesta manutenzione può essere inviata solo se lo 'Stato Veicolo' è 'RICHIESTA MANUTENZIONE'.");
       return;
@@ -401,7 +399,7 @@ export default function ServiceReportForm() {
                             key={personale.id}
                             value={`${personale.nome} ${personale.cognome}`}
                             onSelect={() => {
-                              form.setValue("employeeId", personale.id); // Use form.setValue directly
+                              form.setValue("employeeId", personale.id);
                               setIsEmployeeSelectOpen(false);
                             }}
                           >
@@ -426,10 +424,10 @@ export default function ServiceReportForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="servicePointId" // Changed name
+            name="servicePointId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Punto Servizio</FormLabel> {/* Changed label */}
+                <FormLabel>Punto Servizio</FormLabel>
                 <Popover open={isServicePointSelectOpen} onOpenChange={setIsServicePointSelectOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -690,13 +688,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="gps"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>GPS</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="gps-si" />
+                      <Label htmlFor="gps-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="gps-no" />
+                      <Label htmlFor="gps-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>GPS</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -704,13 +714,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="radioVehicle"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Radio Veicolare</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="radioVehicle-si" />
+                      <Label htmlFor="radioVehicle-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="radioVehicle-no" />
+                      <Label htmlFor="radioVehicle-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Radio Veicolare</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -718,13 +740,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="swivelingLamp"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Faro Girevole</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="swivelingLamp-si" />
+                      <Label htmlFor="swivelingLamp-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="swivelingLamp-no" />
+                      <Label htmlFor="swivelingLamp-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Faro Girevole</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -732,13 +766,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="radioPortable"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Radio Portatile</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="radioPortable-si" />
+                      <Label htmlFor="radioPortable-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="radioPortable-no" />
+                      <Label htmlFor="radioPortable-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Radio Portatile</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -746,13 +792,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="flashlight"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Torcia</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="flashlight-si" />
+                      <Label htmlFor="flashlight-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="flashlight-no" />
+                      <Label htmlFor="flashlight-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Torcia</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -760,13 +818,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="extinguisher"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Estintore</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="extinguisher-si" />
+                      <Label htmlFor="extinguisher-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="extinguisher-no" />
+                      <Label htmlFor="extinguisher-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Estintore</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -774,13 +844,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="spareTire"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Ruota di Scorta</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="spareTire-si" />
+                      <Label htmlFor="spareTire-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="spareTire-no" />
+                      <Label htmlFor="spareTire-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Ruota di Scorta</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -788,13 +870,25 @@ export default function ServiceReportForm() {
             control={form.control}
             name="highVisibilityVest"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormItem className="flex flex-col space-y-2 rounded-md border p-4">
+                <FormLabel>Giubbotto Alta Visibilità</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="highVisibilityVest-si" />
+                      <Label htmlFor="highVisibilityVest-si">SI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="highVisibilityVest-no" />
+                      <Label htmlFor="highVisibilityVest-no">NO</Label>
+                    </div>
+                  </RadioGroup>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Giubbotto Alta Visibilità</FormLabel>
-                </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -805,7 +899,7 @@ export default function ServiceReportForm() {
             type="button" 
             className="bg-blue-600 hover:bg-blue-700" 
             onClick={handleEmail}
-            disabled={vehicleInitialState !== "RICHIESTA MANUTENZIONE"} // Disable if not "RICHIESTA MANUTENZIONE"
+            disabled={vehicleInitialState !== "RICHIESTA MANUTENZIONE"}
           >
             EMAIL RICHIESTA MANUTENZIONE
           </Button>
