@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ColumnDef,
@@ -15,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subWeeks } from "date-fns"; // Import subWeeks
 import { it } from 'date-fns/locale';
 import { Mail, Printer, RotateCcw, RefreshCcw, Edit, MessageSquareText, Trash2, FileText } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
@@ -54,7 +56,8 @@ export function InterventionListTable() {
   const [data, setData] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterDate, setFilterDate] = useState<string>(''); // This will be used for manual date filtering
+
   const [pattugliaPersonnelMap, setPattugliaPersonnelMap] = useState<Map<string, Personale>>(new Map());
   const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizioExtended>>(new Map());
   const [coOperatorsPersonnelMap, setCoOperatorsPersonnelMap] = useState<Map<string, Personale>>(new Map());
@@ -62,14 +65,25 @@ export function InterventionListTable() {
   const [isProcedureDetailsDialogOpen, setIsProcedureDetailsDialogOpen] = useState(false);
   const [selectedProcedureForDetails, setSelectedProcedureForDetails] = useState<Procedure | null>(null);
 
-  const fetchInterventionHistory = useCallback(async () => {
+  const fetchInterventionHistory = useCallback(async (initialLoad = false) => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('allarme_interventi')
-      .select('id, report_date, report_time, service_point_code, request_type, co_operator, operator_client, gpg_intervention, service_outcome, notes, barcode, start_latitude, start_longitude, end_latitude, end_longitude') // Select barcode
+      .select('id, report_date, report_time, service_point_code, request_type, co_operator, operator_client, gpg_intervention, service_outcome, notes, barcode, start_latitude, start_longitude, end_latitude, end_longitude')
       .not('service_outcome', 'is', null) // Fetch only completed events
       .order('report_date', { ascending: false })
       .order('report_time', { ascending: false });
+
+    if (initialLoad) {
+      // For initial load, filter by last week
+      const oneWeekAgo = format(subWeeks(new Date(), 1), 'yyyy-MM-dd');
+      query = query.gte('report_date', oneWeekAgo);
+    } else if (filterDate) {
+      // If a specific date is set in the filter input, use that
+      query = query.eq('report_date', filterDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       showError(`Errore nel recupero dello storico interventi: ${error.message}`);
@@ -79,7 +93,7 @@ export function InterventionListTable() {
       setData(data || []);
     }
     setLoading(false);
-  }, []);
+  }, [filterDate]); // Depend on filterDate for manual filtering
 
   const fetchPattugliaPersonnel = useCallback(async () => {
     const personnel = await fetchPersonale('Pattuglia');
@@ -108,11 +122,20 @@ export function InterventionListTable() {
   }, []);
 
   useEffect(() => {
-    fetchInterventionHistory();
+    // Initial fetch: show last week's events
+    fetchInterventionHistory(true); 
     fetchPattugliaPersonnel();
     fetchCoOperatorsPersonnel();
     fetchPuntiServizioData();
   }, [fetchInterventionHistory, fetchPattugliaPersonnel, fetchCoOperatorsPersonnel, fetchPuntiServizioData]);
+
+  // Re-fetch data when filterDate changes (for manual date filtering)
+  useEffect(() => {
+    if (filterDate) {
+      fetchInterventionHistory(false); // Don't apply initialLoad filter if manual date is set
+    }
+  }, [filterDate, fetchInterventionHistory]);
+
 
   const handleEdit = useCallback((event: Intervention) => {
     navigate(`/centrale-operativa/edit/${event.id}`);
@@ -235,12 +258,11 @@ export function InterventionListTable() {
         (report.notes?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (report.barcode?.toLowerCase().includes(searchTerm.toLowerCase())); // Include barcode in search
 
-      const matchesDate = filterDate === '' ||
-        format(new Date(report.report_date), "yyyy-MM-dd") === filterDate;
-
-      return matchesSearch && matchesDate;
+      // The date filter is now handled directly in fetchInterventionHistory based on `filterDate` state
+      // No need for `matchesDate` here as `data` is already filtered by `filterDate`
+      return matchesSearch;
     });
-  }, [data, searchTerm, filterDate, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
+  }, [data, searchTerm, pattugliaPersonnelMap, puntiServizioMap, coOperatorsPersonnelMap]);
 
   const columns: ColumnDef<Intervention>[] = useMemo(() => [
     {
@@ -303,6 +325,9 @@ export function InterventionListTable() {
           <Button variant="outline" size="sm" onClick={() => printSingleServiceReport(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEmailReport(row.original)} title="Invia Email">
+            <Mail className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => handleWhatsAppMessage(row.original)} title="Invia WhatsApp">
             <MessageSquareText className="h-4 w-4" />
           </Button>
@@ -343,10 +368,10 @@ export function InterventionListTable() {
           onChange={(e) => setFilterDate(e.target.value)}
           className="max-w-xs"
         />
-        <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterDate(''); }}>
+        <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterDate(''); fetchInterventionHistory(true); }}>
           Reset Filtri
         </Button>
-        <Button variant="outline" onClick={fetchInterventionHistory} disabled={loading}>
+        <Button variant="outline" onClick={() => fetchInterventionHistory(false)} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
       </div>
