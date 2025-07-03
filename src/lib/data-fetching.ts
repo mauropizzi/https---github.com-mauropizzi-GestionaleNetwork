@@ -103,7 +103,7 @@ export async function fetchMonthlyTariffe(): Promise<{ id: string; service_type:
 export async function fetchProcedure(): Promise<Procedure[]> {
   const { data, error } = await supabase
     .from('procedure')
-    .select('id, nome_procedura'); // Only need ID and name for select options
+    .select('id, nome_procedura, descrizione, versione, data_ultima_revisione, responsabile, documento_url, attivo, note'); // Select all fields
 
   if (error) {
     showError(`Errore nel recupero delle procedure: ${error.message}`);

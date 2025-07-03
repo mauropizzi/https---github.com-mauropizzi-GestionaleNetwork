@@ -9,31 +9,33 @@ import { Button } from "@/components/ui/button";
 import { CantiereProcedureDescriptionDialog } from "@/components/cantiere/CantiereProcedureDescriptionDialog"; // Import the new dialog
 import { fetchProcedure } from "@/lib/data-fetching";
 import { Procedure } from "@/lib/anagrafiche-data";
-import { showInfo } from "@/utils/toast";
+import { showInfo, showError } from "@/utils/toast"; // Import showError
 
 const RegistroDiCantiere = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "nuovo-rapporto";
-  const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false); // State for new dialog visibility
-  const [selectedProcedureForDescription, setSelectedProcedureForDescription] = useState<Procedure | null>(null); // State for selected procedure
+  const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
+  const [selectedProcedureForDescription, setSelectedProcedureForDescription] = useState<Procedure | null>(null);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
   };
 
   const handleViewCantiereProcedure = useCallback(async () => {
-    showInfo("Ricerca procedure per cantiere...");
-    const allProcedures = await fetchProcedure();
-    const cantiereProcedures = allProcedures.filter(p =>
-      p.nome_procedura.toLowerCase().includes('cantiere') ||
-      (p.descrizione?.toLowerCase().includes('cantiere'))
+    showInfo("Ricerca procedura 'Procedure Cantiere'...");
+    const allProcedures = await fetchProcedure(); // Fetch all procedures with full details
+
+    // Try to find the exact procedure "Procedure Cantiere" with version "1.0"
+    const specificProcedure = allProcedures.find(p =>
+      p.nome_procedura === 'Procedure Cantiere' && p.versione === '1.0'
     );
 
-    if (cantiereProcedures.length > 0) {
-      setSelectedProcedureForDescription(cantiereProcedures[0]); // Select the first one found
-      setIsDescriptionDialogOpen(true); // Open the new description dialog
+    if (specificProcedure) {
+      setSelectedProcedureForDescription(specificProcedure);
+      setIsDescriptionDialogOpen(true);
     } else {
-      showInfo("Nessuna procedura relativa ai cantieri trovata.");
+      showError("La procedura 'Procedure Cantiere' versione '1.0' non è stata trovata.");
+      console.warn("Specific procedure 'Procedure Cantiere' version '1.0' not found. Available procedures:", allProcedures.map(p => ({ name: p.nome_procedura, version: p.versione })));
     }
   }, []);
 
