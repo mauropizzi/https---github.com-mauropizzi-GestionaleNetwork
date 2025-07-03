@@ -6,16 +6,16 @@ import { CantiereHistoryTable } from "@/components/cantiere/CantiereHistoryTable
 import { useSearchParams } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProcedureDetailsDialog } from "@/components/anagrafiche/ProcedureDetailsDialog"; // Import the details dialog
-import { fetchProcedure } from "@/lib/data-fetching"; // Import the data fetching utility
-import { Procedure } from "@/lib/anagrafiche-data"; // Import the Procedure interface
-import { showInfo } from "@/utils/toast"; // Import toast for messages
+import { CantiereProcedureDescriptionDialog } from "@/components/cantiere/CantiereProcedureDescriptionDialog"; // Import the new dialog
+import { fetchProcedure } from "@/lib/data-fetching";
+import { Procedure } from "@/lib/anagrafiche-data";
+import { showInfo } from "@/utils/toast";
 
 const RegistroDiCantiere = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "nuovo-rapporto";
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // State for dialog visibility
-  const [selectedProcedureForDetails, setSelectedProcedureForDetails] = useState<Procedure | null>(null); // State for selected procedure
+  const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false); // State for new dialog visibility
+  const [selectedProcedureForDescription, setSelectedProcedureForDescription] = useState<Procedure | null>(null); // State for selected procedure
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -23,15 +23,15 @@ const RegistroDiCantiere = () => {
 
   const handleViewCantiereProcedure = useCallback(async () => {
     showInfo("Ricerca procedure per cantiere...");
-    const allProcedures = await fetchProcedure(); // Fetch all procedures
+    const allProcedures = await fetchProcedure();
     const cantiereProcedures = allProcedures.filter(p =>
       p.nome_procedura.toLowerCase().includes('cantiere') ||
       (p.descrizione?.toLowerCase().includes('cantiere'))
     );
 
     if (cantiereProcedures.length > 0) {
-      setSelectedProcedureForDetails(cantiereProcedures[0]); // Select the first one found
-      setIsDetailsDialogOpen(true);
+      setSelectedProcedureForDescription(cantiereProcedures[0]); // Select the first one found
+      setIsDescriptionDialogOpen(true); // Open the new description dialog
     } else {
       showInfo("Nessuna procedura relativa ai cantieri trovata.");
     }
@@ -70,11 +70,11 @@ const RegistroDiCantiere = () => {
           </Tabs>
         </CardContent>
       </Card>
-      {selectedProcedureForDetails && (
-        <ProcedureDetailsDialog
-          isOpen={isDetailsDialogOpen}
-          onClose={() => setIsDetailsDialogOpen(false)}
-          procedure={selectedProcedureForDetails}
+      {selectedProcedureForDescription && (
+        <CantiereProcedureDescriptionDialog
+          isOpen={isDescriptionDialogOpen}
+          onClose={() => setIsDescriptionDialogOpen(false)}
+          procedure={selectedProcedureForDescription}
         />
       )}
     </div>
