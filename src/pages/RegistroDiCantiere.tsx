@@ -1,15 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CantiereForm } from "@/components/cantiere/CantiereForm";
 import { CantiereHistoryTable } from "@/components/cantiere/CantiereHistoryTable";
 import { useSearchParams } from "react-router-dom";
-import { PrefetchLink } from "@/components/layout/PrefetchLink"; // Import PrefetchLink
 import { FileText } from "lucide-react"; // Import FileText icon
+import { CantiereProceduresDialog } from "@/components/cantiere/CantiereProceduresDialog"; // Import the new dialog
+import { Button } from "@/components/ui/button"; // Import Button
 
 const RegistroDiCantiere = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "nuovo-rapporto"; // Default tab
+  const [isProceduresDialogOpen, setIsProceduresDialogOpen] = useState(false); // State for dialog visibility
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -21,9 +23,15 @@ const RegistroDiCantiere = () => {
         <CardHeader>
           <div className="flex items-center justify-center space-x-2">
             <CardTitle className="text-3xl font-bold text-center">Registro di Cantiere</CardTitle>
-            <PrefetchLink to="/anagrafiche/procedure?initialSearch=cantiere">
-              <FileText className="h-6 w-6 text-blue-600 hover:text-blue-800 cursor-pointer" title="Vai a Procedure Cantiere" />
-            </PrefetchLink>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsProceduresDialogOpen(true)}
+              className="text-blue-600 hover:text-blue-800"
+              title="Visualizza Procedure Cantiere"
+            >
+              <FileText className="h-6 w-6" />
+            </Button>
           </div>
           <CardDescription className="text-center">Registra nuovi rapporti di cantiere e visualizza lo storico.</CardDescription>
         </CardHeader>
@@ -42,6 +50,10 @@ const RegistroDiCantiere = () => {
           </Tabs>
         </CardContent>
       </Card>
+      <CantiereProceduresDialog
+        isOpen={isProceduresDialogOpen}
+        onClose={() => setIsProceduresDialogOpen(false)}
+      />
     </div>
   );
 };
