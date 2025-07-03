@@ -70,7 +70,7 @@ const ProtectedRoute = () => {
 };
 
 const App = () => (
-  <React.Fragment>
+  <>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -211,7 +211,7 @@ const App = () => (
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </React.Fragment>
+    </>
   );
 };
 
