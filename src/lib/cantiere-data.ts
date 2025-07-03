@@ -77,14 +77,23 @@ export const marcaAutomezzoOptions: string[] = [
 ];
 
 export const tipologiaAttrezzoOptions: string[] = [
-  "Radio Portatile",
-  "Torcia",
-  "Estintore",
-  "Kit Primo Soccorso",
-  "Giubbotto Antiproiettile",
-  "Casco",
-  "Telecamera Portatile",
-  "DPI Vari",
+  "Avvitatore",
+  "Cavalletto",
+  "Cinghie di sollevamento",
+  "Distanzaometro laser",
+  "Leve di sollevamento",
+  "Levigatrice",
+  "Livella laser",
+  "Martello demolitore",
+  "Pistola termica",
+  "Ponteggio (attrezzatura modulare)",
+  "Saldatrice",
+  "Scala",
+  "Sega circolare",
+  "Seghetto alternativo",
+  "Smerigliatrice angolare (flessibile)",
+  "Tracciatore a gesso",
+  "Trapano",
 ];
 
 export const marcaAttrezzoOptions: string[] = [
