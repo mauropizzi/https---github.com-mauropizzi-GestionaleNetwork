@@ -10,6 +10,7 @@ import 'jspdf-autotable';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -106,7 +107,7 @@ export default function ServiceReportForm() {
       vehicleInitialState: "",
       bodyworkDamage: "",
       vehicleAnomalies: "",
-      gps: undefined, // Set to undefined for initial empty state
+      gps: undefined,
       radioVehicle: undefined,
       swivelingLamp: undefined,
       radioPortable: undefined,
@@ -170,7 +171,7 @@ export default function ServiceReportForm() {
       vehicle_initial_state: values.vehicleInitialState,
       bodywork_damage: values.bodyworkDamage,
       vehicle_anomalies: values.vehicleAnomalies || null,
-      gps: values.gps === 'si', // Convert 'si'/'no' to boolean
+      gps: values.gps === 'si',
       radio_vehicle: values.radioVehicle === 'si',
       swiveling_lamp: values.swivelingLamp === 'si',
       radio_portable: values.radioPortable === 'si',
