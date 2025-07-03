@@ -239,7 +239,7 @@ export function CantiereForm() {
     }
     body += `Cliente: ${clientName}\n`;
     body += `Punto Servizio / Cantiere: ${servicePointName}\n`;
-    body += `Addetto Security Service: ${addettoName}\n`; {/* Updated label here */}
+    body += `Addetto Security Service: ${addettoName}\n`;
     body += `Servizio: ${values.servizio}\n`;
     body += `Inizio Servizio: ${values.startDateTime ? format(values.startDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
     body += `Fine Servizio: ${values.endDateTime ? format(values.endDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
@@ -390,7 +390,7 @@ export function CantiereForm() {
             name="addetto"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Addetto Security Service</FormLabel> {/* Updated label here */}
+                <FormLabel>Addetto Security Service</FormLabel>
                 <Popover open={isAddettoOpen} onOpenChange={setIsAddettoOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -582,7 +582,7 @@ export function CantiereForm() {
                             }}
                           >
                             <Check className={cn("mr-2 h-4 w-4", personale.id === field.value ? "opacity-100" : "opacity-0")} />
-                            {personale.nome} {personale.cognome} ({personale.ruolo})
+                            {personale.nome} {personale.cognome}
                           </CommandItem>
                         ))}
                       </CommandGroup>
