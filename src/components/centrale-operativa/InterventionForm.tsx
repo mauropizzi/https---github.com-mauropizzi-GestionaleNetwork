@@ -487,8 +487,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       return;
     }
 
-    // Additional validation for final submission (Chiudi Evento)
-    if (isFinal) {
+    // Additional validation for final submission (Chiudi Evento) OR public mode
+    if (isFinal || isPublicMode) { 
       if (!coOperator || coOperator.trim() === '') {
         showError("Il campo 'Operatore C.O. Security Service' è obbligatorio per la chiusura.");
         return;
@@ -578,7 +578,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       co_operator: coOperator || null,
       operator_client: operatorNetworkId || null,
       gpg_intervention: gpgIntervention || null,
-      service_outcome: isFinal ? (serviceOutcome || null) : null,
+      service_outcome: (isFinal || isPublicMode) ? (serviceOutcome || null) : null, // Save if final OR if in public mode
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
       barcode: barcode, // Changed to save empty string if input is empty
       start_latitude: startLatitude || null,
@@ -644,7 +644,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     const calculatedCost = calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null;
 
     let serviceStatus: "Pending" | "Approved" | "Rejected" | "Completed" = "Pending";
-    if (isFinal) {
+    if (isFinal || isPublicMode) { // Status is 'Completed' if final OR public mode
       switch (serviceOutcome) {
         case "Intervento Concluso":
         case "Falso Allarme":
@@ -712,7 +712,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       endLongitude: undefined,
     });
     // Call onSaveSuccess if it's a new event (no eventId) or if it's a non-final save of an existing event
-    if (onSaveSuccess && (!eventId || isFinal)) { // Call onSaveSuccess only if it's a new event or a final save
+    if (onSaveSuccess && (!eventId || isFinal || isPublicMode)) { // Call onSaveSuccess if it's a new event, a final save, or a public mode save
       onSaveSuccess();
     }
   };
