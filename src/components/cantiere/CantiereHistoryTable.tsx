@@ -49,7 +49,7 @@ export function CantiereHistoryTable() {
     setLoading(true);
     const { data: reportsData, error } = await supabase
       .from('registri_cantiere')
-      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, status, clienti(nome_cliente), personale(nome, cognome)'); // Select status
+      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, status, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome)');
 
     if (error) {
       showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
@@ -76,7 +76,7 @@ export function CantiereHistoryTable() {
       return {
         ...report,
         nome_cliente: report.clienti?.nome_cliente || 'N/A',
-        nome_addetto: report.personale ? `${report.personale.nome} ${report.personale.cognome}` : 'N/A',
+        nome_addetto: report.addetto ? `${report.addetto.nome} ${report.addetto.cognome}` : 'N/A',
         automezziCount: automezziCount || 0,
         attrezziCount: attrezziCount || 0,
       };
