@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, isValid } from "date-fns"; // Import parseISO and isValid
+import { format, parseISO, isValid } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,17 +23,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Check, ChevronsUpDown } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { AutomezzoItem } from "./AutomezzoItem";
 import { AttrezzoItem } from "./AttrezzoItem";
-import { addettiList, servizioOptions, tipologiaAutomezzoOptions, marcaAutomezzoOptions, tipologiaAttrezzoOptions, marcaAttrezzoOptions } from "@/lib/cantiere-data";
-import { RECIPIENT_EMAIL } from "@/lib/config";
-import { Cliente } from "@/lib/anagrafiche-data";
-import { fetchClienti } from "@/lib/data-fetching";
+import { servizioOptions } from "@/lib/cantiere-data";
+import { Personale, PuntoServizio } from "@/lib/anagrafiche-data";
+import { fetchPuntiServizio, fetchPersonale } from "@/lib/data-fetching";
 import { sendEmail } from "@/utils/email";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -50,13 +53,13 @@ const attrezzoSchema = z.object({
 });
 
 const formSchema = z.object({
-  reportDate: z.date({ // Changed to z.date()
+  reportDate: z.date({
     required_error: "La data del rapporto è richiesta.",
   }),
   reportTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  cliente: z.string().min(1, "Il cliente è richiesto."),
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   cantiere: z.string().min(1, "Il cantiere è richiesto."),
-  addetto: z.string().min(1, "L'addetto è richiesto."),
+  addetto: z.string().uuid("Seleziona un addetto valido.").nonempty("L'addetto è richiesto."),
   servizio: z.string().min(1, "Il servizio è richiesto."),
   oreServizio: z.coerce.number().min(0.5, "Le ore di servizio devono essere almeno 0.5."),
   descrizioneLavori: z.string().min(10, "La descrizione dei lavori è troppo breve.").max(500, "La descrizione dei lavori è troppo lunga."),
@@ -68,22 +71,26 @@ const formSchema = z.object({
 });
 
 export function CantiereForm() {
-  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
+  const [personaleList, setPersonaleList] = useState<Personale[]>([]);
+  const [isServicePointOpen, setIsServicePointOpen] = useState(false);
 
   useEffect(() => {
-    const loadClienti = async () => {
-      const fetchedClienti = await fetchClienti();
-      setClienti(fetchedClienti);
+    const loadData = async () => {
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      setPuntiServizio(fetchedPuntiServizio);
+      const fetchedPersonale = await fetchPersonale();
+      setPersonaleList(fetchedPersonale);
     };
-    loadClienti();
+    loadData();
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      reportDate: new Date(), // Default to Date object
+      reportDate: new Date(),
       reportTime: format(new Date(), "HH:mm"),
-      cliente: "",
+      servicePointId: "",
       cantiere: "",
       addetto: "",
       servizio: "",
@@ -107,14 +114,62 @@ export function CantiereForm() {
     name: "attrezzi",
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Registro di Cantiere Data:", values);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    if (!selectedServicePoint || !selectedServicePoint.id_cliente) {
+      showError("Punto servizio selezionato non valido o senza cliente associato.");
+      return;
+    }
+    const clientId = selectedServicePoint.id_cliente;
+
+    const { data: registroData, error: registroError } = await supabase
+      .from('registri_cantiere')
+      .insert([{
+        report_date: format(values.reportDate, 'yyyy-MM-dd'),
+        report_time: values.reportTime,
+        client_id: clientId,
+        site_name: values.cantiere,
+        employee_id: values.addetto,
+        service_provided: values.servizio,
+        service_hours: values.oreServizio,
+        work_description: values.descrizioneLavori,
+        notes: values.noteVarie || null,
+      }])
+      .select('id')
+      .single();
+
+    if (registroError || !registroData) {
+      showError(`Errore durante la registrazione del rapporto: ${registroError?.message}`);
+      console.error("Error inserting registro_cantiere:", registroError);
+      return;
+    }
+
+    const registroId = registroData.id;
+
+    if (values.automezzi && values.automezzi.length > 0) {
+      const automezziPayload = values.automezzi.map(auto => ({ ...auto, registro_cantiere_id: registroId, ore_lavoro: auto.oreLavoro }));
+      const { error: automezziError } = await supabase.from('automezzi_utilizzati').insert(automezziPayload);
+      if (automezziError) {
+        showError(`Errore durante la registrazione degli automezzi: ${automezziError.message}`);
+        return;
+      }
+    }
+
+    if (values.attrezzi && values.attrezzi.length > 0) {
+      const attrezziPayload = values.attrezzi.map(attrezzo => ({ ...attrezzo, registro_cantiere_id: registroId, ore_utilizzo: attrezzo.oreUtilizzo }));
+      const { error: attrezziError } = await supabase.from('attrezzi_utilizzati').insert(attrezziPayload);
+      if (attrezziError) {
+        showError(`Errore durante la registrazione degli attrezzi: ${attrezziError.message}`);
+        return;
+      }
+    }
+
     showSuccess("Rapporto di cantiere registrato con successo!");
     form.reset();
   };
 
   const handleSetCurrentDate = () => {
-    form.setValue("reportDate", new Date()); // Set to Date object
+    form.setValue("reportDate", new Date());
   };
 
   const handleSetCurrentTime = () => {
@@ -142,22 +197,26 @@ export function CantiereForm() {
     }
   };
 
-  const handleEmail = () => {
+  const generatePdfAndEmail = (action: 'print' | 'email') => {
     const values = form.getValues();
-    const selectedClient = clienti.find(c => c.id === values.cliente);
-    const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    const servicePointName = selectedServicePoint ? selectedServicePoint.nome_punto_servizio : "N/A";
+    const clientName = selectedServicePoint?.clienti?.nome_cliente || "N/A";
+    const selectedAddetto = personaleList.find(p => p.id === values.addetto);
+    const addettoName = selectedAddetto ? `${selectedAddetto.nome} ${selectedAddetto.cognome}` : "N/A";
 
-    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(values.reportDate, 'dd/MM/yyyy')}`; // Use values.reportDate directly
+    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(values.reportDate, 'dd/MM/yyyy')}`;
     
     let body = `Dettagli Rapporto di Cantiere:\n\n`;
-    body += `Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}\n`; // Use values.reportDate directly
+    body += `Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}\n`;
     body += `Ora Rapporto: ${values.reportTime}\n`;
     if (values.latitude !== undefined && values.longitude !== undefined) {
       body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
     }
     body += `Cliente: ${clientName}\n`;
+    body += `Punto Servizio: ${servicePointName}\n`;
     body += `Cantiere: ${values.cantiere}\n`;
-    body += `Addetto: ${values.addetto}\n`;
+    body += `Addetto: ${addettoName}\n`;
     body += `Servizio: ${values.servizio}\n`;
     body += `Ore di Servizio: ${values.oreServizio}\n`;
     body += `\nDescrizione Lavori Svolti:\n${values.descrizioneLavori}\n`;
@@ -165,22 +224,14 @@ export function CantiereForm() {
     if (values.automezzi && values.automezzi.length > 0) {
       body += `\n--- Automezzi Utilizzati ---\n`;
       values.automezzi.forEach((auto, index) => {
-        body += `Automezzo ${index + 1}:\n`;
-        body += `  Tipologia: ${auto.tipologia}\n`;
-        body += `  Marca: ${auto.marca}\n`;
-        body += `  Targa: ${auto.targa}\n`;
-        body += `  Ore di Lavoro: ${auto.oreLavoro}\n`;
+        body += `Automezzo ${index + 1}: Tipologia: ${auto.tipologia}, Marca: ${auto.marca}, Targa: ${auto.targa}, Ore: ${auto.oreLavoro}\n`;
       });
     }
 
     if (values.attrezzi && values.attrezzi.length > 0) {
       body += `\n--- Attrezzi Utilizzati ---\n`;
       values.attrezzi.forEach((attrezzo, index) => {
-        body += `Attrezzo ${index + 1}:\n`;
-        body += `  Tipologia: ${attrezzo.tipologia}\n`;
-        body += `  Marca: ${attrezzo.marca}\n`;
-        body += `  Quantità: ${attrezzo.quantita}\n`;
-        body += `  Ore di Utilizzo: ${attrezzo.oreUtilizzo}\n`;
+        body += `Attrezzo ${index + 1}: Tipologia: ${attrezzo.tipologia}, Marca: ${attrezzo.marca}, Quantità: ${attrezzo.quantita}, Ore: ${attrezzo.oreUtilizzo}\n`;
       });
     }
 
@@ -188,94 +239,18 @@ export function CantiereForm() {
       body += `\n--- Note Varie ---\n${values.noteVarie}\n`;
     }
 
-    sendEmail(subject, body);
-  };
-
-  const handlePrintPdf = () => {
-    showInfo("Generazione PDF per il rapporto di cantiere...");
-    const values = form.getValues();
-    const selectedClient = clienti.find(c => c.id === values.cliente);
-    const clientName = selectedClient ? selectedClient.nome_cliente : "N/A";
+    if (action === 'email') {
+      sendEmail(subject, body);
+      return;
+    }
 
     const doc = new jsPDF();
     let y = 20;
-
     doc.setFontSize(18);
     doc.text("Rapporto di Cantiere", 14, y);
     y += 10;
-
     doc.setFontSize(10);
-    doc.text(`Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}`, 14, y); // Use values.reportDate directly
-    y += 7;
-    doc.text(`Ora Rapporto: ${values.reportTime}`, 14, y);
-    y += 7;
-    if (values.latitude !== undefined && values.longitude !== undefined) {
-      doc.text(`Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}`, 14, y);
-      y += 7;
-    }
-    doc.text(`Cliente: ${clientName}`, 14, y);
-    y += 7;
-    doc.text(`Cantiere: ${values.cantiere}`, 14, y);
-    y += 7;
-    doc.text(`Addetto: ${values.addetto}`, 14, y);
-    y += 7;
-    doc.text(`Servizio: ${values.servizio}`, 14, y);
-    y += 7;
-    doc.text(`Ore di Servizio: ${values.oreServizio}`, 14, y);
-    y += 10;
-
-    doc.setFontSize(12);
-    doc.text("Descrizione Lavori Svolti:", 14, y);
-    y += 5;
-    doc.setFontSize(10);
-    const splitDescription = doc.splitTextToSize(values.descrizioneLavori, 180);
-    doc.text(splitDescription, 14, y);
-    y += (splitDescription.length * 5) + 10;
-
-    if (values.automezzi && values.automezzi.length > 0) {
-      doc.setFontSize(12);
-      doc.text("Automezzi Utilizzati:", 14, y);
-      y += 5;
-      (doc as any).autoTable({
-        startY: y,
-        head: [['Tipologia', 'Marca', 'Targa', 'Ore di Lavoro']],
-        body: values.automezzi.map(auto => [auto.tipologia, auto.marca, auto.targa, auto.oreLavoro]),
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-        margin: { left: 14, right: 14 },
-        didDrawPage: (data: any) => { y = data.cursor.y; }
-      });
-      y += 10;
-    }
-
-    if (values.attrezzi && values.attrezzi.length > 0) {
-      doc.setFontSize(12);
-      doc.text("Attrezzi Utilizzati:", 14, y);
-      y += 5;
-      (doc as any).autoTable({
-        startY: y,
-        head: [['Tipologia', 'Marca', 'Quantità', 'Ore di Utilizzo']],
-        body: values.attrezzi.map(attrezzo => [attrezzo.tipologia, attrezzo.marca, attrezzo.quantita, attrezzo.oreUtilizzo]),
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-        margin: { left: 14, right: 14 },
-        didDrawPage: (data: any) => { y = data.cursor.y; }
-      });
-      y += 10;
-    }
-
-    if (values.noteVarie) {
-      doc.setFontSize(12);
-      doc.text("Note Varie:", 14, y);
-      y += 5;
-      doc.setFontSize(10);
-      const splitNotes = doc.splitTextToSize(values.noteVarie, 180);
-      doc.text(splitNotes, 14, y);
-      y += (splitNotes.length * 5);
-    }
-
+    doc.text(body, 14, y);
     doc.output('dataurlnewwindow');
     showSuccess("PDF del rapporto di cantiere generato con successo!");
   };
@@ -340,24 +315,41 @@ export function CantiereForm() {
           )}
           <FormField
             control={form.control}
-            name="cliente"
+            name="servicePointId"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Cliente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un cliente" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clienti.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nome_cliente}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Punto Servizio</FormLabel>
+                <Popover open={isServicePointOpen} onOpenChange={setIsServicePointOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                        {field.value ? puntiServizio.find(p => p.id === field.value)?.nome_punto_servizio : "Seleziona un punto servizio"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca punto servizio..." />
+                      <CommandEmpty>Nessun punto servizio trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {puntiServizio.map((punto) => (
+                          <CommandItem
+                            value={punto.nome_punto_servizio}
+                            key={punto.id}
+                            onSelect={() => {
+                              form.setValue("servicePointId", punto.id);
+                              setIsServicePointOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", punto.id === field.value ? "opacity-100" : "opacity-0")} />
+                            {punto.nome_punto_servizio}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -367,7 +359,7 @@ export function CantiereForm() {
             name="cantiere"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Cantiere</FormLabel>
+                <FormLabel>Cantiere / Nome Sito</FormLabel>
                 <FormControl>
                   <Input placeholder="Nome o indirizzo del cantiere" {...field} />
                 </FormControl>
@@ -388,9 +380,9 @@ export function CantiereForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {addettiList.map((addetto) => (
-                      <SelectItem key={addetto} value={addetto}>
-                        {addetto}
+                    {personaleList.map((personale) => (
+                      <SelectItem key={personale.id} value={personale.id}>
+                        {personale.nome} {personale.cognome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -507,10 +499,10 @@ export function CantiereForm() {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => generatePdfAndEmail('email')}>
             INVIA EMAIL
           </Button>
-          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
+          <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => generatePdfAndEmail('print')}>
             STAMPA PDF
           </Button>
           <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">

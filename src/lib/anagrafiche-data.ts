@@ -24,6 +24,7 @@ export interface PuntoServizio {
   codice_sicep?: string | null;
   codice_fatturazione?: string | null;
   procedure_id?: string | null;
+  clienti?: { nome_cliente: string } | null; // Aggiunto per join
 }
 
 export interface Fornitore {
