@@ -391,6 +391,12 @@ export async function calculateServiceCost(details: ServiceDetailsForCost): Prom
     return null;
   }
 
+  // NEW CHECK: If the best matching tariff has a zero rate, treat it as missing for analysis
+  if (bestMatchTariff.client_rate === 0 || bestMatchTariff.supplier_rate === 0) {
+    console.log(`[Cost Calc] Matched tariff ID ${bestMatchTariff.id} has zero client_rate (${bestMatchTariff.client_rate}) or supplier_rate (${bestMatchTariff.supplier_rate}). Treating as missing. Returning null.`);
+    return null;
+  }
+
   console.log(`[Cost Calc] Best matching tariff selected: ID ${bestMatchTariff.id}, Type: ${bestMatchTariff.service_type}, Client Rate: ${bestMatchTariff.client_rate}, Supplier Rate: ${bestMatchTariff.supplier_rate}`);
 
   const multiplier = await calculateServiceMultiplier(details);
