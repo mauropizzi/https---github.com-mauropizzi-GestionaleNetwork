@@ -130,6 +130,22 @@ export interface RapportoServizio {
   high_visibility_vest: boolean;
 }
 
+export interface RichiestaManutenzione {
+  id: string;
+  created_at: string;
+  report_id?: string | null;
+  service_point_id?: string | null;
+  vehicle_plate: string;
+  issue_description?: string | null;
+  status: "Pending" | "In Progress" | "Completed" | "Cancelled";
+  priority: "Low" | "Medium" | "High" | "Urgent";
+  requested_by_employee_id?: string | null;
+  requested_at: string;
+  // Joined fields for display
+  service_point?: { nome_punto_servizio: string } | null;
+  requested_by_employee?: { nome: string; cognome: string } | null;
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",
