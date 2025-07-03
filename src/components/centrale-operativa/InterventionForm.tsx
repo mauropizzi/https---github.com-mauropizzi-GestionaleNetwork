@@ -44,7 +44,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     delay: undefined as 'si' | 'no' | undefined,
     delayNotes: '',
     serviceOutcome: '',
-    barcode: '',
+    barcode: '', // Added barcode to state
     startLatitude: undefined as number | undefined,
     startLongitude: undefined as number | undefined,
     endLatitude: undefined as number | undefined,
@@ -99,7 +99,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         
         const { data: event, error: eventError } = await supabase
           .from('allarme_interventi')
-          .select('*, start_latitude, start_longitude, end_latitude, end_longitude')
+          .select('*, start_latitude, start_longitude, end_latitude, end_longitude, barcode') // Select barcode
           .eq('id', eventId)
           .single();
 
@@ -186,7 +186,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
             delay: delay,
             delayNotes: delayNotes,
             serviceOutcome: event.service_outcome || '',
-            barcode: '',
+            barcode: event.barcode || '', // Set barcode from fetched data
             startLatitude: event.start_latitude || undefined,
             startLongitude: event.start_longitude || undefined,
             endLatitude: event.end_latitude || undefined,
@@ -369,7 +369,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       }
       doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(formData.startTime)}`, 14, y);
       y += 7;
-      if (formData.endLatitude !== undefined && formData.endLongitude !== undefined) {
+      if (formData.endLatitude !== undefined && formData.endLatitude !== null && formData.endLongitude !== undefined && formData.endLongitude !== null) {
         doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
@@ -446,7 +446,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       delay,
       delayNotes,
       serviceOutcome,
-      barcode,
+      barcode, // Include barcode
       startLatitude,
       startLongitude,
       endLatitude,
@@ -527,6 +527,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       gpg_intervention: gpgIntervention || null,
       service_outcome: isFinal ? (serviceOutcome || null) : null,
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
+      barcode: barcode, // Changed to save empty string if input is empty
       start_latitude: startLatitude || null,
       start_longitude: startLongitude || null,
       end_latitude: endLatitude || null,
