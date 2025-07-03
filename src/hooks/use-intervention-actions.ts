@@ -227,7 +227,7 @@ export const useInterventionActions = ({
     }
   }, [formData, puntiServizioList, generatePdfBlob]);
 
-  const validateForm = useCallback((isFinal: boolean): boolean => {
+  const validateForm = useCallback((dataToValidate: InterventionFormState, isFinal: boolean): boolean => {
     const {
       servicePoint,
       requestType,
@@ -238,7 +238,7 @@ export const useInterventionActions = ({
       fullAccess,
       vaultAccess,
       operatorNetworkId,
-      gpgIntervention, // Added gpgIntervention to destructuring
+      gpgIntervention,
       anomalies,
       anomalyDescription,
       delay,
@@ -249,7 +249,7 @@ export const useInterventionActions = ({
       startLongitude,
       endLatitude,
       endLongitude,
-    } = formData;
+    } = dataToValidate; // Use dataToValidate here
 
     if (!servicePoint || servicePoint.trim() === '') {
       showError("Il campo 'Punto Servizio' è obbligatorio.");
@@ -259,12 +259,10 @@ export const useInterventionActions = ({
       showError("Il campo 'Tipologia Servizio Richiesto' è obbligatorio.");
       return false;
     }
-    // coOperator is now required for any save, not just final
     if (!coOperator || coOperator.trim() === '') {
       showError("Il campo 'Operatore C.O. Security Service' è obbligatorio.");
       return false;
     }
-    // requestTime is auto-filled for new events, so we just validate its presence
     if (!requestTime || requestTime.trim() === '') {
       showError("Il campo 'Orario Richiesta C.O. Security Service' è obbligatorio.");
       return false;
@@ -309,7 +307,6 @@ export const useInterventionActions = ({
         showError("Il campo 'Operatore Network' è obbligatorio per la chiusura.");
         return false;
       }
-      // Make GPG Intervention mandatory for final submission or public mode
       if (!gpgIntervention || gpgIntervention.trim() === '') {
         showError("Il campo 'G.P.G. Intervento' è obbligatorio per la chiusura.");
         return false;
@@ -348,38 +345,34 @@ export const useInterventionActions = ({
       }
     }
     return true;
-  }, [formData, isPublicMode]);
+  }, [isPublicMode]);
 
-  const buildNotesString = useCallback(() => {
+  const buildNotesString = useCallback((dataToUse: InterventionFormState) => {
     const notesCombined = [];
-    if (formData.fullAccess !== undefined) {
-      notesCombined.push(`Accesso Completo: ${formData.fullAccess.toUpperCase()}`);
+    if (dataToUse.fullAccess !== undefined) {
+      notesCombined.push(`Accesso Completo: ${dataToUse.fullAccess.toUpperCase()}`);
     }
-    if (formData.vaultAccess !== undefined) {
-      notesCombined.push(`Accesso Caveau: ${formData.vaultAccess.toUpperCase()}`);
+    if (dataToUse.vaultAccess !== undefined) {
+      notesCombined.push(`Accesso Caveau: ${dataToUse.vaultAccess.toUpperCase()}`);
     }
-    if (formData.anomalies === 'si' && formData.anomalyDescription) {
-      notesCombined.push(`Anomalie: ${formData.anomalyDescription}`);
+    if (dataToUse.anomalies === 'si' && dataToUse.anomalyDescription) {
+      notesCombined.push(`Anomalie: ${dataToUse.anomalyDescription}`);
     }
-    if (formData.delay === 'si' && formData.delayNotes) {
-      notesCombined.push(`Ritardo: ${formData.delayNotes}`);
+    if (dataToUse.delay === 'si' && dataToUse.delayNotes) {
+      notesCombined.push(`Ritardo: ${dataToUse.delayNotes}`);
     }
     return notesCombined.length > 0 ? notesCombined.join('; ') : null;
-  }, [formData]);
+  }, []);
 
   const saveIntervention = useCallback(async (isFinal: boolean) => {
-    // For new events, set requestTime to current time before validation
     let currentRequestTime = formData.requestTime;
     if (!eventId) {
       currentRequestTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
-      // Temporarily update formData for validation, but don't set state to avoid re-render loop
-      // The actual payload will use this fresh value
     }
 
-    // Create a temporary formData object for validation that includes the updated requestTime
-    const formDataForValidation = { ...formData, requestTime: currentRequestTime };
+    const formDataToUse = { ...formData, requestTime: currentRequestTime };
 
-    if (!validateForm(isFinal)) {
+    if (!validateForm(formDataToUse, isFinal)) { // Pass formDataToUse to validateForm
       return;
     }
 
@@ -397,13 +390,13 @@ export const useInterventionActions = ({
       startLongitude,
       endLatitude,
       endLongitude,
-    } = formDataForValidation; // Use the potentially updated formData for payload
+    } = formDataToUse; // Use formDataToUse for payload
 
     const parsedRequestDateTime = parseISO(currentRequestTime); // Use the currentRequestTime for parsing
     const parsedStartTime = startTime ? parseISO(startTime) : null;
     const parsedEndTime = endTime ? parseISO(endTime) : null;
 
-    const notes = buildNotesString();
+    const notes = buildNotesString(formDataToUse); // Pass formDataToUse to buildNotesString
 
     const allarmeInterventoPayload = {
       report_date: format(parsedRequestDateTime, 'yyyy-MM-dd'),
