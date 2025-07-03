@@ -6,6 +6,7 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPuntiServizio, fetchPersonale, fetchOperatoriNetwork } from "@/lib/data-fetching"; // Import fetchPersonale and fetchOperatoriNetwork
 import { PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data"; // Import Personale and OperatoreNetwork interfaces
+import JsBarcode from 'jsbarcode'; // Import JsBarcode
 
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
@@ -20,16 +21,35 @@ interface AllarmeIntervento {
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
-  start_latitude?: number; // Nuovo campo
-  start_longitude?: number; // Nuovo campo
-  end_latitude?: number;   // Rinomina da latitude
-  end_longitude?: number;  // Rinomina da longitude
+  barcode?: string; // Added barcode field
+  start_latitude?: number;
+  start_longitude?: number;
+  end_latitude?: number;
+  end_longitude?: number;
 }
+
+const generateBarcodeImage = (text: string): string | null => {
+  if (!text) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    JsBarcode(canvas, text, {
+      format: "CODE128",
+      displayValue: true,
+      height: 50,
+      width: 2,
+      margin: 10,
+    });
+    return canvas.toDataURL("image/png");
+  } catch (error: any) {
+    console.error("Barcode generation error in PDF:", error);
+    return null;
+  }
+};
 
 export const generateSingleServiceReportPdfBlob = async (reportId: string): Promise<Blob | null> => {
   const { data: report, error } = await supabase
     .from('allarme_interventi')
-    .select('*, start_latitude, start_longitude, end_latitude, end_longitude') // Explicitly select GPS fields
+    .select('*, start_latitude, start_longitude, end_latitude, end_longitude, barcode') // Explicitly select GPS and barcode fields
     .eq('id', reportId)
     .single();
 
@@ -130,6 +150,22 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     const splitNotes = doc.splitTextToSize(report.notes, 180);
     doc.text(splitNotes, 14, y);
     y += (splitNotes.length * 5);
+  }
+
+  if (report.barcode) {
+    y += 5;
+    doc.setFontSize(12);
+    doc.text("Barcode:", 14, y);
+    y += 5;
+    const barcodeDataURL = generateBarcodeImage(report.barcode);
+    if (barcodeDataURL) {
+      doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20);
+      y += 25;
+    } else {
+      doc.setFontSize(10);
+      doc.text(`Impossibile generare immagine per barcode: ${report.barcode}`, 14, y);
+      y += 7;
+    }
   }
 
   return doc.output('blob');
