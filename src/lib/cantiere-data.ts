@@ -144,8 +144,8 @@ export const marcaAttrezzoOptions: string[] = [
 ];
 
 export const esitoServizioOptions: string[] = [
-  "Servizio Concluso",
-  "Servizio Sospeso",
-  "Servizio Annullato",
-  "Anomalia Riscontrata",
+  "TUTTO REGOLARE",
+  "RISCONTRATE ANOMALIE",
+  "FURTO",
+  "TENTATO",
 ];
