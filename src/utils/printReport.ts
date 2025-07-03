@@ -4,8 +4,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPuntiServizio } from "@/lib/data-fetching";
-import { PuntoServizio } from "@/lib/anagrafiche-data";
+import { fetchPuntiServizio, fetchPersonale, fetchOperatoriNetwork } from "@/lib/data-fetching"; // Import fetchPersonale and fetchOperatoriNetwork
+import { PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data"; // Import Personale and OperatoreNetwork interfaces
 
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
@@ -44,8 +44,18 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     return null;
   }
 
-  // Fetch all service points to map the code to a name
-  const puntiServizioList = await fetchPuntiServizio();
+  // Fetch all necessary data for names in parallel
+  const [
+    puntiServizioList,
+    allPersonaleList, // Fetch all personnel
+    allOperatoriNetworkList // Fetch all network operators
+  ] = await Promise.all([
+    fetchPuntiServizio(),
+    fetchPersonale(),
+    fetchOperatoriNetwork()
+  ]);
+
+  // Create maps for quick lookup
   const servicePointMap = new Map<string, PuntoServizio>();
   puntiServizioList.forEach(p => {
     servicePointMap.set(p.id, p);
@@ -53,6 +63,12 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     if (p.codice_cliente) servicePointMap.set(p.codice_cliente, p);
     if (p.nome_punto_servizio) servicePointMap.set(p.nome_punto_servizio, p);
   });
+
+  const personnelMap = new Map<string, Personale>();
+  allPersonaleList.forEach(p => personnelMap.set(p.id, p));
+
+  const operatoriNetworkMap = new Map<string, OperatoreNetwork>();
+  allOperatoriNetworkList.forEach(op => operatoriNetworkMap.set(op.id, op));
 
   const doc = new jsPDF();
   let y = 20;
@@ -68,6 +84,12 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   const parsedCreatedAt = (report.created_at && typeof report.created_at === 'string') ? parseISO(report.created_at) : null;
   const parsedReportDate = (report.report_date && typeof report.report_date === 'string') ? parseISO(report.report_date) : null;
 
+  // Get names for IDs
+  const coOperatorName = report.co_operator ? `${personnelMap.get(report.co_operator)?.nome || ''} ${personnelMap.get(report.co_operator)?.cognome || ''}`.trim() : 'N/A';
+  const operatorClientName = report.operator_client ? `${operatoriNetworkMap.get(report.operator_client)?.nome || ''} ${operatoriNetworkMap.get(report.operator_client)?.cognome || ''}`.trim() : 'N/A';
+  const gpgInterventionName = report.gpg_intervention ? `${personnelMap.get(report.gpg_intervention)?.nome || ''} ${personnelMap.get(report.gpg_intervention)?.cognome || ''}`.trim() : 'N/A';
+
+
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
   doc.text(`Data Creazione: ${parsedCreatedAt && isValid(parsedCreatedAt) ? format(parsedCreatedAt, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
@@ -81,11 +103,11 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   y += 7;
   doc.text(`Tipologia Richiesta: ${report.request_type || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Co-Operatore: ${report.co_operator || 'N/A'}`, 14, y);
+  doc.text(`Co-Operatore: ${coOperatorName}`, 14, y);
   y += 7;
-  doc.text(`Operatore Cliente: ${report.operator_client || 'N/A'}`, 14, y);
+  doc.text(`Operatore Cliente: ${operatorClientName}`, 14, y);
   y += 7;
-  doc.text(`G.P.G. Intervento: ${report.gpg_intervention || 'N/A'}`, 14, y);
+  doc.text(`G.P.G. Intervento: ${gpgInterventionName}`, 14, y);
   y += 7;
   doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
