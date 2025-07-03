@@ -22,20 +22,24 @@ export const InterventionActionButtons: React.FC<InterventionActionButtonsProps>
 }) => {
   return (
     <div className="pt-4 flex flex-wrap gap-4">
-      {!isPublicMode && (
+      {/* INVIA EMAIL - Mostra solo se NON è in modalità pubblica E se è un evento esistente (eventId presente) */}
+      {!isPublicMode && eventId && (
         <Button type="button" className="w-full md:w-auto flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
           INVIA EMAIL
         </Button>
       )}
-      <Button type="button" className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
-        STAMPA PDF
-      </Button>
-      {eventId ? (
+      {/* STAMPA PDF - Mostra solo se è un evento esistente (eventId presente) */}
+      {eventId && (
+        <Button type="button" className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
+          STAMPA PDF
+        </Button>
+      )}
+      {eventId ? ( // Se è un evento esistente (modalità modifica)
         <>
           <Button type="button" className="w-full md:w-auto flex-1 bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
             Salva Modifiche (In Corso)
           </Button>
-          {!isPublicMode && ( // Hide "Chiudi Evento" in public mode
+          {!isPublicMode && ( // Nascondi "Chiudi Evento" in modalità pubblica
             <Button type="submit" className="w-full md:w-auto flex-1">
               Chiudi Evento (Completa)
             </Button>
@@ -46,17 +50,13 @@ export const InterventionActionButtons: React.FC<InterventionActionButtonsProps>
             </Button>
           )}
         </>
-      ) : (
+      ) : ( // Se è un nuovo evento (nessun eventId)
         <>
-          {!isPublicMode && ( // Hide "REGISTRA EVENTO" and "Chiudi Evento" in public mode for new events
-            <>
-              <Button type="button" className="w-full md:w-auto flex-1 bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
-                REGISTRA EVENTO
-              </Button>
-              <Button type="submit" className="w-full md:w-auto flex-1">
-                Chiudi Evento
-              </Button>
-            </>
+          {/* Mostra solo "REGISTRA EVENTO" per i nuovi eventi, e solo se NON è in modalità pubblica */}
+          {!isPublicMode && (
+            <Button type="button" className="w-full md:w-auto flex-1 bg-gray-500 hover:bg-gray-600" onClick={handleRegisterEvent}>
+              REGISTRA EVENTO
+            </Button>
           )}
         </>
       )}
