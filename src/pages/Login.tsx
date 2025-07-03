@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
+import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const Login = () => {
-  // Reindirizza sempre alla radice dell'applicazione dopo il login, usando l'origine corrente
-  const redirectToUrl = window.location.origin; 
+  const { session, loading } = useSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log('Login.tsx: Component rendered. Session:', session, 'Loading:', loading);
+    if (!loading && session) {
+      console.log('Login.tsx: Session already exists, navigating to /');
+      navigate('/', { replace: true });
+    }
+  }, [session, loading, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
@@ -26,18 +36,18 @@ const Login = () => {
             },
           }}
           theme="light" // Puoi impostare 'dark' se la tua app supporta il tema scuro
-          redirectTo={redirectToUrl} // Reindirizza alla root dopo il login
+          // Rimosso: redirectTo={redirectToUrl}
           localization={{
             variables: {
               common: {
                 missing_email_or_phone: 'Email o telefono mancanti',
-                loading: 'Caricamento...', // Added
-                confirm_password_label: 'Conferma Password', // Added
-                confirm_password_input_placeholder: 'Conferma la tua password', // Added
-                full_name_label: 'Nome completo', // Added
-                full_name_input_placeholder: 'Il tuo nome completo', // Added
-                social_continue_with: 'Continua con {{provider}}', // Added
-                back_to_sign_in: 'Torna all\'accesso', // Added
+                loading: 'Caricamento...',
+                confirm_password_label: 'Conferma Password',
+                confirm_password_input_placeholder: 'Conferma la tua password',
+                full_name_label: 'Nome completo',
+                full_name_input_placeholder: 'Il tuo nome completo',
+                social_continue_with: 'Continua con {{provider}}',
+                back_to_sign_in: 'Torna all\'accesso',
               },
               sign_in: {
                 email_label: 'Indirizzo Email',
