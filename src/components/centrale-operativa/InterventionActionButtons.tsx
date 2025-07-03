@@ -22,14 +22,14 @@ export const InterventionActionButtons: React.FC<InterventionActionButtonsProps>
 }) => {
   return (
     <div className="pt-4 flex flex-wrap gap-4">
-      {/* INVIA EMAIL - Mostra solo se NON è in modalità pubblica E se è un evento esistente (eventId presente) */}
-      {!isPublicMode && eventId && (
+      {/* INVIA EMAIL - Questo pulsante non sarà più visualizzato nella pagina di modifica */}
+      {false && (
         <Button type="button" className="w-full md:w-auto flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
           INVIA EMAIL
         </Button>
       )}
-      {/* STAMPA PDF - Mostra solo se è un evento esistente (eventId presente) */}
-      {eventId && (
+      {/* STAMPA PDF - Questo pulsante non sarà più visualizzato nella pagina di modifica */}
+      {false && (
         <Button type="button" className="w-full md:w-auto flex-1 bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
           STAMPA PDF
         </Button>
