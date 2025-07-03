@@ -142,3 +142,10 @@ export const marcaAttrezzoOptions: string[] = [
   "Yale",
   "Zarges",
 ];
+
+export const esitoServizioOptions: string[] = [
+  "Servizio Concluso",
+  "Servizio Sospeso",
+  "Servizio Annullato",
+  "Anomalia Riscontrata",
+];

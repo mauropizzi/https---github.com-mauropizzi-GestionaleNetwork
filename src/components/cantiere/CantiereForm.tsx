@@ -27,7 +27,7 @@ import { PlusCircle, Check, ChevronsUpDown } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { AutomezzoItem } from "./AutomezzoItem";
 import { AttrezzoItem } from "./AttrezzoItem";
-import { servizioOptions } from "@/lib/cantiere-data";
+import { servizioOptions, esitoServizioOptions } from "@/lib/cantiere-data"; // Import esitoServizioOptions
 import { Personale, PuntoServizio } from "@/lib/anagrafiche-data";
 import { fetchPuntiServizio, fetchPersonale } from "@/lib/data-fetching";
 import { sendEmail } from "@/utils/email";
@@ -65,6 +65,11 @@ const formSchema = z.object({
   attrezzi: z.array(attrezzoSchema).optional(),
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
+  // New fields for Riconsegna Cantiere
+  addettoRiconsegnaSecurityService: z.string().uuid("Seleziona un addetto valido.").optional().or(z.literal("")),
+  responsabileCommittenteRiconsegna: z.string().optional(),
+  esitoServizio: z.string().optional(),
+  consegneServizio: z.string().optional(),
 }).refine(data => data.endDateTime >= data.startDateTime, {
   message: "La data/ora di fine non può essere precedente a quella di inizio.",
   path: ["endDateTime"],
@@ -73,8 +78,10 @@ const formSchema = z.object({
 export function CantiereForm() {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
+  const [personaleRiconsegnaList, setPersonaleRiconsegnaList] = useState<Personale[]>([]); // New state for reconsegna personnel
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
   const [isAddettoOpen, setIsAddettoOpen] = useState(false);
+  const [isAddettoRiconsegnaOpen, setIsAddettoRiconsegnaOpen] = useState(false); // New state for reconsegna personnel select
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,6 +89,10 @@ export function CantiereForm() {
       setPuntiServizio(fetchedPuntiServizio);
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
+      // Fetch personnel for reconsegna (GPG or Pattuglia)
+      const fetchedGpg = await fetchPersonale('GPG');
+      const fetchedPattuglia = await fetchPersonale('Pattuglia');
+      setPersonaleRiconsegnaList([...fetchedGpg, ...fetchedPattuglia]);
     };
     loadData();
   }, []);
@@ -101,6 +112,10 @@ export function CantiereForm() {
       attrezzi: [],
       latitude: undefined,
       longitude: undefined,
+      addettoRiconsegnaSecurityService: "",
+      responsabileCommittenteRiconsegna: "",
+      esitoServizio: "",
+      consegneServizio: "",
     },
   });
 
@@ -135,6 +150,11 @@ export function CantiereForm() {
         start_datetime: values.startDateTime.toISOString(),
         end_datetime: values.endDateTime.toISOString(),
         notes: values.noteVarie || null,
+        // New fields
+        addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
+        responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
+        esito_servizio: values.esitoServizio || null,
+        consegne_servizio: values.consegneServizio || null,
       }])
       .select('id')
       .single();
@@ -205,6 +225,9 @@ export function CantiereForm() {
     const clientName = selectedServicePoint?.clienti?.nome_cliente || "N/A";
     const selectedAddetto = personaleList.find(p => p.id === values.addetto);
     const addettoName = selectedAddetto ? `${selectedAddetto.nome} ${selectedAddetto.cognome}` : "N/A";
+    const selectedAddettoRiconsegna = personaleRiconsegnaList.find(p => p.id === values.addettoRiconsegnaSecurityService);
+    const addettoRiconsegnaName = selectedAddettoRiconsegna ? `${selectedAddettoRiconsegna.nome} ${selectedAddettoRiconsegna.cognome}` : "N/A";
+
 
     const subject = `Rapporto di Cantiere - ${clientName} - ${servicePointName} - ${format(values.reportDate, 'dd/MM/yyyy')}`;
     
@@ -238,6 +261,14 @@ export function CantiereForm() {
     if (values.noteVarie) {
       body += `\n--- Note Varie ---\n${values.noteVarie}\n`;
     }
+
+    // Add new Riconsegna Cantiere fields to body
+    body += `\n--- Riconsegna Cantiere ---\n`;
+    body += `Addetto Security Service Riconsegna: ${addettoRiconsegnaName}\n`;
+    body += `Responsabile Committente Riconsegna: ${values.responsabileCommittenteRiconsegna || 'N/A'}\n`;
+    body += `ESITO SERVIZIO: ${values.esitoServizio || 'N/A'}\n`;
+    body += `CONSEGNE di Servizio: ${values.consegneServizio || 'N/A'}\n`;
+
 
     if (action === 'email') {
       sendEmail(subject, body);
@@ -509,6 +540,104 @@ export function CantiereForm() {
                 <FormLabel>Eventuali Note Aggiuntive</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Inserisci qui eventuali note..." rows={3} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </section>
+
+        {/* New section: Riconsegna Cantiere */}
+        <section className="p-4 border rounded-lg shadow-sm bg-card">
+          <h2 className="text-xl font-semibold mb-4">Riconsegna Cantiere</h2>
+          <FormField
+            control={form.control}
+            name="addettoRiconsegnaSecurityService"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Addetto Security Service Riconsegna</FormLabel>
+                <Popover open={isAddettoRiconsegnaOpen} onOpenChange={setIsAddettoRiconsegnaOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                        {field.value
+                          ? personaleRiconsegnaList.find((p) => p.id === field.value)?.nome + ' ' + personaleRiconsegnaList.find((p) => p.id === field.value)?.cognome
+                          : "Seleziona un addetto"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca addetto..." />
+                      <CommandEmpty>Nessun addetto trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {personaleRiconsegnaList.map((personale) => (
+                          <CommandItem
+                            value={`${personale.nome} ${personale.cognome}`}
+                            key={personale.id}
+                            onSelect={() => {
+                              form.setValue("addettoRiconsegnaSecurityService", personale.id);
+                              setIsAddettoRiconsegnaOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", personale.id === field.value ? "opacity-100" : "opacity-0")} />
+                            {personale.nome} {personale.cognome} ({personale.ruolo})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="responsabileCommittenteRiconsegna"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Responsabile Committente Riconsegna</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome Responsabile" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="esitoServizio"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>ESITO SERVIZIO</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona esito" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {esitoServizioOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="consegneServizio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CONSEGNE di Servizio</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Dettagli sulle consegne di servizio..." rows={3} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
