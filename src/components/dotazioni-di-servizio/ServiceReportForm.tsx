@@ -115,6 +115,7 @@ export default function ServiceReportForm() {
   });
 
   const selectedVehiclePlate = form.watch("vehiclePlate");
+  const vehicleInitialState = form.watch("vehicleInitialState"); // Watch the vehicleInitialState field
 
   useEffect(() => {
     const fetchLastKm = async () => {
@@ -271,6 +272,12 @@ export default function ServiceReportForm() {
   });
 
   const handleEmail = form.handleSubmit(async (values) => {
+    // Only send email if vehicleInitialState is "RICHIESTA MANUTENZIONE"
+    if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
+      showError("L'email di richiesta manutenzione può essere inviata solo se lo 'Stato Veicolo' è 'RICHIESTA MANUTENZIONE'.");
+      return;
+    }
+
     const employeeName = personaleList.find(p => p.id === values.employeeId);
     const employeeFullName = employeeName ? `${employeeName.nome} ${employeeName.cognome}` : 'N/A';
     const subject = `Rapporto Dotazioni di Servizio - ${employeeFullName} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
@@ -751,7 +758,12 @@ export default function ServiceReportForm() {
         </div>
 
         <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button type="button" className="bg-blue-600 hover:bg-blue-700" onClick={handleEmail}>
+          <Button 
+            type="button" 
+            className="bg-blue-600 hover:bg-blue-700" 
+            onClick={handleEmail}
+            disabled={vehicleInitialState !== "RICHIESTA MANUTENZIONE"} // Disable if not "RICHIESTA MANUTENZIONE"
+          >
             EMAIL RICHIESTA MANUTENZIONE
           </Button>
           <Button type="button" className="bg-green-600 hover:bg-green-700" onClick={handlePrintPdf}>
