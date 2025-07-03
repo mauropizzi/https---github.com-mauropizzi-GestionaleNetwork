@@ -17,10 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw } from "lucide-react";
-import { showInfo, showError } from "@/utils/toast";
+import { Printer, RefreshCcw, Edit, Trash2 } from "lucide-react"; // Import Edit and Trash2
+import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { printDotazioniReport } from "@/utils/printReport"; // Import the new print function
+import { printDotazioniReport } from "@/utils/printReport";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 interface DotazioniReport {
   id: string;
@@ -37,6 +38,7 @@ interface DotazioniReport {
 }
 
 export function DotazioniHistoryTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<DotazioniReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -90,6 +92,29 @@ export function DotazioniHistoryTable() {
     printDotazioniReport(reportId); // Call the new print function
   };
 
+  const handleEdit = useCallback((reportId: string) => {
+    navigate(`/dotazioni-di-servizio/edit/${reportId}`);
+  }, [navigate]);
+
+  const handleDelete = async (reportId: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il rapporto ${reportId}?`)) {
+      const { error } = await supabase
+        .from('rapporti_servizio')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) {
+        showError(`Errore durante l'eliminazione del rapporto: ${error.message}`);
+        console.error("Error deleting rapporto_servizio:", error);
+      } else {
+        showSuccess(`Rapporto ${reportId} eliminato con successo!`);
+        fetchDotazioniReports(); // Refresh data after deletion
+      }
+    } else {
+      showInfo(`Eliminazione del rapporto ${reportId} annullata.`);
+    }
+  };
+
   const columns: ColumnDef<DotazioniReport>[] = useMemo(() => [
     {
       accessorKey: "service_date",
@@ -124,10 +149,16 @@ export function DotazioniHistoryTable() {
           <Button variant="outline" size="sm" onClick={() => handlePrint(row.original.id)} title="Stampa PDF">
             <Printer className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original.id)} title="Modifica">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id)} title="Elimina">
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
-  ], []);
+  ], [handlePrint, handleEdit, handleDelete]);
 
   const table = useReactTable({
     data: filteredData,
