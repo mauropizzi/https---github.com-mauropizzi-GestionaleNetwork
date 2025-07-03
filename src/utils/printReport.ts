@@ -28,6 +28,14 @@ interface AllarmeIntervento {
   end_longitude?: number;
 }
 
+interface ServizioRichiesto {
+  id: string;
+  start_date: string;
+  start_time?: string | null;
+  end_date?: string | null;
+  end_time?: string | null;
+}
+
 const generateBarcodeImage = (text: string): string | null => {
   if (!text) return null;
   try {
@@ -43,6 +51,20 @@ const generateBarcodeImage = (text: string): string | null => {
   } catch (error: any) {
     console.error("Barcode generation error in PDF:", error);
     return null;
+  }
+};
+
+const formatDateTimeForPdf = (dateTimeString: string | null | undefined): string => {
+  if (!dateTimeString) return 'N/A';
+  try {
+    const date = parseISO(dateTimeString);
+    if (isValid(date)) {
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: it });
+    }
+    return 'N/A (Data non valida)';
+  } catch (e) {
+    console.error("Error formatting date for PDF:", e);
+    return 'N/A (Errore formato)';
   }
 };
 
@@ -81,6 +103,17 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     return null;
   }
 
+  // Fetch associated servizi_richiesti data
+  const { data: serviziRichiesti, error: serviziError } = await supabase
+    .from('servizi_richiesti')
+    .select('start_date, start_time, end_date, end_time')
+    .eq('id', reportId)
+    .single();
+
+  if (serviziError && serviziError.code !== 'PGRST116') { // PGRST116 means no rows found
+    console.warn(`Warning: Could not fetch associated servizi_richiesti for report ID ${reportId}: ${serviziError.message}`);
+  }
+
   // Fetch all necessary data for names in parallel
   const [
     puntiServizioList,
@@ -116,6 +149,7 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
 
   doc.setFontSize(10);
   const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
+  const interventionTime = servicePointMap.get(report.service_point_code)?.tempo_intervento || 'N/A';
   
   // Add checks for null/undefined/empty string before parsing
   const parsedCreatedAt = (report.created_at && typeof report.created_at === 'string') ? parseISO(report.created_at) : null;
@@ -126,37 +160,44 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   const operatorClientName = report.operator_client ? `${operatoriNetworkMap.get(report.operator_client)?.nome || ''} ${operatoriNetworkMap.get(report.operator_client)?.cognome || ''}`.trim() : 'N/A';
   const gpgInterventionName = report.gpg_intervention ? `${personnelMap.get(report.gpg_intervention)?.nome || ''} ${personnelMap.get(report.gpg_intervention)?.cognome || ''}`.trim() : 'N/A';
 
+  // Construct full datetime strings for formatting
+  const requestDateTimeFull = (report.report_date && report.report_time) ? `${report.report_date}T${report.report_time.substring(0, 5)}` : null;
+  const startDateTimeFull = (serviziRichiesti?.start_date && serviziRichiesti?.start_time) ? `${serviziRichiesti.start_date}T${serviziRichiesti.start_time.substring(0, 5)}` : null;
+  const endDateTimeFull = (serviziRichiesti?.end_date && serviziRichiesti?.end_time) ? `${serviziRichiesti.end_date}T${serviziRichiesti.end_time.substring(0, 5)}` : null;
+
 
   doc.text(`ID Rapporto: ${report.id}`, 14, y);
   y += 7;
   doc.text(`Data Creazione: ${parsedCreatedAt && isValid(parsedCreatedAt) ? format(parsedCreatedAt, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Data Intervento: ${parsedReportDate && isValid(parsedReportDate) ? format(parsedReportDate, "PPP", { locale: it }) : 'N/A'}`, 14, y);
-  y += 7;
-  doc.text(`Ora Intervento: ${report.report_time || 'N/A'}`, 14, y);
-  y += 7;
-
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
+  y += 7;
+  doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
   y += 7;
   doc.text(`Tipologia Richiesta: ${report.request_type || 'N/A'}`, 14, y);
   y += 7;
   doc.text(`Co-Operatore: ${coOperatorName}`, 14, y);
   y += 7;
-  doc.text(`Operatore Cliente: ${operatorClientName}`, 14, y);
+  doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(requestDateTimeFull)}`, 14, y);
+  y += 7;
+  if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
+    doc.text(`GPS Presa in Carico Richiesta: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
+    y += 7;
+  }
+  doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(startDateTimeFull)}`, 14, y);
+  y += 7;
+  if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
+    doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
+    y += 7;
+  }
+  doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(endDateTimeFull)}`, 14, y);
+  y += 7;
+  doc.text(`Operatore Network: ${operatorClientName}`, 14, y);
   y += 7;
   doc.text(`G.P.G. Intervento: ${gpgInterventionName}`, 14, y);
   y += 7;
   doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
-
-  if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
-    doc.text(`GPS Inizio Intervento: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
-    y += 7;
-  }
-  if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
-    doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
-    y += 7;
-  }
 
   // Parse and display notes details
   if (report.notes) {
