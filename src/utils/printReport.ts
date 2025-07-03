@@ -166,8 +166,8 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   const endDateTimeFull = (serviziRichiesti?.end_date && serviziRichiesti?.end_time) ? `${serviziRichiesti.end_date}T${serviziRichiesti.end_time.substring(0, 5)}` : null;
 
 
-  doc.text(`ID Rapporto: ${report.id}`, 14, y);
-  y += 7;
+  // doc.text(`ID Rapporto: ${report.id}`, 14, y); // Rimosso l'ID del rapporto
+  // y += 7;
   doc.text(`Data Creazione: ${parsedCreatedAt && isValid(parsedCreatedAt) ? format(parsedCreatedAt, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
