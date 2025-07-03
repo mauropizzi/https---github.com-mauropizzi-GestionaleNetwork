@@ -18,8 +18,11 @@ import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
 import { Mail, Printer, RotateCcw, RefreshCcw } from "lucide-react";
-import { showInfo, showError } from "@/utils/toast";
+import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { sendEmail } from "@/utils/email";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface CantiereReport {
   id: string;
@@ -36,8 +39,79 @@ interface CantiereReport {
   attrezziCount: number;
   nome_cliente?: string;
   nome_addetto?: string;
-  status?: string; // Added status field
+  status?: string;
 }
+
+const generateCantierePdfBlob = async (reportId: string): Promise<Blob | null> => {
+  const { data: report, error: reportError } = await supabase
+    .from('registri_cantiere')
+    .select('*, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome), addetto_riconsegna:personale!addetto_riconsegna_security_service(nome, cognome)')
+    .eq('id', reportId)
+    .single();
+
+  if (reportError || !report) {
+    showError(`Errore nel recupero del rapporto: ${reportError?.message}`);
+    return null;
+  }
+
+  const { data: automezzi, error: automezziError } = await supabase
+    .from('automezzi_utilizzati')
+    .select('*')
+    .eq('registro_cantiere_id', reportId);
+
+  const { data: attrezzi, error: attrezziError } = await supabase
+    .from('attrezzi_utilizzati')
+    .select('*')
+    .eq('registro_cantiere_id', reportId);
+
+  if (automezziError || attrezziError) {
+    showError(`Errore nel recupero dei dettagli del rapporto.`);
+    return null;
+  }
+
+  const doc = new jsPDF();
+  let y = 20;
+  doc.setFontSize(18);
+  doc.text("Rapporto di Cantiere", 14, y);
+  y += 10;
+  doc.setFontSize(10);
+
+  let body = `Data Rapporto: ${format(parseISO(report.report_date), 'dd/MM/yyyy')}\n`;
+  body += `Ora Rapporto: ${report.report_time}\n`;
+  body += `Cliente: ${report.clienti?.nome_cliente || 'N/A'}\n`;
+  body += `Punto Servizio / Cantiere: ${report.site_name}\n`;
+  body += `Addetto Security Service: ${report.addetto ? `${report.addetto.nome} ${report.addetto.cognome}` : 'N/A'}\n`;
+  body += `Servizio: ${report.service_provided}\n`;
+  body += `Inizio Servizio: ${report.start_datetime ? format(parseISO(report.start_datetime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+  body += `Fine Servizio: ${report.end_datetime ? format(parseISO(report.end_datetime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+
+  if (automezzi && automezzi.length > 0) {
+    body += `\n--- Automezzi Presenti ---\n`;
+    automezzi.forEach((auto, index) => {
+      body += `Automezzo ${index + 1}: Tipologia: ${auto.tipologia}, Marca: ${auto.marca}, Targa: ${auto.targa}\n`;
+    });
+  }
+
+  if (attrezzi && attrezzi.length > 0) {
+    body += `\n--- Attrezzi Presenti ---\n`;
+    attrezzi.forEach((attrezzo, index) => {
+      body += `Attrezzo ${index + 1}: Tipologia: ${attrezzo.tipologia}, Marca: ${attrezzo.marca}, Quantità: ${attrezzo.quantita}\n`;
+    });
+  }
+
+  if (report.notes) {
+    body += `\n--- Note Varie ---\n${report.notes}\n`;
+  }
+
+  body += `\n--- Riconsegna Cantiere ---\n`;
+  body += `Addetto Security Service Riconsegna: ${report.addetto_riconsegna ? `${report.addetto_riconsegna.nome} ${report.addetto_riconsegna.cognome}` : 'N/A'}\n`;
+  body += `Responsabile Committente Riconsegna: ${report.responsabile_committente_riconsegna || 'N/A'}\n`;
+  body += `ESITO SERVIZIO: ${report.esito_servizio || 'N/A'}\n`;
+  body += `CONSEGNE di Servizio: ${report.consegne_servizio || 'N/A'}\n`;
+
+  doc.text(body, 14, y);
+  return doc.output('blob');
+};
 
 export function CantiereHistoryTable() {
   const [data, setData] = useState<CantiereReport[]>([]);
@@ -90,6 +164,42 @@ export function CantiereHistoryTable() {
     fetchCantiereReports();
   }, [fetchCantiereReports]);
 
+  const handleEmailReport = useCallback(async (report: CantiereReport) => {
+    showInfo(`Preparazione email per il rapporto ${report.id}...`);
+    const pdfBlob = await generateCantierePdfBlob(report.id);
+    if (pdfBlob) {
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString().split(',')[1];
+        if (base64data) {
+          const subject = `Rapporto di Cantiere - ${report.nome_cliente} - ${report.site_name} - ${format(parseISO(report.report_date), 'dd/MM/yyyy')}`;
+          const textBody = "Si trasmettono in allegato i dettagli del rapporto di cantiere.\n\nCordiali saluti.";
+          sendEmail(subject, textBody, false, {
+            filename: `Rapporto_Cantiere_${report.id}.pdf`,
+            content: base64data,
+            contentType: 'application/pdf'
+          });
+        } else {
+          showError("Errore nella conversione del PDF in Base64.");
+        }
+      };
+      reader.onerror = () => {
+        showError("Errore nella lettura del file PDF.");
+      };
+    }
+  }, []);
+
+  const handlePrintReport = useCallback(async (reportId: string) => {
+    showInfo(`Generazione PDF per il rapporto ${reportId}...`);
+    const pdfBlob = await generateCantierePdfBlob(reportId);
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      showSuccess("PDF generato con successo!");
+    }
+  }, []);
+
   const filteredData = useMemo(() => {
     return data.filter(report => {
       const matchesSearch = searchTerm === "" ||
@@ -97,7 +207,7 @@ export function CantiereHistoryTable() {
         report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.nome_addetto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.service_provided.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.status?.toLowerCase().includes(searchTerm.toLowerCase()); // Include status in search
+        report.status?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDate = filterDate === "" ||
         report.report_date === filterDate;
@@ -152,7 +262,7 @@ export function CantiereHistoryTable() {
       },
     },
     {
-      accessorKey: "status", // New column for status
+      accessorKey: "status",
       header: "Stato",
       cell: ({ row }) => <span>{row.original.status || 'N/A'}</span>,
     },
@@ -161,10 +271,10 @@ export function CantiereHistoryTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => showInfo(`Invio email per CR${row.original.id}`)}>
+          <Button variant="outline" size="sm" onClick={() => handleEmailReport(row.original)}>
             <Mail className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => showInfo(`Stampa PDF per CR${row.original.id}`)}>
+          <Button variant="outline" size="sm" onClick={() => handlePrintReport(row.original.id)}>
             <Printer className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => showInfo(`Ripristino dati per CR${row.original.id}`)}>
@@ -173,7 +283,7 @@ export function CantiereHistoryTable() {
         </div>
       ),
     },
-  ], []);
+  ], [handleEmailReport, handlePrintReport]);
 
   const table = useReactTable({
     data: filteredData,
