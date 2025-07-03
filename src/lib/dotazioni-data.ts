@@ -35,7 +35,7 @@ export const vehicleInitialStateOptions: string[] = [
   "RICHIESTA MANUTENZIONE",
 ];
 
-export const bodyworkDamageOptions: string[] = [
+export const vehicleDamageOptions: string[] = [ // Renamed from bodyworkDamageOptions
   "NESSUNO",
   "CARROZZERIA",
   "CRISTALLI",

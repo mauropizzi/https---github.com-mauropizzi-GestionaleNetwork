@@ -33,6 +33,7 @@ interface DotazioniReport {
   vehicle_plate: string;
   start_km: number;
   end_km: number;
+  danni_veicolo?: string | null; // Updated field name
   // Joined fields
   nome_dipendente?: string;
 }
@@ -83,7 +84,8 @@ export function DotazioniHistoryTable() {
         report.nome_dipendente?.toLowerCase().includes(searchLower) ||
         report.service_location.toLowerCase().includes(searchLower) ||
         report.vehicle_plate.toLowerCase().includes(searchLower) ||
-        report.service_type.toLowerCase().includes(searchLower)
+        report.service_type.toLowerCase().includes(searchLower) ||
+        report.danni_veicolo?.toLowerCase().includes(searchLower) // Include new field in search
       );
     });
   }, [data, searchTerm]);
@@ -140,6 +142,11 @@ export function DotazioniHistoryTable() {
     {
       accessorKey: "end_km",
       header: "KM Fine",
+    },
+    {
+      accessorKey: "danni_veicolo", // New column for danni_veicolo
+      header: "Danni Veicolo", // New header
+      cell: ({ row }) => <span>{row.original.danni_veicolo || 'N/A'}</span>,
     },
     {
       id: "actions",

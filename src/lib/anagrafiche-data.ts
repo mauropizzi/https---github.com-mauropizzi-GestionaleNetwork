@@ -104,6 +104,32 @@ export interface ServiziCanone {
   unita_misura?: string | null; // New field
 }
 
+export interface RapportoServizio {
+  id: string;
+  created_at: string;
+  service_date: string;
+  employee_id: string;
+  service_location: string;
+  service_type: string;
+  start_time: string;
+  end_time: string;
+  vehicle_make_model: string;
+  vehicle_plate: string;
+  start_km: number;
+  end_km: number;
+  vehicle_initial_state: string;
+  danni_veicolo?: string | null; // Renamed from bodywork_damage
+  vehicle_anomalies?: string | null;
+  gps: boolean;
+  radio_vehicle: boolean;
+  swiveling_lamp: boolean;
+  radio_portable: boolean;
+  flashlight: boolean;
+  extinguisher: boolean;
+  spare_tire: boolean;
+  high_visibility_vest: boolean;
+}
+
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",

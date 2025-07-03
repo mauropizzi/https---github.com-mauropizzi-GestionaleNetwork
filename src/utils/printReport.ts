@@ -51,7 +51,7 @@ interface RapportoServizio {
   start_km: number;
   end_km: number;
   vehicle_initial_state: string;
-  bodywork_damage?: string | null;
+  danni_veicolo?: string | null; // Renamed from bodywork_damage
   vehicle_anomalies?: string | null;
   gps: boolean;
   radio_vehicle: boolean;
@@ -366,7 +366,7 @@ export const generateDotazioniReportPdfBlob = async (reportId: string): Promise<
   y += 7;
   doc.text(`Stato Veicolo: ${report.vehicle_initial_state || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Danni Carrozzeria: ${report.bodywork_damage || 'N/A'}`, 14, y);
+  doc.text(`Danni Veicolo: ${report.danni_veicolo || 'N/A'}`, 14, y); // Updated field name and label
   y += 7;
   if (report.vehicle_anomalies) {
     doc.text(`Anomalie Veicolo: ${report.vehicle_anomalies}`, 14, y);

@@ -40,7 +40,7 @@ import {
   vehicleMakeModelOptions,
   vehiclePlateOptions,
   vehicleInitialStateOptions,
-  bodyworkDamageOptions,
+  vehicleDamageOptions, // Updated import
 } from "@/lib/dotazioni-data";
 import { Personale, PuntoServizio } from "@/lib/anagrafiche-data";
 import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching";
@@ -60,7 +60,7 @@ const formSchema = z.object({
   startKm: z.coerce.number().min(0, "KM iniziali non validi."),
   endKm: z.coerce.number().min(0, "KM finali non validi."),
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo è richiesto."),
-  bodyworkDamage: z.string().min(1, "Danni carrozzeria è richiesto."),
+  danniVeicolo: z.string().min(1, "Danni veicolo è richiesto."), // Renamed from bodyworkDamage
   vehicleAnomalies: z.string().optional(),
   gps: z.enum(['si', 'no'], { required_error: 'Il campo GPS è obbligatorio.' }),
   radioVehicle: z.enum(['si', 'no'], { required_error: 'Il campo Radio Veicolare è obbligatorio.' }),
@@ -105,7 +105,7 @@ export default function ServiceReportForm() {
       startKm: 0,
       endKm: 0,
       vehicleInitialState: "",
-      bodyworkDamage: "",
+      danniVeicolo: "", // Updated field name
       vehicleAnomalies: "",
       gps: undefined,
       radioVehicle: undefined,
@@ -169,7 +169,7 @@ export default function ServiceReportForm() {
       start_km: values.startKm,
       end_km: values.endKm,
       vehicle_initial_state: values.vehicleInitialState,
-      bodywork_damage: values.bodyworkDamage,
+      danni_veicolo: values.danniVeicolo, // Updated field name
       vehicle_anomalies: values.vehicleAnomalies || null,
       gps: values.gps === 'si',
       radio_vehicle: values.radioVehicle === 'si',
@@ -236,7 +236,7 @@ export default function ServiceReportForm() {
       y += 7;
       doc.text(`Stato Veicolo: ${values.vehicleInitialState}`, 14, y);
       y += 7;
-      doc.text(`Danni Carrozzeria: ${values.bodyworkDamage}`, 14, y);
+      doc.text(`Danni Veicolo: ${values.danniVeicolo}`, 14, y); // Updated field name
       y += 7;
       if (values.vehicleAnomalies) {
         doc.text(`Anomalie Veicolo: ${values.vehicleAnomalies}`, 14, y);
@@ -647,10 +647,10 @@ export default function ServiceReportForm() {
           />
         <FormField
             control={form.control}
-            name="bodyworkDamage"
+            name="danniVeicolo" // Updated field name
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Danni Carrozzeria</FormLabel>
+                <FormLabel>Danni Veicolo</FormLabel> {/* Updated label */}
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -658,7 +658,7 @@ export default function ServiceReportForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {bodyworkDamageOptions.map((option) => (
+                    {vehicleDamageOptions.map((option) => ( // Updated options reference
                       <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>

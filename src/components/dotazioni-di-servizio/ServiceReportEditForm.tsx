@@ -39,7 +39,7 @@ import {
   vehicleMakeModelOptions,
   vehiclePlateOptions,
   vehicleInitialStateOptions,
-  bodyworkDamageOptions,
+  vehicleDamageOptions, // Updated import
 } from "@/lib/dotazioni-data";
 import { Personale, PuntoServizio } from "@/lib/anagrafiche-data";
 import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching";
@@ -60,7 +60,7 @@ const formSchema = z.object({
   startKm: z.coerce.number().min(0, "KM iniziali non validi."),
   endKm: z.coerce.number().min(0, "KM finali non validi."),
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo è richiesto."),
-  bodyworkDamage: z.string().min(1, "Danni carrozzeria è richiesto."),
+  danniVeicolo: z.string().min(1, "Danni veicolo è richiesto."), // Renamed from bodyworkDamage
   vehicleAnomalies: z.string().optional().nullable(),
   gps: z.enum(['si', 'no'], { required_error: 'Il campo GPS è obbligatorio.' }),
   radioVehicle: z.enum(['si', 'no'], { required_error: 'Il campo Radio Veicolare è obbligatorio.' }),
@@ -102,7 +102,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
       startKm: 0,
       endKm: 0,
       vehicleInitialState: "",
-      bodyworkDamage: "",
+      danniVeicolo: null, // Updated field name
       vehicleAnomalies: null,
       gps: undefined,
       radioVehicle: undefined,
@@ -154,7 +154,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
           startKm: report.start_km || 0,
           endKm: report.end_km || 0,
           vehicleInitialState: report.vehicle_initial_state || "",
-          bodyworkDamage: report.bodywork_damage || "",
+          danniVeicolo: report.danni_veicolo || null, // Updated field name
           vehicleAnomalies: report.vehicle_anomalies || null,
           gps: report.gps ? 'si' : 'no',
           radioVehicle: report.radio_vehicle ? 'si' : 'no',
@@ -222,7 +222,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
       start_km: values.startKm,
       end_km: values.endKm,
       vehicle_initial_state: values.vehicleInitialState,
-      bodywork_damage: values.bodyworkDamage || null,
+      danni_veicolo: values.danniVeicolo, // Updated field name
       vehicle_anomalies: values.vehicleAnomalies || null,
       gps: values.gps === 'si',
       radio_vehicle: values.radioVehicle === 'si',
@@ -644,10 +644,10 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
           />
         <FormField
             control={form.control}
-            name="bodyworkDamage"
+            name="danniVeicolo" // Updated field name
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Danni Carrozzeria</FormLabel>
+                <FormLabel>Danni Veicolo</FormLabel> {/* Updated label */}
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -655,7 +655,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {bodyworkDamageOptions.map((option) => (
+                    {vehicleDamageOptions.map((option) => ( // Updated options reference
                       <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>
