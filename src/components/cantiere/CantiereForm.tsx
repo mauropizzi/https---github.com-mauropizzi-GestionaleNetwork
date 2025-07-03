@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -66,14 +67,46 @@ const formSchema = z.object({
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
   // New fields for Riconsegna Cantiere
-  addettoRiconsegnaSecurityService: z.string().uuid("Seleziona un addetto valido.").optional().or(z.literal("")),
+  addettoRiconsegnaSecurityService: z.string().optional().or(z.literal("")),
   responsabileCommittenteRiconsegna: z.string().optional(),
   esitoServizio: z.string().optional(),
   consegneServizio: z.string().optional(),
-  status: z.enum(["attivo", "terminato"]).default("attivo"), // Added status field
+  status: z.enum(["attivo", "terminato"]).default("attivo"),
+  isCompleted: z.boolean().default(false), // New field for UI control
 }).refine(data => data.endDateTime >= data.startDateTime, {
   message: "La data/ora di fine non può essere precedente a quella di inizio.",
   path: ["endDateTime"],
+}).superRefine((data, ctx) => {
+  if (data.isCompleted) {
+    if (!data.addettoRiconsegnaSecurityService || data.addettoRiconsegnaSecurityService === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "L'addetto Security Service Riconsegna è richiesto per completare il rapporto.",
+        path: ["addettoRiconsegnaSecurityService"],
+      });
+    }
+    if (!data.responsabileCommittenteRiconsegna || data.responsabileCommittenteRiconsegna.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Il responsabile Committente Riconsegna è richiesto per completare il rapporto.",
+        path: ["responsabileCommittenteRiconsegna"],
+      });
+    }
+    if (!data.esitoServizio || data.esitoServizio === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "L'esito del servizio è richiesto per completare il rapporto.",
+        path: ["esitoServizio"],
+      });
+    }
+    if (!data.consegneServizio || data.consegneServizio.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Le consegne di servizio sono richieste per completare il rapporto.",
+        path: ["consegneServizio"],
+      });
+    }
+  }
 });
 
 interface CantiereFormProps {
@@ -123,7 +156,8 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       responsabileCommittenteRiconsegna: "",
       esitoServizio: "",
       consegneServizio: "",
-      status: "attivo", // Default status for new reports
+      status: "attivo",
+      isCompleted: false, // Default to false
     },
   });
 
@@ -174,6 +208,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
             esitoServizio: report.esito_servizio || "",
             consegneServizio: report.consegne_servizio || "",
             status: report.status || "attivo",
+            isCompleted: report.status === "terminato", // Set isCompleted based on fetched status
           });
         }
         setLoadingInitialData(false);
@@ -206,7 +241,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
       esito_servizio: values.esitoServizio || null,
       consegne_servizio: values.consegneServizio || null,
-      status: "terminato", // Set status to 'terminato' on successful submission
+      status: values.isCompleted ? "terminato" : "attivo", // Set status based on isCompleted
     };
 
     let registroId: string | null = null;
@@ -722,6 +757,25 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
                   <Textarea placeholder="Dettagli sulle consegne di servizio..." rows={3} {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isCompleted"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Segna come completato (richiede tutti i campi di riconsegna)
+                  </FormLabel>
+                </div>
               </FormItem>
             )}
           />
