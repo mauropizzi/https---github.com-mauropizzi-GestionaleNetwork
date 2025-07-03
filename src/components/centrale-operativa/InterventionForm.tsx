@@ -534,7 +534,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
         return;
       }
       if (!serviceOutcome || serviceOutcome.trim() === '') {
-        showError("Il campo 'Esito Evento' è obbligatorio per la chiusura.");
+        showError("L'Esito Evento è obbligatorio per la chiusura.");
         return;
       }
       if (!barcode || barcode.trim() === '') {
@@ -578,9 +578,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       co_operator: coOperator || null,
       operator_client: operatorNetworkId || null,
       gpg_intervention: gpgIntervention || null,
-      service_outcome: (isFinal || isPublicMode) ? (serviceOutcome || null) : null, // Save if final OR if in public mode
+      service_outcome: serviceOutcome || null, // Always save serviceOutcome if present
       notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
-      barcode: barcode, // Changed to save empty string if input is empty
+      barcode: barcode || null, // Always save barcode if present
       start_latitude: startLatitude || null,
       start_longitude: startLongitude || null,
       end_latitude: endLatitude || null,
