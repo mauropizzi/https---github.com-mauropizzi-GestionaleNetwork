@@ -658,7 +658,13 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       endLatitude: undefined,
       endLongitude: undefined,
     });
-    onSaveSuccess?.();
+    // Call onSaveSuccess if it's a new event (no eventId) or if it's a non-final save of an existing event
+    if (onSaveSuccess && (!eventId || !isFinal)) {
+      onSaveSuccess();
+    } else if (onSaveSuccess && eventId && isFinal) {
+      // If it's a final save of an existing event, still call onSaveSuccess
+      onSaveSuccess();
+    }
   };
 
   const handleCloseEvent = (e: React.FormEvent) => {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InterventionForm } from "@/components/centrale-operativa/InterventionForm";
 import { InterventionListTable } from "@/components/centrale-operativa/InterventionListTable";
-import { AlarmEventsInProgressTable } from "@/components/centrale-operativa/AlarmEventsInProgressTable"; // Import the new component
+import { AlarmEventsInProgressTable } from "@/components/centrale-operativa/AlarmEventsInProgressTable";
 import { useSearchParams } from "react-router-dom";
 
 const CentraleOperativa = () => {
@@ -21,6 +21,11 @@ const CentraleOperativa = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // Callback for successful save of a new event
+  const handleNewEventSaveSuccess = () => {
+    setSearchParams({ tab: "eventi-in-gestione" });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-6xl mx-auto">
@@ -32,13 +37,13 @@ const CentraleOperativa = () => {
           <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
               <TabsTrigger value="gestione-intervento">Inserisci Evento Allarme</TabsTrigger>
-              <TabsTrigger value="eventi-in-gestione">Eventi Allarme in Gestione</TabsTrigger> {/* Moved this tab */}
+              <TabsTrigger value="eventi-in-gestione">Eventi Allarme in Gestione</TabsTrigger>
               <TabsTrigger value="storico-interventi">Storico Eventi Allarme</TabsTrigger>
             </TabsList>
             <TabsContent value="gestione-intervento" className="mt-4">
-              <InterventionForm />
+              <InterventionForm onSaveSuccess={handleNewEventSaveSuccess} />
             </TabsContent>
-            <TabsContent value="eventi-in-gestione" className="mt-4"> {/* New tab content */}
+            <TabsContent value="eventi-in-gestione" className="mt-4">
               <AlarmEventsInProgressTable />
             </TabsContent>
             <TabsContent value="storico-interventi" className="mt-4">
