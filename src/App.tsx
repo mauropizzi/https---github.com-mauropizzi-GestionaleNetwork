@@ -9,21 +9,34 @@ import ServiceRequest from "./pages/ServiceRequest";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <BrowserRouter>
+// By defining the routes in a separate component, we ensure that any component
+// rendered by these routes (Index, ServiceRequest, etc.) and even this
+// AppRoutes component itself, can safely use hooks like useNavigate().
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/service-request" element={<ServiceRequest />} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const App = () => {
+  // The App component now sets up the providers and the BrowserRouter.
+  // It cannot use useNavigate() itself, but any component inside AppRoutes can.
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/service-request" element={<ServiceRequest />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </BrowserRouter>
-);
+  );
+};
 
 export default App;
