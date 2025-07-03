@@ -24,10 +24,14 @@ import { Procedure } from "@/lib/anagrafiche-data";
 import { ProcedureEditDialog } from "./ProcedureEditDialog";
 import { ProcedureDetailsDialog } from "./ProcedureDetailsDialog"; // Import the new dialog
 
-export function ProcedureTable() {
+interface ProcedureTableProps {
+  initialSearchTerm?: string; // New prop for initial search
+}
+
+export function ProcedureTable({ initialSearchTerm = "" }: ProcedureTableProps) {
   const [data, setData] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm); // Initialize with prop
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedProcedureForEdit, setSelectedProcedureForEdit] = useState<Procedure | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // New state for details dialog
@@ -52,6 +56,13 @@ export function ProcedureTable() {
   useEffect(() => {
     fetchProcedureData();
   }, [fetchProcedureData]);
+
+  // Update internal searchTerm if initialSearchTerm changes (e.g., from URL param)
+  useEffect(() => {
+    if (initialSearchTerm) {
+      setSearchTerm(initialSearchTerm);
+    }
+  }, [initialSearchTerm]);
 
   const handleView = useCallback((procedure: Procedure) => {
     setSelectedProcedureForDetails(procedure);

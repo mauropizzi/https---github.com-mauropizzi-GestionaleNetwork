@@ -21,7 +21,7 @@ const RegistroDiCantiere = () => {
         <CardHeader>
           <div className="flex items-center justify-center space-x-2">
             <CardTitle className="text-3xl font-bold text-center">Registro di Cantiere</CardTitle>
-            <PrefetchLink to="/anagrafiche/procedure">
+            <PrefetchLink to="/anagrafiche/procedure?initialSearch=cantiere">
               <FileText className="h-6 w-6 text-blue-600 hover:text-blue-800 cursor-pointer" title="Vai a Procedure Cantiere" />
             </PrefetchLink>
           </div>

@@ -19,14 +19,25 @@ const ProcedurePage = () => {
   const currentTab = searchParams.get("tab") || "lista-procedure";
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<any>(null);
+  const [initialSearchTerm, setInitialSearchTerm] = useState<string>(""); // New state for initial search
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
   };
 
   useEffect(() => {
-    if (!searchParams.get("tab")) {
+    const tabParam = searchParams.get("tab");
+    if (!tabParam) {
       setSearchParams({ tab: "lista-procedure" });
+    }
+
+    const initialSearch = searchParams.get("initialSearch");
+    if (initialSearch) {
+      setInitialSearchTerm(initialSearch);
+      // Optionally, remove the initialSearch param from URL after use
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.delete("initialSearch");
+      setSearchParams(newSearchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -108,7 +119,7 @@ const ProcedurePage = () => {
               <ProcedureForm />
             </TabsContent>
             <TabsContent value="lista-procedure" className="mt-4">
-              <ProcedureTable />
+              <ProcedureTable initialSearchTerm={initialSearchTerm} />
             </TabsContent>
           </Tabs>
         </CardContent>
