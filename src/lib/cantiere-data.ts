@@ -49,14 +49,31 @@ export const tipologiaAutomezzoOptions: string[] = [
 ];
 
 export const marcaAutomezzoOptions: string[] = [
-  "Fiat",
-  "Ford",
-  "Mercedes-Benz",
-  "BMW",
-  "Audi",
-  "Volkswagen",
+  "Bell",
+  "Bobcat",
+  "Caterpillar (CAT)",
+  "CIFA",
+  "DAF",
+  "Doosan",
+  "Hitachi",
   "Iveco",
-  "Renault",
+  "JCB",
+  "Komatsu",
+  "Kubota",
+  "Liebherr",
+  "MAN",
+  "Manitowoc",
+  "Mercedes-Benz",
+  "Palfinger",
+  "Putzmeister",
+  "SANY",
+  "Scania",
+  "Schwing",
+  "Terex",
+  "Terex Trucks",
+  "Volvo Construction Equipment",
+  "Volvo Trucks",
+  "Wacker Neuson",
 ];
 
 export const tipologiaAttrezzoOptions: string[] = [
