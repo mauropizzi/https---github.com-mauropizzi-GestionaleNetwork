@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"; // Import Check and ChevronsUpDown
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ import {
 } from "@/lib/dotazioni-data";
 import { Personale } from "@/lib/anagrafiche-data";
 import { fetchPersonale } from "@/lib/data-fetching";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"; // Import Command components
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 const formSchema = z.object({
   serviceDate: z.date({
@@ -77,7 +77,7 @@ const formSchema = z.object({
 
 export default function ServiceReportForm() {
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
-  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false); // State for popover
+  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
 
   useEffect(() => {
     const loadPersonale = async () => {
@@ -113,6 +113,38 @@ export default function ServiceReportForm() {
       highVisibilityVest: false,
     },
   });
+
+  const selectedVehiclePlate = form.watch("vehiclePlate");
+
+  useEffect(() => {
+    const fetchLastKm = async () => {
+      if (selectedVehiclePlate) {
+        const { data, error } = await supabase
+          .from('rapporti_servizio')
+          .select('end_km')
+          .eq('vehicle_plate', selectedVehiclePlate)
+          .order('service_date', { ascending: false })
+          .order('end_time', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+          showError(`Errore nel recupero dei KM precedenti: ${error.message}`);
+          console.error("Error fetching last KM:", error);
+        } else if (data) {
+          form.setValue("startKm", data.end_km, { shouldValidate: true });
+          showInfo(`KM Iniziali pre-compilati con l'ultimo KM finale (${data.end_km}) per la targa ${selectedVehiclePlate}.`);
+        } else {
+          form.setValue("startKm", 0, { shouldValidate: true }); // Reset if no previous data
+          showInfo(`Nessun KM precedente trovato per la targa ${selectedVehiclePlate}. KM Iniziali impostati a 0.`);
+        }
+      } else {
+        form.setValue("startKm", 0, { shouldValidate: true }); // Reset if no plate selected
+      }
+    };
+
+    fetchLastKm();
+  }, [selectedVehiclePlate, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log("Dati Rapporto di Servizio:", values);
@@ -160,9 +192,6 @@ export default function ServiceReportForm() {
   };
 
   const handleGpsTracking = () => {
-    // This form does not have latitude/longitude fields in its schema,
-    // but if it did, the logic would be similar to CantiereForm.
-    // For now, it's just a placeholder for potential future use or a different report type.
     showInfo("Funzionalità GPS non implementata per questo rapporto.");
   };
 
@@ -183,7 +212,7 @@ export default function ServiceReportForm() {
       y += 7;
       doc.text(`Dipendente: ${employeeFullName}`, 14, y);
       y += 7;
-      doc.text(`Segmento: ${values.serviceLocation}`, 14, y); // Changed label here
+      doc.text(`Segmento: ${values.serviceLocation}`, 14, y);
       y += 7;
       doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
       y += 7;
@@ -245,7 +274,7 @@ export default function ServiceReportForm() {
     const employeeName = personaleList.find(p => p.id === values.employeeId);
     const employeeFullName = employeeName ? `${employeeName.nome} ${employeeName.cognome}` : 'N/A';
     const subject = `Rapporto Dotazioni di Servizio - ${employeeFullName} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
-    const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali salduti.";
+    const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali saluti.";
     
     showInfo("Generazione PDF per l'allegato email...");
     const pdfBlob = await generatePdfBlob(values);
@@ -254,7 +283,7 @@ export default function ServiceReportForm() {
       const reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
       reader.onloadend = () => {
-        const base64data = reader.result?.toString().split(',')[1]; // Get base64 part
+        const base64data = reader.result?.toString().split(',')[1];
         if (base64data) {
           sendEmail(subject, textBody, false, {
             filename: `Rapporto_Dotazioni_Servizio_${format(values.serviceDate, 'yyyyMMdd')}.pdf`,
@@ -353,7 +382,7 @@ export default function ServiceReportForm() {
                             key={personale.id}
                             value={`${personale.nome} ${personale.cognome}`}
                             onSelect={() => {
-                              field.onChange(personale.id);
+                              form.setValue("employeeId", personale.id); // Use form.setValue directly
                               setIsEmployeeSelectOpen(false);
                             }}
                           >
