@@ -60,13 +60,17 @@ const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
   addetto: z.string().uuid("Seleziona un addetto valido.").nonempty("L'addetto è richiesto."),
   servizio: z.string().min(1, "Il servizio è richiesto."),
-  oreServizio: z.coerce.number().min(0.5, "Le ore di servizio devono essere almeno 0.5."),
+  startDateTime: z.date({ required_error: "La data e ora di inizio sono richieste." }),
+  endDateTime: z.date({ required_error: "La data e ora di fine sono richieste." }),
   descrizioneLavori: z.string().min(10, "La descrizione dei lavori è troppo breve.").max(500, "La descrizione dei lavori è troppo lunga."),
   noteVarie: z.string().optional(),
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
   latitude: z.coerce.number().optional(),
   longitude: z.coerce.number().optional(),
+}).refine(data => data.endDateTime >= data.startDateTime, {
+  message: "La data/ora di fine non può essere precedente a quella di inizio.",
+  path: ["endDateTime"],
 });
 
 export function CantiereForm() {
@@ -93,7 +97,8 @@ export function CantiereForm() {
       servicePointId: "",
       addetto: "",
       servizio: "",
-      oreServizio: 0,
+      startDateTime: undefined,
+      endDateTime: undefined,
       descrizioneLavori: "",
       noteVarie: "",
       automezzi: [],
@@ -131,7 +136,8 @@ export function CantiereForm() {
         site_name: siteName,
         employee_id: values.addetto,
         service_provided: values.servizio,
-        service_hours: values.oreServizio,
+        start_datetime: values.startDateTime.toISOString(),
+        end_datetime: values.endDateTime.toISOString(),
         work_description: values.descrizioneLavori,
         notes: values.noteVarie || null,
       }])
@@ -217,7 +223,8 @@ export function CantiereForm() {
     body += `Punto Servizio / Cantiere: ${servicePointName}\n`;
     body += `Addetto: ${addettoName}\n`;
     body += `Servizio: ${values.servizio}\n`;
-    body += `Ore di Servizio: ${values.oreServizio}\n`;
+    body += `Inizio Servizio: ${values.startDateTime ? format(values.startDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
+    body += `Fine Servizio: ${values.endDateTime ? format(values.endDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
     body += `\nDescrizione Lavori Svolti:\n${values.descrizioneLavori}\n`;
 
     if (values.automezzi && values.automezzi.length > 0) {
@@ -420,19 +427,48 @@ export function CantiereForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="oreServizio"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ore di Servizio</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.5" placeholder="8" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="startDateTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data e Ora Inizio Servizio</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''}
+                      onChange={(e) => {
+                        const date = parseISO(e.target.value);
+                        field.onChange(isValid(date) ? date : undefined);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="endDateTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data e Ora Fine Servizio</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''}
+                      onChange={(e) => {
+                        const date = parseISO(e.target.value);
+                        field.onChange(isValid(date) ? date : undefined);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </section>
 
         <section className="p-4 border rounded-lg shadow-sm bg-card">

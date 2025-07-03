@@ -23,18 +23,18 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface CantiereReport {
   id: string;
-  report_date: string; // Changed to string to match DB
-  report_time: string; // Changed to string to match DB
+  report_date: string;
+  report_time: string;
   client_id: string;
   site_name: string;
   employee_id: string;
   service_provided: string;
-  service_hours: number;
+  start_datetime?: string | null;
+  end_datetime?: string | null;
   work_description: string;
   notes?: string;
   automezziCount: number;
   attrezziCount: number;
-  // Joined fields
   nome_cliente?: string;
   nome_addetto?: string;
 }
@@ -49,7 +49,7 @@ export function CantiereHistoryTable() {
     setLoading(true);
     const { data: reportsData, error } = await supabase
       .from('registri_cantiere')
-      .select('*, clienti(nome_cliente), personale(nome, cognome)'); // Join clients and personale
+      .select('*, clienti(nome_cliente), personale(nome, cognome)');
 
     if (error) {
       showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
@@ -59,7 +59,6 @@ export function CantiereHistoryTable() {
       return;
     }
 
-    // Fetch counts for automezzi and attrezzi for each report
     const reportsWithCounts = await Promise.all(reportsData.map(async (report) => {
       const { count: automezziCount, error: automezziError } = await supabase
         .from('automezzi_utilizzati')
@@ -112,7 +111,6 @@ export function CantiereHistoryTable() {
       accessorKey: "report_date",
       header: "Data Rapporto",
       cell: ({ row }) => {
-        // Add check for null/undefined/empty string before parsing
         const date = (row.original.report_date && typeof row.original.report_date === 'string') ? parseISO(row.original.report_date) : null;
         return <span>{date ? format(date, "PPP", { locale: it }) : "N/A"}</span>;
       },
@@ -138,19 +136,20 @@ export function CantiereHistoryTable() {
       cell: ({ row }) => <span>{row.original.service_provided}</span>,
     },
     {
-      accessorKey: "service_hours",
-      header: "Ore",
-      cell: ({ row }) => <span>{row.original.service_hours}</span>,
+      accessorKey: "start_datetime",
+      header: "Inizio Servizio",
+      cell: ({ row }) => {
+        const date = row.original.start_datetime ? parseISO(row.original.start_datetime) : null;
+        return <span>{date ? format(date, "dd/MM/yyyy HH:mm", { locale: it }) : "N/A"}</span>;
+      },
     },
     {
-      accessorKey: "automezziCount",
-      header: "Automezzi",
-      cell: ({ row }) => <span>{row.original.automezziCount}</span>,
-    },
-    {
-      accessorKey: "attrezziCount",
-      header: "Attrezzi",
-      cell: ({ row }) => <span>{row.original.attrezziCount}</span>,
+      accessorKey: "end_datetime",
+      header: "Fine Servizio",
+      cell: ({ row }) => {
+        const date = row.original.end_datetime ? parseISO(row.original.end_datetime) : null;
+        return <span>{date ? format(date, "dd/MM/yyyy HH:mm", { locale: it }) : "N/A"}</span>;
+      },
     },
     {
       id: "actions",
