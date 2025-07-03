@@ -453,8 +453,17 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       endLongitude,
     } = formData;
 
-    if (!servicePoint || !requestType || !requestTime) {
-      showError("Punto Servizio, Tipologia Servizio Richiesto e Orario Richiesta sono obbligatori.");
+    // Basic validation for all saves (new or in-progress)
+    if (!servicePoint || servicePoint.trim() === '') {
+      showError("Il campo 'Punto Servizio' è obbligatorio.");
+      return;
+    }
+    if (!requestType || requestType.trim() === '') {
+      showError("Il campo 'Tipologia Servizio Richiesto' è obbligatorio.");
+      return;
+    }
+    if (!requestTime || requestTime.trim() === '') {
+      showError("Il campo 'Orario Richiesta C.O. Security Service' è obbligatorio.");
       return;
     }
 
@@ -478,22 +487,66 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       return;
     }
 
-    // Additional validation for final submission
+    // Additional validation for final submission (Chiudi Evento)
     if (isFinal) {
+      if (!coOperator || coOperator.trim() === '') {
+        showError("Il campo 'Operatore C.O. Security Service' è obbligatorio per la chiusura.");
+        return;
+      }
       if (!parsedStartTime) {
-        showError("Orario Inizio Intervento è obbligatorio per la chiusura.");
+        showError("Il campo 'Orario Inizio Intervento' è obbligatorio per la chiusura.");
         return;
       }
       if (!parsedEndTime) {
-        showError("Orario Fine Intervento è obbligatorio per la chiusura.");
+        showError("Il campo 'Orario Fine Intervento' è obbligatorio per la chiusura.");
         return;
       }
-      if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
-        showError("Tutti i campi 'SI/NO' sono obbligatori per la chiusura.");
+      if (fullAccess === undefined) {
+        showError("Il campo 'Accesso Completo' è obbligatorio per la chiusura.");
         return;
       }
-      if (!serviceOutcome) {
-        showError("L'Esito Evento è obbligatorio per la chiusura.");
+      if (vaultAccess === undefined) {
+        showError("Il campo 'Accesso Caveau' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!operatorNetworkId || operatorNetworkId.trim() === '') {
+        showError("Il campo 'Operatore Network' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!gpgIntervention || gpgIntervention.trim() === '') {
+        showError("Il campo 'G.P.G. Intervento' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (anomalies === undefined) {
+        showError("Il campo 'Anomalie Riscontrate' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (anomalies === 'si' && (!anomalyDescription || anomalyDescription.trim() === '')) {
+        showError("La 'Descrizione Anomalie' è obbligatoria se sono state riscontrate anomalie.");
+        return;
+      }
+      if (delay === undefined) {
+        showError("Il campo 'Ritardo' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (delay === 'si' && (!delayNotes || delayNotes.trim() === '')) {
+        showError("Il 'Motivo del Ritardo' è obbligatorio se c'è stato un ritardo.");
+        return;
+      }
+      if (!serviceOutcome || serviceOutcome.trim() === '') {
+        showError("Il campo 'Esito Evento' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!barcode || barcode.trim() === '') {
+        showError("Il campo 'Barcode' è obbligatorio per la chiusura.");
+        return;
+      }
+      if (startLatitude === undefined || startLongitude === undefined) {
+        showError("La 'Posizione GPS presa in carico Richiesta' è obbligatoria per la chiusura.");
+        return;
+      }
+      if (endLatitude === undefined || endLongitude === undefined) {
+        showError("La 'Posizione GPS Fine Intervento' è obbligatoria per la chiusura.");
         return;
       }
     }
@@ -659,10 +712,7 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
       endLongitude: undefined,
     });
     // Call onSaveSuccess if it's a new event (no eventId) or if it's a non-final save of an existing event
-    if (onSaveSuccess && (!eventId || !isFinal)) {
-      onSaveSuccess();
-    } else if (onSaveSuccess && eventId && isFinal) {
-      // If it's a final save of an existing event, still call onSaveSuccess
+    if (onSaveSuccess && (!eventId || isFinal)) { // Call onSaveSuccess only if it's a new event or a final save
       onSaveSuccess();
     }
   };
