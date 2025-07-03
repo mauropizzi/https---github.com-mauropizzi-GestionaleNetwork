@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"; // Import Check and ChevronsUpDown
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,8 @@ import {
   bodyworkDamageOptions,
 } from "@/lib/dotazioni-data";
 import { Personale } from "@/lib/anagrafiche-data";
-import { fetchPersonale } from "@/lib/data-fetching"; // Corretto il percorso di importazione
+import { fetchPersonale } from "@/lib/data-fetching";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"; // Import Command components
 
 const formSchema = z.object({
   serviceDate: z.date({
@@ -76,6 +77,7 @@ const formSchema = z.object({
 
 export default function ServiceReportForm() {
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
+  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false); // State for popover
 
   useEffect(() => {
     const loadPersonale = async () => {
@@ -321,20 +323,53 @@ export default function ServiceReportForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Dipendente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un dipendente" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {personaleList.map((personale) => (
-                      <SelectItem key={personale.id} value={personale.id}>
-                        {personale.nome} {personale.cognome} ({personale.ruolo})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={isEmployeeSelectOpen} onOpenChange={setIsEmployeeSelectOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isEmployeeSelectOpen}
+                        className="w-full justify-between"
+                      >
+                        {field.value
+                          ? personaleList.find(
+                              (personale) => personale.id === field.value
+                            )?.nome + " " + personaleList.find(
+                              (personale) => personale.id === field.value
+                            )?.cognome
+                          : "Seleziona un dipendente"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca dipendente..." />
+                      <CommandEmpty>Nessun dipendente trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {personaleList.map((personale) => (
+                          <CommandItem
+                            key={personale.id}
+                            value={`${personale.nome} ${personale.cognome}`}
+                            onSelect={() => {
+                              field.onChange(personale.id);
+                              setIsEmployeeSelectOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === personale.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {personale.nome} {personale.cognome} ({personale.ruolo})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
