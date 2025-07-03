@@ -267,6 +267,11 @@ export const useInterventionActions = ({
       showError("Il campo 'Orario Richiesta C.O. Security Service' è obbligatorio.");
       return false;
     }
+    // GPG Intervention is now mandatory for any save
+    if (!gpgIntervention || gpgIntervention.trim() === '') {
+      showError("Il campo 'G.P.G. Intervento' è obbligatorio.");
+      return false;
+    }
 
     const parsedRequestDateTime = requestTime ? parseISO(requestTime) : null;
     if (!parsedRequestDateTime || !isValid(parsedRequestDateTime)) {
@@ -305,10 +310,6 @@ export const useInterventionActions = ({
       }
       if (!operatorNetworkId || operatorNetworkId.trim() === '') {
         showError("Il campo 'Operatore Network' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (!gpgIntervention || gpgIntervention.trim() === '') {
-        showError("Il campo 'G.P.G. Intervento' è obbligatorio per la chiusura.");
         return false;
       }
       if (anomalies === undefined) {
@@ -411,7 +412,7 @@ export const useInterventionActions = ({
       barcode: barcode || null,
       start_latitude: startLatitude || null,
       start_longitude: startLongitude || null,
-      end_latitude: endLatitude || null,
+      end_latitude: endLongitude || null,
       end_longitude: endLongitude || null,
     };
 
