@@ -17,29 +17,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Printer, RefreshCcw, Edit, Trash2 } from "lucide-react"; // Import Edit and Trash2
+import { Printer, RefreshCcw, Edit, Trash2 } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { printDotazioniReport } from "@/utils/printReport";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 interface DotazioniReport {
   id: string;
   service_date: string;
   employee_id: string;
   service_location: string;
+  service_location_id?: string | null; // Added service_location_id
   service_type: string;
   vehicle_make_model: string;
   vehicle_plate: string;
   start_km: number;
   end_km: number;
-  danni_veicolo?: string | null; // Updated field name
+  danni_veicolo?: string | null;
   // Joined fields
   nome_dipendente?: string;
 }
 
 export function DotazioniHistoryTable() {
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const [data, setData] = useState<DotazioniReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,13 +86,13 @@ export function DotazioniHistoryTable() {
         report.service_location.toLowerCase().includes(searchLower) ||
         report.vehicle_plate.toLowerCase().includes(searchLower) ||
         report.service_type.toLowerCase().includes(searchLower) ||
-        report.danni_veicolo?.toLowerCase().includes(searchLower) // Include new field in search
+        report.danni_veicolo?.toLowerCase().includes(searchLower)
       );
     });
   }, [data, searchTerm]);
 
   const handlePrint = (reportId: string) => {
-    printDotazioniReport(reportId); // Call the new print function
+    printDotazioniReport(reportId);
   };
 
   const handleEdit = useCallback((reportId: string) => {
@@ -110,7 +111,7 @@ export function DotazioniHistoryTable() {
         console.error("Error deleting rapporto_servizio:", error);
       } else {
         showSuccess(`Rapporto ${reportId} eliminato con successo!`);
-        fetchDotazioniReports(); // Refresh data after deletion
+        fetchDotazioniReports();
       }
     } else {
       showInfo(`Eliminazione del rapporto ${reportId} annullata.`);
@@ -144,8 +145,8 @@ export function DotazioniHistoryTable() {
       header: "KM Fine",
     },
     {
-      accessorKey: "danni_veicolo", // New column for danni_veicolo
-      header: "Danni Veicolo", // New header
+      accessorKey: "danni_veicolo",
+      header: "Danni Veicolo",
       cell: ({ row }) => <span>{row.original.danni_veicolo || 'N/A'}</span>,
     },
     {

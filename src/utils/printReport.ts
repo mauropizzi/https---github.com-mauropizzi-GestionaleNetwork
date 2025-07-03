@@ -4,9 +4,9 @@ import { format, parseISO, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPuntiServizio, fetchPersonale, fetchOperatoriNetwork } from "@/lib/data-fetching"; // Import fetchPersonale and fetchOperatoriNetwork
-import { PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data"; // Import Personale and OperatoreNetwork interfaces
-import JsBarcode from 'jsbarcode'; // Import JsBarcode
+import { fetchPuntiServizio, fetchPersonale, fetchOperatoriNetwork } from "@/lib/data-fetching";
+import { PuntoServizio, Personale, OperatoreNetwork } from "@/lib/anagrafiche-data";
+import JsBarcode from 'jsbarcode';
 
 // Define the structure of an alarm intervention report from Supabase
 interface AllarmeIntervento {
@@ -21,7 +21,7 @@ interface AllarmeIntervento {
   gpg_intervention?: string;
   service_outcome?: string;
   notes?: string;
-  barcode?: string; // Added barcode field
+  barcode?: string;
   start_latitude?: number;
   start_longitude?: number;
   end_latitude?: number;
@@ -43,6 +43,7 @@ interface RapportoServizio {
   service_date: string;
   employee_id: string;
   service_location: string;
+  service_location_id?: string | null; // Added for consistency
   service_type: string;
   start_time: string;
   end_time: string;
@@ -51,7 +52,7 @@ interface RapportoServizio {
   start_km: number;
   end_km: number;
   vehicle_initial_state: string;
-  danni_veicolo?: string | null; // Renamed from bodywork_damage
+  danni_veicolo?: string | null;
   vehicle_anomalies?: string | null;
   gps: boolean;
   radio_vehicle: boolean;
@@ -61,6 +62,32 @@ interface RapportoServizio {
   extinguisher: boolean;
   spare_tire: boolean;
   high_visibility_vest: boolean;
+  personale?: { nome: string; cognome: string } | null; // For joined data
+}
+
+// Define a type for the form values for dotazioni report
+interface DotazioniFormValues {
+  serviceDate: Date;
+  employeeId: string;
+  servicePointId: string;
+  serviceType: string;
+  startTime: string;
+  endTime: string;
+  vehicleMakeModel: string;
+  vehiclePlate: string;
+  startKm: number;
+  endKm: number;
+  vehicleInitialState: string;
+  danniVeicolo: string | null;
+  vehicleAnomalies: string | null;
+  gps: 'si' | 'no';
+  radioVehicle: 'si' | 'no';
+  swivelingLamp: 'si' | 'no';
+  radioPortable: 'si' | 'no';
+  flashlight: 'si' | 'no';
+  extinguisher: 'si' | 'no';
+  spareTire: 'si' | 'no';
+  highVisibilityVest: 'si' | 'no';
 }
 
 const generateBarcodeImage = (text: string): string | null => {
@@ -115,7 +142,7 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
       start_longitude,
       end_latitude,
       end_longitude
-    `) // Explicitly select all fields needed
+    `)
     .eq('id', reportId)
     .single();
 
@@ -130,29 +157,26 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     return null;
   }
 
-  // Fetch associated servizi_richiesti data
   const { data: serviziRichiesti, error: serviziError } = await supabase
     .from('servizi_richiesti')
     .select('start_date, start_time, end_date, end_time')
     .eq('id', reportId)
     .single();
 
-  if (serviziError && serviziError.code !== 'PGRST116') { // PGRST116 means no rows found
+  if (serviziError && serviziError.code !== 'PGRST116') {
     console.warn(`Warning: Could not fetch associated servizi_richiesti for report ID ${reportId}: ${serviziError.message}`);
   }
 
-  // Fetch all necessary data for names in parallel
   const [
     puntiServizioList,
-    allPersonaleList, // Fetch all personnel
-    allOperatoriNetworkList // Fetch all network operators
+    allPersonaleList,
+    allOperatoriNetworkList
   ] = await Promise.all([
     fetchPuntiServizio(),
     fetchPersonale(),
     fetchOperatoriNetwork()
   ]);
 
-  // Create maps for quick lookup
   const servicePointMap = new Map<string, PuntoServizio>();
   puntiServizioList.forEach(p => {
     servicePointMap.set(p.id, p);
@@ -178,23 +202,16 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   const servicePointName = servicePointMap.get(report.service_point_code)?.nome_punto_servizio || report.service_point_code || 'N/A';
   const interventionTime = servicePointMap.get(report.service_point_code)?.tempo_intervento || 'N/A';
   
-  // Add checks for null/undefined/empty string before parsing
   const parsedCreatedAt = (report.created_at && typeof report.created_at === 'string') ? parseISO(report.created_at) : null;
-  const parsedReportDate = (report.report_date && typeof report.report_date === 'string') ? parseISO(report.report_date) : null;
 
-  // Get names for IDs
   const coOperatorName = report.co_operator ? `${personnelMap.get(report.co_operator)?.nome || ''} ${personnelMap.get(report.co_operator)?.cognome || ''}`.trim() : 'N/A';
   const operatorClientName = report.operator_client ? `${operatoriNetworkMap.get(report.operator_client)?.nome || ''} ${operatoriNetworkMap.get(report.operator_client)?.cognome || ''}`.trim() : 'N/A';
   const gpgInterventionName = report.gpg_intervention ? `${personnelMap.get(report.gpg_intervention)?.nome || ''} ${personnelMap.get(report.gpg_intervention)?.cognome || ''}`.trim() : 'N/A';
 
-  // Construct full datetime strings for formatting
   const requestDateTimeFull = (report.report_date && report.report_time) ? `${report.report_date}T${report.report_time.substring(0, 5)}` : null;
   const startDateTimeFull = (serviziRichiesti?.start_date && serviziRichiesti?.start_time) ? `${serviziRichiesti.start_date}T${serviziRichiesti.start_time.substring(0, 5)}` : null;
   const endDateTimeFull = (serviziRichiesti?.end_date && serviziRichiesti?.end_time) ? `${serviziRichiesti.end_date}T${serviziRichiesti.end_time.substring(0, 5)}` : null;
 
-
-  // doc.text(`ID Rapporto: ${report.id}`, 14, y); // Rimosso l'ID del rapporto
-  // y += 7;
   doc.text(`Data Creazione: ${parsedCreatedAt && isValid(parsedCreatedAt) ? format(parsedCreatedAt, "PPP HH:mm", { locale: it }) : 'N/A'}`, 14, y);
   y += 7;
   doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
@@ -207,18 +224,8 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   y += 7;
   doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(requestDateTimeFull)}`, 14, y);
   y += 7;
-  // Rimosse le righe per la posizione GPS di inizio
-  // if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
-  //   doc.text(`GPS Presa in Carico Richiesta: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
-  //   y += 7;
-  // }
   doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(startDateTimeFull)}`, 14, y);
   y += 7;
-  // Rimosse le righe per la posizione GPS di fine
-  // if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
-  //   doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
-  //   y += 7;
-  // }
   doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(endDateTimeFull)}`, 14, y);
   y += 7;
   doc.text(`Operatore Network: ${operatorClientName}`, 14, y);
@@ -228,7 +235,6 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   doc.text(`Esito Servizio: ${report.service_outcome || 'N/A'}`, 14, y);
   y += 7;
 
-  // Parse and display notes details
   if (report.notes) {
     const notesArray = report.notes.split('; ').map((s: string) => s.trim());
     let fullAccess = 'N/A';
@@ -275,7 +281,6 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     }
     y += 7;
   } else {
-    // If no notes, still display N/A for these fields
     doc.text(`Accesso Completo: N/A`, 14, y);
     y += 7;
     doc.text(`Accesso Caveau: N/A`, 14, y);
@@ -317,24 +322,72 @@ export const printSingleServiceReport = async (reportId: string) => {
   }
 };
 
-export const generateDotazioniReportPdfBlob = async (reportId: string): Promise<Blob | null> => {
-  const { data: report, error } = await supabase
-    .from('rapporti_servizio')
-    .select(`
-      *,
-      personale(nome, cognome)
-    `)
-    .eq('id', reportId)
-    .single();
+export const generateDotazioniReportPdfBlob = async (
+  reportId?: string,
+  formData?: DotazioniFormValues,
+  personaleList?: Personale[],
+  puntiServizioList?: PuntoServizio[]
+): Promise<Blob | null> => {
+  let report: RapportoServizio | null = null;
+  let employeeFullName: string = 'N/A';
+  let servicePointName: string = 'N/A';
 
-  if (error) {
-    showError(`Errore nel recupero del rapporto dotazioni di servizio: ${error.message}`);
-    console.error("Error fetching single dotazioni report:", error);
+  if (reportId) {
+    // Fetch data from DB for existing report
+    const { data, error } = await supabase
+      .from('rapporti_servizio')
+      .select(`
+        *,
+        personale(nome, cognome)
+      `)
+      .eq('id', reportId)
+      .single();
+
+    if (error) {
+      showError(`Errore nel recupero del rapporto dotazioni di servizio: ${error.message}`);
+      console.error("Error fetching single dotazioni report:", error);
+      return null;
+    }
+    report = data;
+    employeeFullName = report?.personale ? `${report.personale.nome} ${report.personale.cognome}` : 'N/A';
+    servicePointName = report?.service_location || 'N/A'; // Use service_location from DB
+  } else if (formData && personaleList && puntiServizioList) {
+    // Use provided form data for new report
+    report = {
+      id: 'NEW_REPORT', // Placeholder ID
+      created_at: new Date().toISOString(),
+      service_date: format(formData.serviceDate, 'yyyy-MM-dd'),
+      employee_id: formData.employeeId,
+      service_location_id: formData.servicePointId,
+      service_location: puntiServizioList.find(p => p.id === formData.servicePointId)?.nome_punto_servizio || 'N/A',
+      service_type: formData.serviceType,
+      start_time: formData.startTime,
+      end_time: formData.endTime,
+      vehicle_make_model: formData.vehicleMakeModel,
+      vehicle_plate: formData.vehiclePlate,
+      start_km: formData.startKm,
+      end_km: formData.endKm,
+      vehicle_initial_state: formData.vehicleInitialState,
+      danni_veicolo: formData.danniVeicolo,
+      vehicle_anomalies: formData.vehicleAnomalies,
+      gps: formData.gps === 'si',
+      radio_vehicle: formData.radioVehicle === 'si',
+      swiveling_lamp: formData.swivelingLamp === 'si',
+      radio_portable: formData.radioPortable === 'si',
+      flashlight: formData.flashlight === 'si',
+      extinguisher: formData.extinguisher === 'si',
+      spare_tire: formData.spareTire === 'si',
+      high_visibility_vest: formData.highVisibilityVest === 'si',
+    };
+    employeeFullName = personaleList.find(p => p.id === formData.employeeId)?.nome + ' ' + (personaleList.find(p => p.id === formData.employeeId)?.cognome || '') || 'N/A';
+    servicePointName = puntiServizioList.find(p => p.id === formData.servicePointId)?.nome_punto_servizio || 'N/A';
+  } else {
+    showError("Dati insufficienti per generare il PDF del rapporto dotazioni di servizio.");
     return null;
   }
 
   if (!report) {
-    showError(`Rapporto dotazioni di servizio con ID ${reportId} non trovato.`);
+    showError(`Rapporto dotazioni di servizio non trovato.`);
     return null;
   }
 
@@ -346,13 +399,12 @@ export const generateDotazioniReportPdfBlob = async (reportId: string): Promise<
   y += 10;
 
   doc.setFontSize(10);
-  const employeeFullName = report.personale ? `${report.personale.nome} ${report.personale.cognome}` : 'N/A';
 
   doc.text(`Data Servizio: ${format(parseISO(report.service_date), 'PPP', { locale: it })}`, 14, y);
   y += 7;
   doc.text(`Dipendente: ${employeeFullName}`, 14, y);
   y += 7;
-  doc.text(`Punto Servizio: ${report.service_location || 'N/A'}`, 14, y);
+  doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
   y += 7;
   doc.text(`Tipo Servizio: ${report.service_type || 'N/A'}`, 14, y);
   y += 7;
@@ -366,7 +418,7 @@ export const generateDotazioniReportPdfBlob = async (reportId: string): Promise<
   y += 7;
   doc.text(`Stato Veicolo: ${report.vehicle_initial_state || 'N/A'}`, 14, y);
   y += 7;
-  doc.text(`Danni Veicolo: ${report.danni_veicolo || 'N/A'}`, 14, y); // Updated field name and label
+  doc.text(`Danni Veicolo: ${report.danni_veicolo || 'N/A'}`, 14, y);
   y += 7;
   if (report.vehicle_anomalies) {
     doc.text(`Anomalie Veicolo: ${report.vehicle_anomalies}`, 14, y);
