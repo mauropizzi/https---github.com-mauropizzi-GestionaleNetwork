@@ -180,16 +180,18 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
   y += 7;
   doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(requestDateTimeFull)}`, 14, y);
   y += 7;
-  if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
-    doc.text(`GPS Presa in Carico Richiesta: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
-    y += 7;
-  }
+  // Rimosse le righe per la posizione GPS di inizio
+  // if (report.start_latitude !== undefined && report.start_latitude !== null && report.start_longitude !== undefined && report.start_longitude !== null) {
+  //   doc.text(`GPS Presa in Carico Richiesta: Lat ${report.start_latitude.toFixed(6)}, Lon ${report.start_longitude.toFixed(6)}`, 14, y);
+  //   y += 7;
+  // }
   doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(startDateTimeFull)}`, 14, y);
   y += 7;
-  if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
-    doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
-    y += 7;
-  }
+  // Rimosse le righe per la posizione GPS di fine
+  // if (report.end_latitude !== undefined && report.end_latitude !== null && report.end_longitude !== undefined && report.end_longitude !== null) {
+  //   doc.text(`GPS Fine Intervento: Lat ${report.end_latitude.toFixed(6)}, Lon ${report.end_longitude.toFixed(6)}`, 14, y);
+  //   y += 7;
+  // }
   doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(endDateTimeFull)}`, 14, y);
   y += 7;
   doc.text(`Operatore Network: ${operatorClientName}`, 14, y);
