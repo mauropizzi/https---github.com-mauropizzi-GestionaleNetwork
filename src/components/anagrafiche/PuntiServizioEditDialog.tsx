@@ -36,7 +36,7 @@ interface PuntoServizioEditDialogProps {
 
 const formSchema = z.object({
   nome_punto_servizio: z.string().min(2, "Il nome del punto servizio è richiesto."),
-  id_cliente: z.string().uuid("Seleziona un cliente valido.").optional().nullable(),
+  id_cliente: z.string().uuid("Seleziona un cliente valido.").nonempty("Il cliente è richiesto."), // Changed to non-empty
   indirizzo: z.string().min(2, "L'indirizzo è richiesto."),
   citta: z.string().min(2, "La città è richiesto."),
   cap: z.string().optional().nullable(),
@@ -65,7 +65,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
     resolver: zodResolver(formSchema),
     defaultValues: {
       nome_punto_servizio: "",
-      id_cliente: null,
+      id_cliente: "", // Changed default to empty string
       indirizzo: "",
       citta: "",
       cap: null,
@@ -102,7 +102,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
     if (puntoServizio) {
       form.reset({
         nome_punto_servizio: puntoServizio.nome_punto_servizio,
-        id_cliente: puntoServizio.id_cliente || null,
+        id_cliente: puntoServizio.id_cliente || "", // Map null to empty string for non-empty validation
         indirizzo: puntoServizio.indirizzo || "",
         citta: puntoServizio.citta || "",
         cap: puntoServizio.cap || null,
@@ -200,7 +200,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
                 <FormItem>
                   <FormLabel>Cliente Associato</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? null : value)}
+                    onValueChange={(value) => field.onChange(value === "DYAD_EMPTY_VALUE" ? "" : value)}
                     value={field.value || "DYAD_EMPTY_VALUE"}
                   >
                     <FormControl>
@@ -209,7 +209,7 @@ export function PuntiServizioEditDialog({ isOpen, onClose, puntoServizio, onSave
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DYAD_EMPTY_VALUE">Nessun Cliente Associato</SelectItem>
+                      <SelectItem value="DYAD_EMPTY_VALUE">Seleziona un cliente</SelectItem>
                       {clienti.map((cliente) => (
                         <SelectItem key={cliente.id} value={cliente.id}>
                           {cliente.nome_cliente}
