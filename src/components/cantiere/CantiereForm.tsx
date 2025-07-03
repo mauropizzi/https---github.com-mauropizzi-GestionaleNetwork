@@ -70,6 +70,7 @@ const formSchema = z.object({
   responsabileCommittenteRiconsegna: z.string().optional(),
   esitoServizio: z.string().optional(),
   consegneServizio: z.string().optional(),
+  status: z.enum(["attivo", "terminato"]).default("attivo"), // Added status field
 }).refine(data => data.endDateTime >= data.startDateTime, {
   message: "La data/ora di fine non può essere precedente a quella di inizio.",
   path: ["endDateTime"],
@@ -116,6 +117,7 @@ export function CantiereForm() {
       responsabileCommittenteRiconsegna: "",
       esitoServizio: "",
       consegneServizio: "",
+      status: "attivo", // Default status for new reports
     },
   });
 
@@ -155,6 +157,7 @@ export function CantiereForm() {
         responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
         esito_servizio: values.esitoServizio || null,
         consegne_servizio: values.consegneServizio || null,
+        status: "terminato", // Set status to 'terminato' on successful submission
       }])
       .select('id')
       .single();

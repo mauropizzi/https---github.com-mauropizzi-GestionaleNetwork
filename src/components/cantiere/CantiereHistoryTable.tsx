@@ -36,6 +36,7 @@ interface CantiereReport {
   attrezziCount: number;
   nome_cliente?: string;
   nome_addetto?: string;
+  status?: string; // Added status field
 }
 
 export function CantiereHistoryTable() {
@@ -48,7 +49,7 @@ export function CantiereHistoryTable() {
     setLoading(true);
     const { data: reportsData, error } = await supabase
       .from('registri_cantiere')
-      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, clienti(nome_cliente), personale(nome, cognome)');
+      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, status, clienti(nome_cliente), personale(nome, cognome)'); // Select status
 
     if (error) {
       showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
@@ -95,7 +96,8 @@ export function CantiereHistoryTable() {
         report.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.nome_addetto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.service_provided.toLowerCase().includes(searchTerm.toLowerCase());
+        report.service_provided.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.status?.toLowerCase().includes(searchTerm.toLowerCase()); // Include status in search
 
       const matchesDate = filterDate === "" ||
         report.report_date === filterDate;
@@ -148,6 +150,11 @@ export function CantiereHistoryTable() {
         const date = row.original.end_datetime ? parseISO(row.original.end_datetime) : null;
         return <span>{date ? format(date, "dd/MM/yyyy HH:mm", { locale: it }) : "N/A"}</span>;
       },
+    },
+    {
+      accessorKey: "status", // New column for status
+      header: "Stato",
+      cell: ({ row }) => <span>{row.original.status || 'N/A'}</span>,
     },
     {
       id: "actions",
