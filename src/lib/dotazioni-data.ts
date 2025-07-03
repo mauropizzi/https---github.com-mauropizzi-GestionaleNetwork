@@ -21,7 +21,7 @@ export const serviceLocationOptions: string[] = [
 
 export const serviceTypeOptions: string[] = [
   "G.P.G.",
-  "A.S.F.",
+  "Addetto Servizi Fiduciari", // Modificato da "A.S.F."
 ];
 
 export const vehicleMakeModelOptions: string[] = [
