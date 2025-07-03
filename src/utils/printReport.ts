@@ -49,7 +49,24 @@ const generateBarcodeImage = (text: string): string | null => {
 export const generateSingleServiceReportPdfBlob = async (reportId: string): Promise<Blob | null> => {
   const { data: report, error } = await supabase
     .from('allarme_interventi')
-    .select('*, start_latitude, start_longitude, end_latitude, end_longitude, barcode') // Explicitly select GPS and barcode fields
+    .select(`
+      id,
+      created_at,
+      report_date,
+      report_time,
+      service_point_code,
+      request_type,
+      co_operator,
+      operator_client,
+      gpg_intervention,
+      service_outcome,
+      notes,
+      barcode,
+      start_latitude,
+      start_longitude,
+      end_latitude,
+      end_longitude
+    `) // Explicitly select all fields needed
     .eq('id', reportId)
     .single();
 
@@ -141,31 +158,80 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
     y += 7;
   }
 
+  // Parse and display notes details
   if (report.notes) {
-    y += 5;
-    doc.setFontSize(12);
-    doc.text("Note:", 14, y);
-    y += 5;
-    doc.setFontSize(10);
-    const splitNotes = doc.splitTextToSize(report.notes, 180);
-    doc.text(splitNotes, 14, y);
-    y += (splitNotes.length * 5);
+    const notesArray = report.notes.split('; ').map((s: string) => s.trim());
+    let fullAccess = 'N/A';
+    let vaultAccess = 'N/A';
+    let anomaliesText = 'NO';
+    let delayText = 'NO';
+    let anomalyDescription = '';
+    let delayNotes = '';
+
+    notesArray.forEach((note: string) => {
+      if (note.startsWith('Accesso Completo:')) {
+        fullAccess = note.replace('Accesso Completo:', '').trim();
+      } else if (note.startsWith('Accesso Caveau:')) {
+        vaultAccess = note.replace('Accesso Caveau:', '').trim();
+      } else if (note.startsWith('Anomalie:')) {
+        anomaliesText = 'SI';
+        anomalyDescription = note.replace('Anomalie:', '').trim();
+      } else if (note.startsWith('Ritardo:')) {
+        delayText = 'SI';
+        delayNotes = note.replace('Ritardo:', '').trim();
+      }
+    });
+
+    doc.text(`Accesso Completo: ${fullAccess}`, 14, y);
+    y += 7;
+    doc.text(`Accesso Caveau: ${vaultAccess}`, 14, y);
+    y += 7;
+    doc.text(`Anomalie Riscontrate: ${anomaliesText}`, 14, y);
+    if (anomaliesText === 'SI' && anomalyDescription) {
+      y += 5;
+      doc.setFontSize(9);
+      const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${anomalyDescription}`, 180);
+      doc.text(splitAnomalyDesc, 18, y);
+      y += (splitAnomalyDesc.length * 4);
+      doc.setFontSize(10);
+    }
+    y += 7;
+    doc.text(`Ritardo: ${delayText}`, 14, y);
+    if (delayText === 'SI' && delayNotes) {
+      y += 5;
+      doc.setFontSize(9);
+      const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${delayNotes}`, 180);
+      doc.text(splitDelayNotes, 18, y);
+      y += (splitDelayNotes.length * 4);
+      doc.setFontSize(10);
+    }
+    y += 7;
+  } else {
+    // If no notes, still display N/A for these fields
+    doc.text(`Accesso Completo: N/A`, 14, y);
+    y += 7;
+    doc.text(`Accesso Caveau: N/A`, 14, y);
+    y += 7;
+    doc.text(`Anomalie Riscontrate: N/A`, 14, y);
+    y += 7;
+    doc.text(`Ritardo: N/A`, 14, y);
+    y += 7;
   }
 
   if (report.barcode) {
-    y += 5;
-    doc.setFontSize(12);
-    doc.text("Barcode:", 14, y);
-    y += 5;
     const barcodeDataURL = generateBarcodeImage(report.barcode);
     if (barcodeDataURL) {
+      doc.text(`Barcode: ${report.barcode}`, 14, y);
+      y += 5;
       doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20);
       y += 25;
     } else {
-      doc.setFontSize(10);
-      doc.text(`Impossibile generare immagine per barcode: ${report.barcode}`, 14, y);
+      doc.text(`Barcode: ${report.barcode} (Impossibile generare immagine)`, 14, y);
       y += 7;
     }
+  } else {
+    doc.text(`Barcode: N/A`, 14, y);
+    y += 7;
   }
 
   return doc.output('blob');
