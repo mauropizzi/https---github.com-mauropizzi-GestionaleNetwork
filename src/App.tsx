@@ -42,7 +42,7 @@ const IS_AUTH_DISABLED_TEMPORARILY = false;
 // Componente per proteggere le rotte
 const ProtectedRoute = () => {
   const { session, loading } = useSession();
-  console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null');
+  console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null', 'currentPath:', window.location.pathname);
 
   if (IS_AUTH_DISABLED_TEMPORARILY) {
     console.log('ProtectedRoute: Authentication is temporarily disabled. Bypassing login.');
@@ -56,6 +56,12 @@ const ProtectedRoute = () => {
         <p className="text-xl text-gray-600 dark:text-gray-400">Caricamento sessione...</p>
       </div>
     );
+  }
+
+  // Se la sessione è presente E siamo sulla pagina di login, reindirizza alla home
+  if (session && window.location.pathname === '/login') {
+    console.log('ProtectedRoute: Session found on login page, redirecting to /');
+    return <Navigate to="/" replace />;
   }
 
   if (!session) {
