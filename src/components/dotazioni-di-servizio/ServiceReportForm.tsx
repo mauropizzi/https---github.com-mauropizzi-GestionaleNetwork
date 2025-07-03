@@ -183,7 +183,7 @@ export default function ServiceReportForm() {
       y += 7;
       doc.text(`Dipendente: ${employeeFullName}`, 14, y);
       y += 7;
-      doc.text(`Località Servizio: ${values.serviceLocation}`, 14, y);
+      doc.text(`Segmento: ${values.serviceLocation}`, 14, y); // Changed label here
       y += 7;
       doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
       y += 7;
@@ -245,7 +245,7 @@ export default function ServiceReportForm() {
     const employeeName = personaleList.find(p => p.id === values.employeeId);
     const employeeFullName = employeeName ? `${employeeName.nome} ${employeeName.cognome}` : 'N/A';
     const subject = `Rapporto Dotazioni di Servizio - ${employeeFullName} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
-    const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali saluti.";
+    const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali salduti.";
     
     showInfo("Generazione PDF per l'allegato email...");
     const pdfBlob = await generatePdfBlob(values);
@@ -381,11 +381,11 @@ export default function ServiceReportForm() {
             name="serviceLocation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Località Servizio</FormLabel>
+                <FormLabel>Segmento</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona località" />
+                      <SelectValue placeholder="Seleziona segmento" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
