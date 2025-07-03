@@ -25,11 +25,27 @@ export const servizioOptions: string[] = [
 ];
 
 export const tipologiaAutomezzoOptions: string[] = [
-  "Auto",
+  "Autocarro",
+  "Autogru",
+  "Betoniera",
+  "Betonpompa",
+  "Bulldozer",
+  "Camion",
+  "Carrello elevatore",
+  "Dumper",
+  "Escavatore",
+  "Fresatrice stradale",
   "Furgone",
-  "Moto",
-  "Furgone Blindato",
-  "Auto Blindata",
+  "Gru a torre",
+  "Gru cingolata",
+  "Pala caricatrice",
+  "Perforatrice",
+  "Piastre vibranti",
+  "Piattaforma aerea",
+  "Rullo compressore",
+  "Spazzatrice",
+  "Trattore",
+  "Vibrofinitrice",
 ];
 
 export const marcaAutomezzoOptions: string[] = [
