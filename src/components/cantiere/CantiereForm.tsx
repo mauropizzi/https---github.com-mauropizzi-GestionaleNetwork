@@ -73,6 +73,7 @@ export function CantiereForm() {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
+  const [isAddettoOpen, setIsAddettoOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -358,20 +359,39 @@ export function CantiereForm() {
             render={({ field }) => (
               <FormItem className="mb-4">
                 <FormLabel>Addetto</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona un addetto" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {personaleList.map((personale) => (
-                      <SelectItem key={personale.id} value={personale.id}>
-                        {personale.nome} {personale.cognome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={isAddettoOpen} onOpenChange={setIsAddettoOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                        {field.value
+                          ? personaleList.find((p) => p.id === field.value)?.nome + ' ' + personaleList.find((p) => p.id === field.value)?.cognome
+                          : "Seleziona un addetto"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca addetto..." />
+                      <CommandEmpty>Nessun addetto trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {personaleList.map((personale) => (
+                          <CommandItem
+                            value={`${personale.nome} ${personale.cognome}`}
+                            key={personale.id}
+                            onSelect={() => {
+                              form.setValue("addetto", personale.id);
+                              setIsAddettoOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", personale.id === field.value ? "opacity-100" : "opacity-0")} />
+                            {personale.nome} {personale.cognome}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
