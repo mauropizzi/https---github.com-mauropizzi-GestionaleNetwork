@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react"; // Import useEffect
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CantiereForm } from "@/components/cantiere/CantiereForm";
@@ -13,13 +13,37 @@ import { showInfo, showError } from "@/utils/toast";
 
 const RegistroDiCantiere = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "nuovo-rapporto";
+  const [currentTab, setCurrentTab] = useState(searchParams.get("tab") || "nuovo-rapporto");
   const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
   const [selectedProcedureForDescription, setSelectedProcedureForDescription] = useState<Procedure | null>(null);
 
+  const restoreId = searchParams.get("restoreId"); // Get restoreId from URL
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      setCurrentTab(tabParam);
+    } else {
+      setSearchParams({ tab: "nuovo-rapporto" });
+    }
+  }, [searchParams, setSearchParams]);
+
   const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value });
+    setCurrentTab(value);
+    // Clear restoreId when changing tabs
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.delete("restoreId");
+    setSearchParams(newSearchParams, { replace: true });
   };
+
+  const handleCancelRestore = useCallback(() => {
+    // Go back to the history tab and clear restoreId
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.set("tab", "storico-rapporti");
+    newSearchParams.delete("restoreId");
+    setSearchParams(newSearchParams, { replace: true });
+    setCurrentTab("storico-rapporti"); // Ensure tab changes visually
+  }, [searchParams, setSearchParams]);
 
   const handleViewCantiereProcedure = useCallback(async () => {
     showInfo("Ricerca procedura 'Procedure Cantiere'...");
@@ -63,7 +87,7 @@ const RegistroDiCantiere = () => {
               <TabsTrigger value="storico-rapporti">Storico Rapporti</TabsTrigger>
             </TabsList>
             <TabsContent value="nuovo-rapporto" className="mt-4">
-              <CantiereForm />
+              <CantiereForm reportId={restoreId || undefined} onCancel={handleCancelRestore} />
             </TabsContent>
             <TabsContent value="storico-rapporti" className="mt-4">
               <CantiereHistoryTable />

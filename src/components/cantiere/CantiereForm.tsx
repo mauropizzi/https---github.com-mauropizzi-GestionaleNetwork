@@ -76,13 +76,19 @@ const formSchema = z.object({
   path: ["endDateTime"],
 });
 
-export function CantiereForm() {
+interface CantiereFormProps {
+  reportId?: string; // Optional ID for editing/restoring
+  onCancel?: () => void; // Callback for cancel button
+}
+
+export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
   const [puntiServizio, setPuntiServizio] = useState<PuntoServizio[]>([]);
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
   const [personaleRiconsegnaList, setPersonaleRiconsegnaList] = useState<Personale[]>([]); // New state for reconsegna personnel
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
   const [isAddettoOpen, setIsAddettoOpen] = useState(false);
   const [isAddettoRiconsegnaOpen, setIsAddettoRiconsegnaOpen] = useState(false); // New state for reconsegna personnel select
+  const [loadingInitialData, setLoadingInitialData] = useState(!!reportId); // Track loading for edit mode
 
   useEffect(() => {
     const loadData = async () => {
@@ -131,6 +137,52 @@ export function CantiereForm() {
     name: "attrezzi",
   });
 
+  // Effect to load existing report data when reportId is provided
+  useEffect(() => {
+    const loadReportData = async () => {
+      if (reportId) {
+        setLoadingInitialData(true);
+        const { data: report, error: reportError } = await supabase
+          .from('registri_cantiere')
+          .select('*, automezzi_utilizzati(*), attrezzi_utilizzati(*)') // Fetch related data
+          .eq('id', reportId)
+          .single();
+
+        if (reportError) {
+          showError(`Errore nel recupero del rapporto di cantiere: ${reportError.message}`);
+          console.error("Error fetching cantiere report for edit:", reportError);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (report) {
+          form.reset({
+            reportDate: (report.report_date && typeof report.report_date === 'string') ? parseISO(report.report_date) : new Date(),
+            reportTime: report.report_time || format(new Date(), "HH:mm"),
+            servicePointId: report.service_point_id || "",
+            addetto: report.employee_id || "",
+            servizio: report.service_provided || "",
+            startDateTime: (report.start_datetime && typeof report.start_datetime === 'string') ? parseISO(report.start_datetime) : undefined,
+            endDateTime: (report.end_datetime && typeof report.end_datetime === 'string') ? parseISO(report.end_datetime) : undefined,
+            noteVarie: report.notes || "",
+            automezzi: report.automezzi_utilizzati || [],
+            attrezzi: report.attrezzi_utilizzati || [],
+            latitude: report.latitude || undefined,
+            longitude: report.longitude || undefined,
+            addettoRiconsegnaSecurityService: report.addetto_riconsegna_security_service || "",
+            responsabileCommittenteRiconsegna: report.responsabile_committente_riconsegna || "",
+            esitoServizio: report.esito_servizio || "",
+            consegneServizio: report.consegne_servizio || "",
+            status: report.status || "attivo",
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+
+    loadReportData();
+  }, [reportId, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     if (!selectedServicePoint || !selectedServicePoint.id_cliente) {
@@ -140,56 +192,79 @@ export function CantiereForm() {
     const clientId = selectedServicePoint.id_cliente;
     const siteName = selectedServicePoint.nome_punto_servizio;
 
-    const { data: registroData, error: registroError } = await supabase
-      .from('registri_cantiere')
-      .insert([{
-        report_date: format(values.reportDate, 'yyyy-MM-dd'),
-        report_time: values.reportTime,
-        client_id: clientId,
-        site_name: siteName,
-        employee_id: values.addetto,
-        service_provided: values.servizio,
-        start_datetime: values.startDateTime.toISOString(),
-        end_datetime: values.endDateTime.toISOString(),
-        notes: values.noteVarie || null,
-        // New fields
-        addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
-        responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
-        esito_servizio: values.esitoServizio || null,
-        consegne_servizio: values.consegneServizio || null,
-        status: "terminato", // Set status to 'terminato' on successful submission
-      }])
-      .select('id')
-      .single();
+    const basePayload = {
+      report_date: format(values.reportDate, 'yyyy-MM-dd'),
+      report_time: values.reportTime,
+      client_id: clientId,
+      site_name: siteName,
+      employee_id: values.addetto,
+      service_provided: values.servizio,
+      start_datetime: values.startDateTime.toISOString(),
+      end_datetime: values.endDateTime.toISOString(),
+      notes: values.noteVarie || null,
+      addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
+      responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
+      esito_servizio: values.esitoServizio || null,
+      consegne_servizio: values.consegneServizio || null,
+      status: "terminato", // Set status to 'terminato' on successful submission
+    };
 
-    if (registroError || !registroData) {
+    let registroId: string | null = null;
+    let registroError: any = null;
+
+    if (reportId) {
+      // Update existing record
+      const { data, error } = await supabase
+        .from('registri_cantiere')
+        .update(basePayload)
+        .eq('id', reportId)
+        .select('id')
+        .single();
+      registroId = data?.id || null;
+      registroError = error;
+    } else {
+      // Insert new record
+      const { data, error } = await supabase
+        .from('registri_cantiere')
+        .insert([basePayload])
+        .select('id')
+        .single();
+      registroId = data?.id || null;
+      registroError = error;
+    }
+
+    if (registroError || !registroId) {
       showError(`Errore durante la registrazione del rapporto: ${registroError?.message}`);
-      console.error("Error inserting registro_cantiere:", registroError);
+      console.error("Error upserting registro_cantiere:", registroError);
       return;
     }
 
-    const registroId = registroData.id;
-
+    // Handle automezzi and attrezzi: delete existing and insert new ones
+    await supabase.from('automezzi_utilizzati').delete().eq('registro_cantiere_id', registroId);
     if (values.automezzi && values.automezzi.length > 0) {
       const automezziPayload = values.automezzi.map(auto => ({ ...auto, registro_cantiere_id: registroId }));
-      const { error: automezziError } = await supabase.from('automezzi_utilizzati').insert(automezziPayload);
-      if (automezziError) {
-        showError(`Errore durante la registrazione degli automezzi: ${automezziError.message}`);
+      const { error: automezziInsertError } = await supabase.from('automezzi_utilizzati').insert(automezziPayload);
+      if (automezziInsertError) {
+        showError(`Errore durante la registrazione degli automezzi: ${automezziInsertError.message}`);
         return;
       }
     }
 
+    await supabase.from('attrezzi_utilizzati').delete().eq('registro_cantiere_id', registroId);
     if (values.attrezzi && values.attrezzi.length > 0) {
       const attrezziPayload = values.attrezzi.map(attrezzo => ({ ...attrezzo, registro_cantiere_id: registroId }));
-      const { error: attrezziError } = await supabase.from('attrezzi_utilizzati').insert(attrezziPayload);
-      if (attrezziError) {
-        showError(`Errore durante la registrazione degli attrezzi: ${attrezziError.message}`);
+      const { error: attrezziInsertError } = await supabase.from('attrezzi_utilizzati').insert(attrezziPayload);
+      if (attrezziInsertError) {
+        showError(`Errore durante la registrazione degli attrezzi: ${attrezziInsertError.message}`);
         return;
       }
     }
 
-    showSuccess("Rapporto di cantiere registrato con successo!");
+    showSuccess(`Rapporto di cantiere ${reportId ? 'modificato' : 'registrato'} con successo!`);
     form.reset();
+    if (onCancel) { // Use onCancel to navigate back to history or clear params
+      onCancel();
+    }
   };
 
   const handleSetCurrentDate = () => {
@@ -288,6 +363,10 @@ export function CantiereForm() {
     doc.output('dataurlnewwindow');
     showSuccess("PDF del rapporto di cantiere generato con successo!");
   };
+
+  if (loadingInitialData) {
+    return <div className="text-center py-8">Caricamento rapporto...</div>;
+  }
 
   return (
     <FormProvider {...form}>
@@ -655,9 +734,22 @@ export function CantiereForm() {
           <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => generatePdfAndEmail('print')}>
             STAMPA PDF
           </Button>
-          <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-            REGISTRA RAPPORTO
-          </Button>
+          {reportId ? (
+            <>
+              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+                SALVA MODIFICHE
+              </Button>
+              {onCancel && (
+                <Button type="button" variant="outline" className="w-full" onClick={onCancel}>
+                  ANNULLA
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+              REGISTRA RAPPORTO
+            </Button>
+          )}
         </div>
       </form>
     </FormProvider>

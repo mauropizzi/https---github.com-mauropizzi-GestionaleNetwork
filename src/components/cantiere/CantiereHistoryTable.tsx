@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendEmail } from "@/utils/email";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 interface CantiereReport {
   id: string;
@@ -114,6 +115,7 @@ const generateCantierePdfBlob = async (reportId: string): Promise<Blob | null> =
 };
 
 export function CantiereHistoryTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<CantiereReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -200,6 +202,11 @@ export function CantiereHistoryTable() {
     }
   }, []);
 
+  const handleRestore = useCallback((reportId: string) => {
+    showInfo(`Caricamento rapporto ${reportId} per la modifica...`);
+    navigate(`/registro-di-cantiere?tab=nuovo-rapporto&restoreId=${reportId}`);
+  }, [navigate]);
+
   const filteredData = useMemo(() => {
     return data.filter(report => {
       const matchesSearch = searchTerm === "" ||
@@ -277,13 +284,13 @@ export function CantiereHistoryTable() {
           <Button variant="outline" size="sm" onClick={() => handlePrintReport(row.original.id)}>
             <Printer className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => showInfo(`Ripristino dati per CR${row.original.id}`)}>
+          <Button variant="outline" size="sm" onClick={() => handleRestore(row.original.id)} title="Ripristina per modifica">
             <RotateCcw className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleEmailReport, handlePrintReport]);
+  ], [handleEmailReport, handlePrintReport, handleRestore]);
 
   const table = useReactTable({
     data: filteredData,
