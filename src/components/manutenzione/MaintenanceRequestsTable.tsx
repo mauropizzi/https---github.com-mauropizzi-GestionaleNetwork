@@ -100,11 +100,7 @@ export function MaintenanceRequestsTable() {
       header: "Data Richiesta",
       cell: ({ row }) => <span>{format(parseISO(row.original.requested_at), "PPP HH:mm", { locale: it })}</span>,
     },
-    {
-      accessorKey: "service_point_id",
-      header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.service_point?.nome_punto_servizio || 'N/A'}</span>,
-    },
+    // Removed "Punto Servizio" column as requested
     {
       accessorKey: "vehicle_plate",
       header: "Targa Veicolo",
@@ -157,10 +153,10 @@ export function MaintenanceRequestsTable() {
             <SelectValue placeholder="Seleziona stato" />
           </SelectTrigger>
           <SelectContent>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
+              <SelectItem value="Pending">In Attesa</SelectItem>
+              <SelectItem value="In Progress">In Corso</SelectItem>
+              <SelectItem value="Completed">Completato</SelectItem>
+              <SelectItem value="Cancelled">Annullato</SelectItem>
           </SelectContent>
         </Select>
       ),
@@ -188,10 +184,10 @@ export function MaintenanceRequestsTable() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All">Tutti gli Stati</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="In Progress">In Progress</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
-            <SelectItem value="Cancelled">Cancelled</SelectItem>
+            <SelectItem value="Pending">In Attesa</SelectItem>
+            <SelectItem value="In Progress">In Corso</SelectItem>
+            <SelectItem value="Completed">Completato</SelectItem>
+            <SelectItem value="Cancelled">Annullato</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterStatus('Pending'); }}>
