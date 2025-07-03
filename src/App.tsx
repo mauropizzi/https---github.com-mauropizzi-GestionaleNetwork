@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import Layout from "./components/layout/Layout";
+import Layout from "./components/Layout";
 import ServiceRequestList from "./pages/ServiceRequestList";
 import ServiceRequestForm from "./pages/ServiceRequestForm";
 import NotFound from "./pages/NotFound";
