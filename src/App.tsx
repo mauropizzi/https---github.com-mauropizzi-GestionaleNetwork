@@ -211,8 +211,8 @@ const App = () => (
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </>
-  );
-};
+    </QueryClientProvider>
+  </>
+);
 
 export default App;
