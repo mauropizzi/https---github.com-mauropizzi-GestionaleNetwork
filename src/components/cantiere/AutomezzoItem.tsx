@@ -28,7 +28,7 @@ export function AutomezzoItem({ index, onRemove }: AutomezzoItemProps) {
   const { control } = useFormContext();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md relative">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md relative">
       <Button
         type="button"
         variant="ghost"
@@ -94,19 +94,6 @@ export function AutomezzoItem({ index, onRemove }: AutomezzoItemProps) {
             <FormLabel>Targa</FormLabel>
             <FormControl>
               <Input placeholder="Targa" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
-        name={`automezzi.${index}.oreLavoro`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Ore di Lavoro</FormLabel>
-            <FormControl>
-              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
             </FormControl>
             <FormMessage />
           </FormItem>

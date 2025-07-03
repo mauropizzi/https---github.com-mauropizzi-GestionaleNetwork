@@ -1,0 +1,1 @@
+ALTER TABLE public.automezzi_utilizzati DROP COLUMN ore_lavoro;

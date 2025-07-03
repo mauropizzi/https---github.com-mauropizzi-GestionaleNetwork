@@ -42,7 +42,6 @@ const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
   marca: z.string().min(1, "Marca richiesta."),
   targa: z.string().min(1, "Targa richiesta."),
-  oreLavoro: z.coerce.number().min(0, "Ore di lavoro non valide."),
 });
 
 const attrezzoSchema = z.object({
@@ -150,7 +149,7 @@ export function CantiereForm() {
     const registroId = registroData.id;
 
     if (values.automezzi && values.automezzi.length > 0) {
-      const automezziPayload = values.automezzi.map(auto => ({ ...auto, registro_cantiere_id: registroId, ore_lavoro: auto.oreLavoro }));
+      const automezziPayload = values.automezzi.map(auto => ({ ...auto, registro_cantiere_id: registroId }));
       const { error: automezziError } = await supabase.from('automezzi_utilizzati').insert(automezziPayload);
       if (automezziError) {
         showError(`Errore durante la registrazione degli automezzi: ${automezziError.message}`);
@@ -224,9 +223,9 @@ export function CantiereForm() {
     body += `Fine Servizio: ${values.endDateTime ? format(values.endDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
 
     if (values.automezzi && values.automezzi.length > 0) {
-      body += `\n--- Automezzi Utilizzati ---\n`;
+      body += `\n--- Automezzi Presenti ---\n`;
       values.automezzi.forEach((auto, index) => {
-        body += `Automezzo ${index + 1}: Tipologia: ${auto.tipologia}, Marca: ${auto.marca}, Targa: ${auto.targa}, Ore: ${auto.oreLavoro}\n`;
+        body += `Automezzo ${index + 1}: Tipologia: ${auto.tipologia}, Marca: ${auto.marca}, Targa: ${auto.targa}\n`;
       });
     }
 
@@ -468,7 +467,7 @@ export function CantiereForm() {
         </section>
 
         <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Automezzi Utilizzati</h2>
+          <h2 className="text-xl font-semibold mb-4">Automezzi Presenti</h2>
           <div className="space-y-4">
             {automezziFields.map((item, index) => (
               <AutomezzoItem key={item.id} index={index} onRemove={removeAutomezzo} />
@@ -477,7 +476,7 @@ export function CantiereForm() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => appendAutomezzo({ tipologia: "", marca: "", targa: "", oreLavoro: 0 })}
+            onClick={() => appendAutomezzo({ tipologia: "", marca: "", targa: "" })}
             className="mt-4 w-full"
           >
             <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Automezzo
