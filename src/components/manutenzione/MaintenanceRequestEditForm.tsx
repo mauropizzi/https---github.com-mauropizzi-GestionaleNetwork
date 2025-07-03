@@ -161,49 +161,50 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
                 <FormLabel>Punto Servizio</FormLabel>
                 <Popover open={isServicePointSelectOpen} onOpenChange={setIsServicePointSelectOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isServicePointSelectOpen}
-                      className="w-full justify-between"
-                    >
-                      {field.value
-                        ? puntiServizioList.find(point => point.id === field.value)?.nome_punto_servizio
-                        : "Seleziona un punto servizio..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                  <Command>
-                    <CommandInput placeholder="Cerca punto servizio..." />
-                    <CommandEmpty>Nessun punto servizio trovato.</CommandEmpty>
-                    <CommandGroup>
-                      {puntiServizioList.map((point) => (
-                        <CommandItem
-                          key={point.id}
-                          value={point.nome_punto_servizio}
-                          onSelect={() => {
-                            form.setValue("service_point_id", point.id);
-                            setIsServicePointSelectOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              field.value === point.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {point.nome_punto_servizio}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isServicePointSelectOpen}
+                        className="w-full justify-between"
+                      >
+                        {field.value
+                          ? puntiServizioList.find(point => point.id === field.value)?.nome_punto_servizio
+                          : "Seleziona un punto servizio..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca punto servizio..." />
+                      <CommandEmpty>Nessun punto servizio trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {puntiServizioList.map((point) => (
+                          <CommandItem
+                            key={point.id}
+                            value={point.nome_punto_servizio}
+                            onSelect={() => {
+                              form.setValue("service_point_id", point.id);
+                              setIsServicePointSelectOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === point.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {point.nome_punto_servizio}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           <FormField
             control={form.control}
@@ -289,49 +290,50 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
                 <FormLabel>Richiesto da</FormLabel>
                 <Popover open={isEmployeeSelectOpen} onOpenChange={setIsEmployeeSelectOpen}>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isEmployeeSelectOpen}
-                      className="w-full justify-between"
-                    >
-                      {field.value
-                        ? personaleList.find(emp => emp.id === field.value)?.nome + " " + personaleList.find(emp => emp.id === field.value)?.cognome
-                        : "Seleziona dipendente..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                  <Command>
-                    <CommandInput placeholder="Cerca dipendente..." />
-                    <CommandEmpty>Nessun dipendente trovato.</CommandEmpty>
-                    <CommandGroup>
-                      {personaleList.map((employee) => (
-                        <CommandItem
-                          key={employee.id}
-                          value={`${employee.nome} ${employee.cognome || ''}`}
-                          onSelect={() => {
-                            form.setValue("requested_by_employee_id", employee.id);
-                            setIsEmployeeSelectOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              field.value === employee.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {employee.nome} {employee.cognome}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isEmployeeSelectOpen}
+                        className="w-full justify-between"
+                      >
+                        {field.value
+                          ? personaleList.find(emp => emp.id === field.value)?.nome + " " + personaleList.find(emp => emp.id === field.value)?.cognome
+                          : "Seleziona dipendente..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca dipendente..." />
+                      <CommandEmpty>Nessun dipendente trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {personaleList.map((employee) => (
+                          <CommandItem
+                            key={employee.id}
+                            value={`${employee.nome} ${employee.cognome || ''}`}
+                            onSelect={() => {
+                              form.setValue("requested_by_employee_id", employee.id);
+                              setIsEmployeeSelectOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === employee.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {employee.nome} {employee.cognome}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           <FormField
             control={form.control}
