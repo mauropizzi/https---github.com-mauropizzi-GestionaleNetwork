@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"; // Aggiunto import di React
-import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, isValid } from "date-fns"; // Aggiunto isValid
 import { it } from 'date-fns/locale';
 import {
   fetchClienti,
@@ -140,8 +140,13 @@ export const useAnalisiContabileData = () => {
       for (const service of allServices) {
         const servicePoint = puntiServizioMap.get(service.service_point_id);
         if (servicePoint) {
-          const serviceStartDate = parseISO(service.start_date);
-          const serviceEndDate = service.end_date ? parseISO(service.end_date) : serviceStartDate; // Use start date if end date is null
+          // Ensure dates are valid Date objects before passing to calculateServiceCost
+          const serviceStartDate = (service.start_date && typeof service.start_date === 'string' && isValid(parseISO(service.start_date)))
+            ? parseISO(service.start_date)
+            : new Date(); // Fallback to current date if invalid
+          const serviceEndDate = (service.end_date && typeof service.end_date === 'string' && isValid(parseISO(service.end_date)))
+            ? parseISO(service.end_date)
+            : serviceStartDate; // Fallback to start date if invalid
 
           const costDetails = {
             type: service.type,
@@ -257,8 +262,13 @@ export const useAnalisiContabileData = () => {
       const identifiedMissingTariffs: MissingTariffEntry[] = [];
 
       for (const service of allServices) {
-        const serviceStartDate = parseISO(service.start_date);
-        const serviceEndDate = service.end_date ? parseISO(service.end_date) : serviceStartDate;
+        // Ensure dates are valid Date objects before passing to calculateServiceCost
+        const serviceStartDate = (service.start_date && typeof service.start_date === 'string' && isValid(parseISO(service.start_date)))
+          ? parseISO(service.start_date)
+          : new Date(); // Fallback to current date if invalid
+        const serviceEndDate = (service.end_date && typeof service.end_date === 'string' && isValid(parseISO(service.end_date)))
+          ? parseISO(service.end_date)
+          : serviceStartDate; // Fallback to start date if invalid
 
         const costDetails = {
           type: service.type,
@@ -277,7 +287,7 @@ export const useAnalisiContabileData = () => {
 
         const calculatedRates = await calculateServiceCost(costDetails);
 
-        if (calculatedRates === null) {
+        if (calculatedRates === null) { // THIS IS THE KEY CONDITION
           console.log("Missing tariff identified for service:", service); // Nuovo log
           identifiedMissingTariffs.push({
             serviceId: service.id,
@@ -287,15 +297,15 @@ export const useAnalisiContabileData = () => {
             servicePointName: servicePointNameMap.get(service.service_point_id) || 'Punto Servizio Sconosciuto',
             servicePointId: service.service_point_id,
             fornitoreId: service.fornitore_id,
-            startDate: format(serviceStartDate, 'yyyy-MM-dd'),
-            endDate: format(serviceEndDate, 'yyyy-MM-dd'),
+            startDate: isValid(serviceStartDate) ? format(serviceStartDate, 'yyyy-MM-dd') : 'N/A', // Ensure valid date for formatting
+            endDate: isValid(serviceEndDate) ? format(serviceEndDate, 'yyyy-MM-dd') : 'N/A',     // Ensure valid date for formatting
             reason: "Nessuna tariffa corrispondente trovata per il periodo e il tipo di servizio.",
           });
         }
       }
       setMissingTariffs(identifiedMissingTariffs);
     }
-    catch (err) {
+    catch (err) { // THIS CATCH BLOCK TRIGGERS THE TOAST
       showError("Errore nel recupero o nell'identificazione delle tariffe mancanti.");
       console.error("Error fetching or identifying missing tariffs:", err);
       setMissingTariffs([]);
