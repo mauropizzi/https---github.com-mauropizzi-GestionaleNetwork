@@ -20,6 +20,7 @@ import { it } from 'date-fns/locale';
 import { Printer, RefreshCcw } from "lucide-react";
 import { showInfo, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { printDotazioniReport } from "@/utils/printReport"; // Import the new print function
 
 interface DotazioniReport {
   id: string;
@@ -86,7 +87,7 @@ export function DotazioniHistoryTable() {
   }, [data, searchTerm]);
 
   const handlePrint = (reportId: string) => {
-    showInfo(`La stampa del rapporto ${reportId} non è ancora implementata in questa tabella.`);
+    printDotazioniReport(reportId); // Call the new print function
   };
 
   const columns: ColumnDef<DotazioniReport>[] = useMemo(() => [

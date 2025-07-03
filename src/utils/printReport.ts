@@ -36,6 +36,33 @@ interface ServizioRichiesto {
   end_time?: string | null;
 }
 
+// Define the structure of a dotazioni report from Supabase
+interface RapportoServizio {
+  id: string;
+  created_at: string;
+  service_date: string;
+  employee_id: string;
+  service_location: string;
+  service_type: string;
+  start_time: string;
+  end_time: string;
+  vehicle_make_model: string;
+  vehicle_plate: string;
+  start_km: number;
+  end_km: number;
+  vehicle_initial_state: string;
+  bodywork_damage?: string | null;
+  vehicle_anomalies?: string | null;
+  gps: boolean;
+  radio_vehicle: boolean;
+  swiveling_lamp: boolean;
+  radio_portable: boolean;
+  flashlight: boolean;
+  extinguisher: boolean;
+  spare_tire: boolean;
+  high_visibility_vest: boolean;
+}
+
 const generateBarcodeImage = (text: string): string | null => {
   if (!text) return null;
   try {
@@ -245,8 +272,6 @@ export const generateSingleServiceReportPdfBlob = async (reportId: string): Prom
       doc.setFontSize(9);
       const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${delayNotes}`, 180);
       doc.text(splitDelayNotes, 18, y);
-      y += (splitDelayNotes.length * 4);
-      doc.setFontSize(10);
     }
     y += 7;
   } else {
@@ -287,6 +312,97 @@ export const printSingleServiceReport = async (reportId: string) => {
     const url = URL.createObjectURL(pdfBlob);
     window.open(url, '_blank');
     showSuccess(`PDF del rapporto di allarme ${reportId} generato con successo!`);
+  } else {
+    showError("Impossibile generare il PDF per la stampa.");
+  }
+};
+
+export const generateDotazioniReportPdfBlob = async (reportId: string): Promise<Blob | null> => {
+  const { data: report, error } = await supabase
+    .from('rapporti_servizio')
+    .select(`
+      *,
+      personale(nome, cognome)
+    `)
+    .eq('id', reportId)
+    .single();
+
+  if (error) {
+    showError(`Errore nel recupero del rapporto dotazioni di servizio: ${error.message}`);
+    console.error("Error fetching single dotazioni report:", error);
+    return null;
+  }
+
+  if (!report) {
+    showError(`Rapporto dotazioni di servizio con ID ${reportId} non trovato.`);
+    return null;
+  }
+
+  const doc = new jsPDF();
+  let y = 20;
+
+  doc.setFontSize(18);
+  doc.text("Rapporto Dotazioni di Servizio", 14, y);
+  y += 10;
+
+  doc.setFontSize(10);
+  const employeeFullName = report.personale ? `${report.personale.nome} ${report.personale.cognome}` : 'N/A';
+
+  doc.text(`Data Servizio: ${format(parseISO(report.service_date), 'PPP', { locale: it })}`, 14, y);
+  y += 7;
+  doc.text(`Dipendente: ${employeeFullName}`, 14, y);
+  y += 7;
+  doc.text(`Punto Servizio: ${report.service_location || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Tipo Servizio: ${report.service_type || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Orario Inizio: ${report.start_time || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Orario Fine: ${report.end_time || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Veicolo: ${report.vehicle_make_model || 'N/A'} - Targa: ${report.vehicle_plate || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`KM Iniziali: ${report.start_km !== null ? report.start_km : 'N/A'} - KM Finali: ${report.end_km !== null ? report.end_km : 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Stato Veicolo: ${report.vehicle_initial_state || 'N/A'}`, 14, y);
+  y += 7;
+  doc.text(`Danni Carrozzeria: ${report.bodywork_damage || 'N/A'}`, 14, y);
+  y += 7;
+  if (report.vehicle_anomalies) {
+    doc.text(`Anomalie Veicolo: ${report.vehicle_anomalies}`, 14, y);
+    y += 7;
+  }
+
+  y += 5;
+  doc.setFontSize(12);
+  doc.text("Dotazioni Controllate:", 14, y);
+  y += 5;
+  doc.setFontSize(10);
+  doc.text(`GPS: ${report.gps ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Radio Veicolare: ${report.radio_vehicle ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Faro Girevole: ${report.swiveling_lamp ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Radio Portatile: ${report.radio_portable ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Estintore: ${report.extinguisher ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Ruota di Scorta: ${report.spare_tire ? 'SI' : 'NO'}`, 14, y);
+  y += 5;
+  doc.text(`Giubbotto Alta Visibilità: ${report.high_visibility_vest ? 'SI' : 'NO'}`, 14, y);
+  y += 10;
+
+  return doc.output('blob');
+};
+
+export const printDotazioniReport = async (reportId: string) => {
+  showInfo(`Generazione PDF per il rapporto dotazioni di servizio ${reportId}...`);
+  const pdfBlob = await generateDotazioniReportPdfBlob(reportId);
+  if (pdfBlob) {
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+    showSuccess(`PDF del rapporto dotazioni di servizio ${reportId} generato con successo!`);
   } else {
     showError("Impossibile generare il PDF per la stampa.");
   }
