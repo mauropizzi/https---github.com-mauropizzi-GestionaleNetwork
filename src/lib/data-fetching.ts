@@ -318,16 +318,18 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     case "Bidirezionale":
     case "Monodirezionale":
     case "Tenuta Chiavi": {
-      const endDate = details.end_date || addMonths(details.start_date, 1);
-      let months = differenceInMonths(endDate, details.start_date);
-      // If there's any partial month, count it as a full month
-      if (months === 0 && details.start_date.getDate() !== endDate.getDate()) {
-          months = 1;
-      } else if (months > 0 && endDate.getDate() > details.start_date.getDate()) {
-          months += 1; // Add 1 for the partial month at the end
+      const actualEndDate = details.end_date || addMonths(details.start_date, 1); // Default to 1 month if no end date
+      // Calculate the number of distinct calendar months between start_date and end_date
+      const startMonth = new Date(details.start_date.getFullYear(), details.start_date.getMonth(), 1);
+      const endMonth = new Date(actualEndDate.getFullYear(), actualEndDate.getMonth(), 1);
+      let totalMonths = 0;
+      let currentMonth = startMonth;
+      while (currentMonth <= endMonth) {
+          totalMonths++;
+          currentMonth = addMonths(currentMonth, 1);
       }
-      multiplier = Math.max(1, months); // Ensure at least 1 month
-      console.log(`[Multiplier Calc] Monthly service - Start: ${format(details.start_date, 'yyyy-MM-dd')}, End: ${format(endDate, 'yyyy-MM-dd')}, Months: ${months}, Multiplier: ${multiplier}`);
+      multiplier = totalMonths;
+      console.log(`[Multiplier Calc] Monthly service - Start: ${format(details.start_date, 'yyyy-MM-dd')}, End: ${format(actualEndDate, 'yyyy-MM-dd')}, Multiplier: ${multiplier}`);
       break;
     }
     default:
