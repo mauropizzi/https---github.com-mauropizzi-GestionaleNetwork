@@ -102,6 +102,12 @@ const App = () => (
                       <CentraleOperativa />
                     </React.Suspense>
                   } />
+                  {/* Aggiunto un percorso esplicito per /centrale-operativa */}
+                  <Route path="centrale-operativa" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <CentraleOperativa />
+                    </React.Suspense>
+                  } />
                   <Route path="service-request" element={
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
                       <ServiceRequest />
