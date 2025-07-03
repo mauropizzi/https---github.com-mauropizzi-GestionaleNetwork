@@ -115,7 +115,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="co-operator">Operatore C.O. Security Service</Label>
+        <Label htmlFor="co-operator">Operatore C.O. Security Service *</Label>
         <Popover open={isCoOperatorOpen} onOpenChange={setIsCoOperatorOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -169,14 +169,9 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
             value={formData.requestTime}
             onChange={handleInputChange}
             className="flex-1"
+            readOnly // Made read-only
           />
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => handleSetCurrentTime('requestTime')}
-          >
-            Ora Attuale
-          </Button>
+          {/* Removed auto-fill button as per request */}
         </div>
         <Button 
           type="button" 

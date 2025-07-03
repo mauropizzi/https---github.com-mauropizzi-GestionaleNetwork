@@ -137,7 +137,7 @@ export const useInterventionActions = ({
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
       const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
-      doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgGpgInterventionName.cognome}` : 'N/A'}`, 14, y);
+      doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
       y += 7;
       doc.text(`Anomalie Riscontrate: ${formData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
       if (formData.anomalies === 'si' && formData.anomalyDescription) {
@@ -259,6 +259,12 @@ export const useInterventionActions = ({
       showError("Il campo 'Tipologia Servizio Richiesto' è obbligatorio.");
       return false;
     }
+    // coOperator is now required for any save, not just final
+    if (!coOperator || coOperator.trim() === '') {
+      showError("Il campo 'Operatore C.O. Security Service' è obbligatorio.");
+      return false;
+    }
+    // requestTime is auto-filled for new events, so we just validate its presence
     if (!requestTime || requestTime.trim() === '') {
       showError("Il campo 'Orario Richiesta C.O. Security Service' è obbligatorio.");
       return false;
@@ -283,10 +289,6 @@ export const useInterventionActions = ({
     }
 
     if (isFinal || isPublicMode) { 
-      if (!coOperator || coOperator.trim() === '') {
-        showError("Il campo 'Operatore C.O. Security Service' è obbligatorio per la chiusura.");
-        return false;
-      }
       if (!parsedStartTime) {
         showError("Il campo 'Orario Inizio Intervento' è obbligatorio per la chiusura.");
         return false;
@@ -365,6 +367,17 @@ export const useInterventionActions = ({
   }, [formData]);
 
   const saveIntervention = useCallback(async (isFinal: boolean) => {
+    // For new events, set requestTime to current time before validation
+    let currentRequestTime = formData.requestTime;
+    if (!eventId) {
+      currentRequestTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+      // Temporarily update formData for validation, but don't set state to avoid re-render loop
+      // The actual payload will use this fresh value
+    }
+
+    // Create a temporary formData object for validation that includes the updated requestTime
+    const formDataForValidation = { ...formData, requestTime: currentRequestTime };
+
     if (!validateForm(isFinal)) {
       return;
     }
@@ -373,7 +386,6 @@ export const useInterventionActions = ({
       servicePoint,
       requestType,
       coOperator,
-      requestTime,
       startTime,
       endTime,
       operatorNetworkId,
@@ -384,9 +396,9 @@ export const useInterventionActions = ({
       startLongitude,
       endLatitude,
       endLongitude,
-    } = formData;
+    } = formDataForValidation; // Use the potentially updated formData for payload
 
-    const parsedRequestDateTime = parseISO(requestTime);
+    const parsedRequestDateTime = parseISO(currentRequestTime); // Use the currentRequestTime for parsing
     const parsedStartTime = startTime ? parseISO(startTime) : null;
     const parsedEndTime = endTime ? parseISO(endTime) : null;
 
