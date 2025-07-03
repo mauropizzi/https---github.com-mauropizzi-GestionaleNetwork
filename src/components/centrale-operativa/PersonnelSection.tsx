@@ -76,7 +76,7 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="gpg-intervention">G.P.G. Intervento</Label>
+        <Label htmlFor="gpg-intervention">G.P.G. Intervento *</Label>
         <Popover open={isGpgInterventionOpen} onOpenChange={setIsGpgInterventionOpen}>
           <PopoverTrigger asChild>
             <Button

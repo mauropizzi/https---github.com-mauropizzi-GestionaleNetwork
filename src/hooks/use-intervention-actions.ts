@@ -238,7 +238,7 @@ export const useInterventionActions = ({
       fullAccess,
       vaultAccess,
       operatorNetworkId,
-      gpgIntervention,
+      gpgIntervention, // Added gpgIntervention to destructuring
       anomalies,
       anomalyDescription,
       delay,
@@ -309,6 +309,7 @@ export const useInterventionActions = ({
         showError("Il campo 'Operatore Network' è obbligatorio per la chiusura.");
         return false;
       }
+      // Make GPG Intervention mandatory for final submission or public mode
       if (!gpgIntervention || gpgIntervention.trim() === '') {
         showError("Il campo 'G.P.G. Intervento' è obbligatorio per la chiusura.");
         return false;
