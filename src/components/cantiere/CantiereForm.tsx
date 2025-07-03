@@ -48,7 +48,6 @@ const attrezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
   marca: z.string().min(1, "Marca richiesta."),
   quantita: z.coerce.number().min(1, "Quantità non valida."),
-  oreUtilizzo: z.coerce.number().min(0, "Ore di utilizzo non valide."),
 });
 
 const formSchema = z.object({
@@ -158,7 +157,7 @@ export function CantiereForm() {
     }
 
     if (values.attrezzi && values.attrezzi.length > 0) {
-      const attrezziPayload = values.attrezzi.map(attrezzo => ({ ...attrezzo, registro_cantiere_id: registroId, ore_utilizzo: attrezzo.oreUtilizzo }));
+      const attrezziPayload = values.attrezzi.map(attrezzo => ({ ...attrezzo, registro_cantiere_id: registroId }));
       const { error: attrezziError } = await supabase.from('attrezzi_utilizzati').insert(attrezziPayload);
       if (attrezziError) {
         showError(`Errore durante la registrazione degli attrezzi: ${attrezziError.message}`);
@@ -230,9 +229,9 @@ export function CantiereForm() {
     }
 
     if (values.attrezzi && values.attrezzi.length > 0) {
-      body += `\n--- Attrezzi Utilizzati ---\n`;
+      body += `\n--- Attrezzi Presenti ---\n`;
       values.attrezzi.forEach((attrezzo, index) => {
-        body += `Attrezzo ${index + 1}: Tipologia: ${attrezzo.tipologia}, Marca: ${attrezzo.marca}, Quantità: ${attrezzo.quantita}, Ore: ${attrezzo.oreUtilizzo}\n`;
+        body += `Attrezzo ${index + 1}: Tipologia: ${attrezzo.tipologia}, Marca: ${attrezzo.marca}, Quantità: ${attrezzo.quantita}\n`;
       });
     }
 
@@ -484,7 +483,7 @@ export function CantiereForm() {
         </section>
 
         <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Attrezzi Utilizzati</h2>
+          <h2 className="text-xl font-semibold mb-4">Attrezzi Presenti</h2>
           <div className="space-y-4">
             {attrezziFields.map((item, index) => (
               <AttrezzoItem key={item.id} index={index} onRemove={removeAttrezzo} />
@@ -493,7 +492,7 @@ export function CantiereForm() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => appendAttrezzo({ tipologia: "", marca: "", quantita: 1, oreUtilizzo: 0 })}
+            onClick={() => appendAttrezzo({ tipologia: "", marca: "", quantita: 1 })}
             className="mt-4 w-full"
           >
             <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Attrezzo

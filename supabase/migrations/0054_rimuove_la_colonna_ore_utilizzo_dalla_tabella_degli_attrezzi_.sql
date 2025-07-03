@@ -1,0 +1,1 @@
+ALTER TABLE public.attrezzi_utilizzati DROP COLUMN ore_utilizzo;

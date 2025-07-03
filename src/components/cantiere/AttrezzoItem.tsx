@@ -28,7 +28,7 @@ export function AttrezzoItem({ index, onRemove }: AttrezzoItemProps) {
   const { control } = useFormContext();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md relative">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md relative">
       <Button
         type="button"
         variant="ghost"
@@ -94,19 +94,6 @@ export function AttrezzoItem({ index, onRemove }: AttrezzoItemProps) {
             <FormLabel>Quantità</FormLabel>
             <FormControl>
               <Input type="number" placeholder="1" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
-        name={`attrezzi.${index}.oreUtilizzo`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Ore di Utilizzo</FormLabel>
-            <FormControl>
-              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
             </FormControl>
             <FormMessage />
           </FormItem>
