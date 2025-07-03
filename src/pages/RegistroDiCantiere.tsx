@@ -6,10 +6,10 @@ import { CantiereHistoryTable } from "@/components/cantiere/CantiereHistoryTable
 import { useSearchParams } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CantiereProcedureDescriptionDialog } from "@/components/cantiere/CantiereProcedureDescriptionDialog"; // Import the new dialog
+import { CantiereProcedureDescriptionDialog } from "@/components/cantiere/CantiereProcedureDescriptionDialog";
 import { fetchProcedure } from "@/lib/data-fetching";
 import { Procedure } from "@/lib/anagrafiche-data";
-import { showInfo, showError } from "@/utils/toast"; // Import showError
+import { showInfo, showError } from "@/utils/toast";
 
 const RegistroDiCantiere = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,9 +23,8 @@ const RegistroDiCantiere = () => {
 
   const handleViewCantiereProcedure = useCallback(async () => {
     showInfo("Ricerca procedura 'Procedure Cantiere'...");
-    const allProcedures = await fetchProcedure(); // Fetch all procedures with full details
+    const allProcedures = await fetchProcedure();
 
-    // Try to find the exact procedure "Procedure Cantiere" with version "1.0"
     const specificProcedure = allProcedures.find(p =>
       p.nome_procedura === 'Procedure Cantiere' && p.versione === '1.0'
     );
@@ -47,12 +46,12 @@ const RegistroDiCantiere = () => {
             <CardTitle className="text-3xl font-bold text-center">Registro di Cantiere</CardTitle>
             <Button
               variant="ghost"
-              size="icon"
               onClick={handleViewCantiereProcedure}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
               title="Visualizza Procedura Cantiere"
             >
               <FileText className="h-6 w-6" />
+              <span>Procedure</span>
             </Button>
           </div>
           <CardDescription className="text-center">Registra nuovi rapporti di cantiere e visualizza lo storico.</CardDescription>
