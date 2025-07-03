@@ -196,7 +196,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
           form.reset({
             reportDate: (report.report_date && typeof report.report_date === 'string') ? parseISO(report.report_date) : new Date(),
             reportTime: report.report_time || format(new Date(), "HH:mm"),
-            servicePointId: report.service_point_id || "",
+            servicePointId: report.service_point_id || "", // Use the new service_point_id
             addetto: report.employee_id || "",
             servizio: report.service_provided || "",
             startDateTime: (report.start_datetime && typeof report.start_datetime === 'string') ? parseISO(report.start_datetime) : undefined,
@@ -242,6 +242,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       start_datetime: values.startDateTime.toISOString(),
       end_datetime: values.endDateTime.toISOString(),
       notes: values.noteVarie || null,
+      service_point_id: values.servicePointId, // Save the service_point_id
       addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
       responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
       esito_servizio: values.esitoServizio || null,

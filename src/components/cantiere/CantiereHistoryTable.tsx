@@ -41,12 +41,17 @@ interface CantiereReport {
   nome_cliente?: string;
   nome_addetto?: string;
   status?: string;
+  service_point_id?: string | null; // Add service_point_id
+  addetto_riconsegna_security_service?: string | null;
+  responsabile_committente_riconsegna?: string | null;
+  esito_servizio?: string | null;
+  consegne_servizio?: string | null;
 }
 
 const generateCantierePdfBlob = async (reportId: string): Promise<Blob | null> => {
   const { data: report, error: reportError } = await supabase
     .from('registri_cantiere')
-    .select('*, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome), addetto_riconsegna:personale!addetto_riconsegna_security_service(nome, cognome)')
+    .select('*, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome), addetto_riconsegna:personale!addetto_riconsegna_security_service(nome, cognome), punti_servizio(nome_punto_servizio)') // Fetch service_point_id and its name
     .eq('id', reportId)
     .single();
 
@@ -80,7 +85,7 @@ const generateCantierePdfBlob = async (reportId: string): Promise<Blob | null> =
   let body = `Data Rapporto: ${format(parseISO(report.report_date), 'dd/MM/yyyy')}\n`;
   body += `Ora Rapporto: ${report.report_time}\n`;
   body += `Cliente: ${report.clienti?.nome_cliente || 'N/A'}\n`;
-  body += `Punto Servizio / Cantiere: ${report.site_name}\n`;
+  body += `Punto Servizio / Cantiere: ${report.punti_servizio?.nome_punto_servizio || report.site_name || 'N/A'}\n`; // Use service point name if available
   body += `Addetto Security Service: ${report.addetto ? `${report.addetto.nome} ${report.addetto.cognome}` : 'N/A'}\n`;
   body += `Servizio: ${report.service_provided}\n`;
   body += `Inizio Servizio: ${report.start_datetime ? format(parseISO(report.start_datetime), 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
@@ -125,7 +130,9 @@ export function CantiereHistoryTable() {
     setLoading(true);
     const { data: reportsData, error } = await supabase
       .from('registri_cantiere')
-      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, status, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome)');
+      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, status, service_point_id, clienti(nome_cliente), addetto:personale!employee_id(nome, cognome)') // Select service_point_id
+      .order('report_date', { ascending: false })
+      .order('report_time', { ascending: false });
 
     if (error) {
       showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
