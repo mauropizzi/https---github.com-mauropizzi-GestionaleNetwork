@@ -121,21 +121,8 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
   const [isServicePointOpen, setIsServicePointOpen] = useState(false);
   const [isAddettoOpen, setIsAddettoOpen] = useState(false);
   const [isAddettoRiconsegnaOpen, setIsAddettoRiconsegnaOpen] = useState(false); // New state for reconsegna personnel select
-  const [loadingInitialData, setLoadingInitialData] = useState(!!reportId); // Track loading for edit mode
-
-  useEffect(() => {
-    const loadData = async () => {
-      const fetchedPuntiServizio = await fetchPuntiServizio();
-      setPuntiServizio(fetchedPuntiServizio);
-      const fetchedPersonale = await fetchPersonale();
-      setPersonaleList(fetchedPersonale);
-      // Fetch personnel for reconsegna (GPG or Pattuglia)
-      const fetchedGpg = await fetchPersonale('GPG');
-      const fetchedPattuglia = await fetchPersonale('Pattuglia');
-      setPersonaleRiconsegnaList([...fetchedGpg, ...fetchedPattuglia]);
-    };
-    loadData();
-  }, []);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true); // New state to track dropdown loading
+  const [loadingInitialReport, setLoadingInitialReport] = useState(!!reportId); // Keep this for report loading
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -161,6 +148,22 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     },
   });
 
+  // Effect to load all dropdown data
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      setLoadingDropdowns(true);
+      const fetchedPuntiServizio = await fetchPuntiServizio();
+      setPuntiServizio(fetchedPuntiServizio);
+      const fetchedPersonale = await fetchPersonale();
+      setPersonaleList(fetchedPersonale);
+      const fetchedGpg = await fetchPersonale('GPG');
+      const fetchedPattuglia = await fetchPersonale('Pattuglia');
+      setPersonaleRiconsegnaList([...fetchedGpg, ...fetchedPattuglia]);
+      setLoadingDropdowns(false);
+    };
+    loadDropdownData();
+  }, []); // Runs once on mount
+
   const { fields: automezziFields, append: appendAutomezzo, remove: removeAutomezzo } = useFieldArray({
     control: form.control,
     name: "automezzi",
@@ -171,11 +174,11 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     name: "attrezzi",
   });
 
-  // Effect to load existing report data when reportId is provided
+  // Effect to load existing report data when reportId is provided AND dropdowns are loaded
   useEffect(() => {
     const loadReportData = async () => {
-      if (reportId) {
-        setLoadingInitialData(true);
+      if (reportId && !loadingDropdowns) { // Only proceed if reportId exists and dropdowns are loaded
+        setLoadingInitialReport(true);
         const { data: report, error: reportError } = await supabase
           .from('registri_cantiere')
           .select('*, automezzi_utilizzati(*), attrezzi_utilizzati(*)') // Fetch related data
@@ -185,7 +188,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
         if (reportError) {
           showError(`Errore nel recupero del rapporto di cantiere: ${reportError.message}`);
           console.error("Error fetching cantiere report for edit:", reportError);
-          setLoadingInitialData(false);
+          setLoadingInitialReport(false);
           return;
         }
 
@@ -211,12 +214,14 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
             isCompleted: report.status === "terminato", // Set isCompleted based on fetched status
           });
         }
-        setLoadingInitialData(false);
+        setLoadingInitialReport(false);
+      } else if (!reportId) { // If no reportId, ensure loading is false
+        setLoadingInitialReport(false);
       }
     };
 
     loadReportData();
-  }, [reportId, form]);
+  }, [reportId, loadingDropdowns, form]); // Add loadingDropdowns as a dependency
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
@@ -399,8 +404,8 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     showSuccess("PDF del rapporto di cantiere generato con successo!");
   };
 
-  if (loadingInitialData) {
-    return <div className="text-center py-8">Caricamento rapporto...</div>;
+  if (loadingDropdowns || loadingInitialReport) { // Show loading if either is loading
+    return <div className="text-center py-8">Caricamento dati...</div>;
   }
 
   return (

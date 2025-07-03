@@ -58,13 +58,16 @@ export default function ServiceReportForm() {
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
   const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true); // Keep this for dropdowns
 
   useEffect(() => {
     const loadData = async () => {
+      setLoadingDropdowns(true); // Set loading true at start
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
+      setLoadingDropdowns(false); // Set loading false after all fetches
     };
     loadData();
   }, []);
@@ -264,6 +267,10 @@ export default function ServiceReportForm() {
       showError("Impossibile generare il PDF.");
     }
   });
+
+  if (loadingDropdowns) { // Only check for dropdown loading
+    return <div className="text-center py-8">Caricamento dati...</div>;
+  }
 
   return (
     <FormProvider {...methods}>

@@ -62,7 +62,8 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
   const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false);
-  const [loadingInitialData, setLoadingInitialData] = useState(true);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true); // New state
+  const [loadingInitialReport, setLoadingInitialReport] = useState(true); // Keep this
 
   const methods = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -91,62 +92,70 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
     },
   });
 
+  // Effect to load all dropdown data
   useEffect(() => {
-    const loadData = async () => {
+    const loadDropdownData = async () => {
+      setLoadingDropdowns(true);
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
+      setLoadingDropdowns(false);
     };
-    loadData();
-  }, []);
+    loadDropdownData();
+  }, []); // Runs once on mount
 
+  // Effect to fetch existing report data when reportId is provided AND dropdowns are loaded
   useEffect(() => {
     const fetchReportData = async () => {
-      setLoadingInitialData(true);
-      const { data: report, error } = await supabase
-        .from('rapporti_servizio')
-        .select('*') // Select all columns, including the new service_location_id
-        .eq('id', reportId)
-        .single();
+      if (reportId && !loadingDropdowns) { // Only proceed if reportId exists and dropdowns are loaded
+        setLoadingInitialReport(true);
+        const { data: report, error } = await supabase
+          .from('rapporti_servizio')
+          .select('*') // Select all columns, including the new service_location_id
+          .eq('id', reportId)
+          .single();
 
-      if (error) {
-        showError(`Errore nel recupero del rapporto: ${error.message}`);
-        console.error("Error fetching service report for edit:", error);
-        setLoadingInitialData(false);
-        return;
-      }
+        if (error) {
+          showError(`Errore nel recupero del rapporto: ${error.message}`);
+          console.error("Error fetching service report for edit:", error);
+          setLoadingInitialReport(false);
+          return;
+        }
 
-      if (report) {
-        methods.reset({
-          serviceDate: (report.service_date && typeof report.service_date === 'string') ? parseISO(report.service_date) : new Date(),
-          employeeId: report.employee_id || "",
-          servicePointId: report.service_location_id || "", // Use service_location_id for the form field
-          serviceType: report.service_type || "",
-          startTime: report.start_time || "09:00",
-          endTime: report.end_time || "17:00",
-          vehicleMakeModel: report.vehicle_make_model || "",
-          vehiclePlate: report.vehicle_plate || "",
-          startKm: report.start_km || 0,
-          endKm: report.end_km || 0,
-          vehicleInitialState: report.vehicle_initial_state || "",
-          danniVeicolo: report.danni_veicolo || null,
-          vehicleAnomalies: report.vehicle_anomalies || null,
-          gps: report.gps ? 'si' : 'no',
-          radioVehicle: report.radio_vehicle ? 'si' : 'no',
-          swivelingLamp: report.swiveling_lamp ? 'si' : 'no',
-          radioPortable: report.radio_portable ? 'si' : 'no',
-          flashlight: report.flashlight ? 'si' : 'no',
-          extinguisher: report.extinguisher ? 'si' : 'no',
-          spareTire: report.spare_tire ? 'si' : 'no',
-          highVisibilityVest: report.high_visibility_vest ? 'si' : 'no',
-        });
+        if (report) {
+          methods.reset({
+            serviceDate: (report.service_date && typeof report.service_date === 'string') ? parseISO(report.service_date) : new Date(),
+            employeeId: report.employee_id || "",
+            servicePointId: report.service_location_id || "", // Use service_location_id for the form field
+            serviceType: report.service_type || "",
+            startTime: report.start_time || "09:00",
+            endTime: report.end_time || "17:00",
+            vehicleMakeModel: report.vehicle_make_model || "",
+            vehiclePlate: report.vehicle_plate || "",
+            startKm: report.start_km || 0,
+            endKm: report.end_km || 0,
+            vehicleInitialState: report.vehicle_initial_state || "",
+            danniVeicolo: report.danni_veicolo || null,
+            vehicleAnomalies: report.vehicle_anomalies || null,
+            gps: report.gps ? 'si' : 'no',
+            radioVehicle: report.radio_vehicle ? 'si' : 'no',
+            swivelingLamp: report.swiveling_lamp ? 'si' : 'no',
+            radioPortable: report.radio_portable ? 'si' : 'no',
+            flashlight: report.flashlight ? 'si' : 'no',
+            extinguisher: report.extinguisher ? 'si' : 'no',
+            spareTire: report.spare_tire ? 'si' : 'no',
+            highVisibilityVest: report.high_visibility_vest ? 'si' : 'no',
+          });
+        }
+        setLoadingInitialReport(false);
+      } else if (!reportId) { // If no reportId, ensure loading is false
+        setLoadingInitialReport(false);
       }
-      setLoadingInitialData(false);
     };
 
     fetchReportData();
-  }, [reportId, methods]);
+  }, [reportId, loadingDropdowns, methods]); // Add loadingDropdowns as a dependency
 
   const selectedVehiclePlate = methods.watch("vehiclePlate");
   const vehicleInitialState = methods.watch("vehicleInitialState");
@@ -329,7 +338,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
     }
   });
 
-  if (loadingInitialData) {
+  if (loadingDropdowns || loadingInitialReport) {
     return (
       <div className="text-center py-8">
         Caricamento dati rapporto...
@@ -346,7 +355,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
           isEmployeeSelectOpen={isEmployeeSelectOpen}
           setIsEmployeeSelectOpen={setIsEmployeeSelectOpen}
           isServicePointSelectOpen={isServicePointSelectOpen}
-          setIsServicePointOpen={setIsServicePointOpen}
+          setIsServicePointSelectOpen={setIsServicePointSelectOpen}
           handleSetCurrentTime={handleSetCurrentTime}
         />
 
