@@ -53,6 +53,7 @@ export const vehicleInitialStateOptions: string[] = [
   "SUFFICIENTE",
   "BUONO",
   "OTTIMO",
+  "RICHIESTA MANUTENZIONE",
 ];
 
 export const bodyworkDamageOptions: string[] = [
