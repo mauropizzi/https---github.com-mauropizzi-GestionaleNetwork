@@ -31,7 +31,6 @@ interface CantiereReport {
   service_provided: string;
   start_datetime?: string | null;
   end_datetime?: string | null;
-  work_description: string;
   notes?: string;
   automezziCount: number;
   attrezziCount: number;
@@ -49,7 +48,7 @@ export function CantiereHistoryTable() {
     setLoading(true);
     const { data: reportsData, error } = await supabase
       .from('registri_cantiere')
-      .select('*, clienti(nome_cliente), personale(nome, cognome)');
+      .select('id, report_date, report_time, client_id, site_name, employee_id, service_provided, start_datetime, end_datetime, notes, clienti(nome_cliente), personale(nome, cognome)');
 
     if (error) {
       showError(`Errore nel recupero dei rapporti di cantiere: ${error.message}`);
@@ -96,8 +95,7 @@ export function CantiereHistoryTable() {
         report.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.nome_addetto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.service_provided.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.work_description.toLowerCase().includes(searchTerm.toLowerCase());
+        report.service_provided.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDate = filterDate === "" ||
         report.report_date === filterDate;

@@ -62,7 +62,6 @@ const formSchema = z.object({
   servizio: z.string().min(1, "Il servizio è richiesto."),
   startDateTime: z.date({ required_error: "La data e ora di inizio sono richieste." }),
   endDateTime: z.date({ required_error: "La data e ora di fine sono richieste." }),
-  descrizioneLavori: z.string().min(10, "La descrizione dei lavori è troppo breve.").max(500, "La descrizione dei lavori è troppo lunga."),
   noteVarie: z.string().optional(),
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
@@ -99,7 +98,6 @@ export function CantiereForm() {
       servizio: "",
       startDateTime: undefined,
       endDateTime: undefined,
-      descrizioneLavori: "",
       noteVarie: "",
       automezzi: [],
       attrezzi: [],
@@ -138,7 +136,6 @@ export function CantiereForm() {
         service_provided: values.servizio,
         start_datetime: values.startDateTime.toISOString(),
         end_datetime: values.endDateTime.toISOString(),
-        work_description: values.descrizioneLavori,
         notes: values.noteVarie || null,
       }])
       .select('id')
@@ -225,7 +222,6 @@ export function CantiereForm() {
     body += `Servizio: ${values.servizio}\n`;
     body += `Inizio Servizio: ${values.startDateTime ? format(values.startDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
     body += `Fine Servizio: ${values.endDateTime ? format(values.endDateTime, 'dd/MM/yyyy HH:mm') : 'N/A'}\n`;
-    body += `\nDescrizione Lavori Svolti:\n${values.descrizioneLavori}\n`;
 
     if (values.automezzi && values.automezzi.length > 0) {
       body += `\n--- Automezzi Utilizzati ---\n`;
@@ -469,23 +465,6 @@ export function CantiereForm() {
               )}
             />
           </div>
-        </section>
-
-        <section className="p-4 border rounded-lg shadow-sm bg-card">
-          <h2 className="text-xl font-semibold mb-4">Descrizione Lavori</h2>
-          <FormField
-            control={form.control}
-            name="descrizioneLavori"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Dettagli Lavori Svolti</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Descrivi dettagliatamente i lavori svolti..." rows={5} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </section>
 
         <section className="p-4 border rounded-lg shadow-sm bg-card">
