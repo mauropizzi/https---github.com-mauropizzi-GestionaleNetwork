@@ -31,6 +31,7 @@ const Login = React.lazy(() => import("./pages/Login"));
 const IncomingEmailsPage = React.lazy(() => import("./pages/IncomingEmails"));
 const AnalisiContabile = React.lazy(() => import("./pages/AnalisiContabile"));
 const EditServiceRequestPage = React.lazy(() => import("./pages/EditServiceRequestPage"));
+const RichiestaManutenzione = React.lazy(() => import("./pages/RichiestaManutenzione")); // New lazy import
 
 const queryClient = new QueryClient();
 
@@ -193,6 +194,11 @@ const App = () => (
                       <AnalisiContabile />
                     </React.Suspense>
                   } />
+                  <Route path="richiesta-manutenzione" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <RichiestaManutenzione />
+                    </React.Suspense>
+                  } />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
@@ -205,8 +211,8 @@ const App = () => (
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
-  </React.Fragment>
-);
+    </React.Fragment>
+  );
+};
 
 export default App;

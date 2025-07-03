@@ -224,7 +224,7 @@ export default function ServiceReportForm() {
       y += 7;
       doc.text(`KM Iniziali: ${values.startKm} - KM Finali: ${values.endKm}`, 14, y);
       y += 7;
-      doc.text(`Stato Iniziale Veicolo: ${values.vehicleInitialState}`, 14, y);
+      doc.text(`Stato Veicolo: ${values.vehicleInitialState}`, 14, y);
       y += 7;
       doc.text(`Danni Carrozzeria: ${values.bodyworkDamage}`, 14, y);
       y += 7;
@@ -577,7 +577,7 @@ export default function ServiceReportForm() {
             name="vehicleInitialState"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Stato Iniziale Veicolo</FormLabel>
+                <FormLabel>Stato Veicolo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
