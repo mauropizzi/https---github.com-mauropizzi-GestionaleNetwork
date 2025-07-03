@@ -426,7 +426,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Punto Servizio</FormLabel>
-                <Popover open={isServicePointSelectOpen} onOpenChange={setIsServicePointOpen}>
+                <Popover open={isServicePointSelectOpen} onOpenChange={setIsServicePointSelectOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -455,7 +455,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
                             value={point.nome_punto_servizio}
                             onSelect={() => {
                               form.setValue("servicePointId", point.id);
-                              setIsServicePointOpen(false);
+                              setIsServicePointSelectOpen(false);
                             }}
                           >
                             <Check
