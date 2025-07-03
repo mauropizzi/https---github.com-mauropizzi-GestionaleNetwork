@@ -1,24 +1,3 @@
-export const serviceLocationOptions: string[] = [
-  "Agrigento - Segmento Portierato",
-  "Agrigento - Segmento VIGILANZA",
-  "Caltanissetta - Segmento Portierato",
-  "Caltanissetta - Segmento VIGILANZA",
-  "Catania - Segmento Portierato",
-  "Catania - Segmento VIGILANZA",
-  "Enna - Segmento Portierato",
-  "Enna - Segmento VIGILANZA",
-  "Messina - Segmento Portierato",
-  "Messina - Segmento VIGILANZA",
-  "Palermo - Segmento Portierato",
-  "Palermo - Segmento VIGILANZA",
-  "Ragusa - Segmento Portierato",
-  "Ragusa - Segmento VIGILANZA",
-  "Siracusa - Segmento Portierato",
-  "Siracusa - Segmento VIGILANZA",
-  "Trapani - Segmento Portierato",
-  "Trapani - Segmento VIGILANZA",
-];
-
 export const serviceTypeOptions: string[] = [
   "G.P.G.",
   "Addetto Servizi Fiduciari", // Modificato da "A.S.F."

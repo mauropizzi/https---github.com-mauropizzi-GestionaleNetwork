@@ -35,15 +35,14 @@ import { sendEmail } from "@/utils/email";
 import { RECIPIENT_EMAIL } from "@/lib/config";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  serviceLocationOptions,
   serviceTypeOptions,
   vehicleMakeModelOptions,
   vehiclePlateOptions,
   vehicleInitialStateOptions,
   bodyworkDamageOptions,
 } from "@/lib/dotazioni-data";
-import { Personale } from "@/lib/anagrafiche-data";
-import { fetchPersonale } from "@/lib/data-fetching";
+import { Personale, PuntoServizio } from "@/lib/anagrafiche-data"; // Import PuntoServizio
+import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching"; // Import fetchPuntiServizio
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 const formSchema = z.object({
@@ -51,7 +50,7 @@ const formSchema = z.object({
     required_error: "La data del servizio è richiesta.",
   }),
   employeeId: z.string().uuid("Seleziona un dipendente valido.").nonempty("Il dipendente è richiesto."),
-  serviceLocation: z.string().min(1, "La località del servizio è richiesta."),
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."), // Changed from serviceLocation
   serviceType: z.string().min(1, "Il tipo di servizio è richiesto."),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora inizio non valido (HH:MM)."),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora fine non valido (HH:MM)."),
@@ -77,14 +76,18 @@ const formSchema = z.object({
 
 export default function ServiceReportForm() {
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]); // New state for puntiServizio
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
+  const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false); // New state for service point select
 
   useEffect(() => {
-    const loadPersonale = async () => {
+    const loadData = async () => {
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
+      const fetchedPuntiServizio = await fetchPuntiServizio(); // Fetch punti servizio
+      setPuntiServizioList(fetchedPuntiServizio);
     };
-    loadPersonale();
+    loadData();
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -92,7 +95,7 @@ export default function ServiceReportForm() {
     defaultValues: {
       serviceDate: new Date(),
       employeeId: "",
-      serviceLocation: "",
+      servicePointId: "", // Changed from serviceLocation
       serviceType: "",
       startTime: "09:00",
       endTime: "17:00",
@@ -116,6 +119,7 @@ export default function ServiceReportForm() {
 
   const selectedVehiclePlate = form.watch("vehiclePlate");
   const vehicleInitialState = form.watch("vehicleInitialState"); // Watch the vehicleInitialState field
+  const selectedServicePointId = form.watch("servicePointId"); // Watch the selected service point ID
 
   useEffect(() => {
     const fetchLastKm = async () => {
@@ -150,10 +154,13 @@ export default function ServiceReportForm() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log("Dati Rapporto di Servizio:", values);
 
+    const selectedServicePoint = puntiServizioList.find(p => p.id === values.servicePointId);
+    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+
     const payload = {
       service_date: format(values.serviceDate, 'yyyy-MM-dd'),
       employee_id: values.employeeId,
-      service_location: values.serviceLocation,
+      service_location: servicePointName, // Use the name of the service point
       service_type: values.serviceType,
       start_time: values.startTime,
       end_time: values.endTime,
@@ -208,12 +215,14 @@ export default function ServiceReportForm() {
       doc.setFontSize(10);
       const employeeName = personaleList.find(p => p.id === values.employeeId);
       const employeeFullName = employeeName ? `${employeeName.nome} ${employeeName.cognome}` : 'N/A';
+      const selectedServicePoint = puntiServizioList.find(p => p.id === values.servicePointId);
+      const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
 
       doc.text(`Data Servizio: ${format(values.serviceDate, 'PPP', { locale: it })}`, 14, y);
       y += 7;
       doc.text(`Dipendente: ${employeeFullName}`, 14, y);
       y += 7;
-      doc.text(`Segmento: ${values.serviceLocation}`, 14, y);
+      doc.text(`Punto Servizio: ${servicePointName}`, 14, y); // Changed from Segmento
       y += 7;
       doc.text(`Tipo Servizio: ${values.serviceType}`, 14, y);
       y += 7;
@@ -280,7 +289,10 @@ export default function ServiceReportForm() {
 
     const employeeName = personaleList.find(p => p.id === values.employeeId);
     const employeeFullName = employeeName ? `${employeeName.nome} ${employeeName.cognome}` : 'N/A';
-    const subject = `Rapporto Dotazioni di Servizio - ${employeeFullName} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
+    const selectedServicePoint = puntiServizioList.find(p => p.id === values.servicePointId);
+    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+
+    const subject = `Rapporto Dotazioni di Servizio - ${employeeFullName} - ${servicePointName} - ${format(values.serviceDate, 'dd/MM/yyyy')}`;
     const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali saluti.";
     
     showInfo("Generazione PDF per l'allegato email...");
@@ -414,24 +426,55 @@ export default function ServiceReportForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="serviceLocation"
+            name="servicePointId" // Changed name
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Segmento</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleziona segmento" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {serviceLocationOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Punto Servizio</FormLabel> {/* Changed label */}
+                <Popover open={isServicePointSelectOpen} onOpenChange={setIsServicePointSelectOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isServicePointSelectOpen}
+                        className="w-full justify-between"
+                      >
+                        {field.value
+                          ? puntiServizioList.find(
+                              (point) => point.id === field.value
+                            )?.nome_punto_servizio
+                          : "Seleziona un punto servizio"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cerca punto servizio..." />
+                      <CommandEmpty>Nessun punto servizio trovato.</CommandEmpty>
+                      <CommandGroup>
+                        {puntiServizioList.map((point) => (
+                          <CommandItem
+                            key={point.id}
+                            value={point.nome_punto_servizio}
+                            onSelect={() => {
+                              form.setValue("servicePointId", point.id);
+                              setIsServicePointSelectOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === point.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {point.nome_punto_servizio}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
