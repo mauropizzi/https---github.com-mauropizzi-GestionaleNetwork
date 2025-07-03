@@ -58,7 +58,6 @@ const formSchema = z.object({
   }),
   reportTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
-  cantiere: z.string().min(1, "Il cantiere è richiesto."),
   addetto: z.string().uuid("Seleziona un addetto valido.").nonempty("L'addetto è richiesto."),
   servizio: z.string().min(1, "Il servizio è richiesto."),
   oreServizio: z.coerce.number().min(0.5, "Le ore di servizio devono essere almeno 0.5."),
@@ -91,7 +90,6 @@ export function CantiereForm() {
       reportDate: new Date(),
       reportTime: format(new Date(), "HH:mm"),
       servicePointId: "",
-      cantiere: "",
       addetto: "",
       servizio: "",
       oreServizio: 0,
@@ -121,6 +119,7 @@ export function CantiereForm() {
       return;
     }
     const clientId = selectedServicePoint.id_cliente;
+    const siteName = selectedServicePoint.nome_punto_servizio;
 
     const { data: registroData, error: registroError } = await supabase
       .from('registri_cantiere')
@@ -128,7 +127,7 @@ export function CantiereForm() {
         report_date: format(values.reportDate, 'yyyy-MM-dd'),
         report_time: values.reportTime,
         client_id: clientId,
-        site_name: values.cantiere,
+        site_name: siteName,
         employee_id: values.addetto,
         service_provided: values.servizio,
         service_hours: values.oreServizio,
@@ -205,7 +204,7 @@ export function CantiereForm() {
     const selectedAddetto = personaleList.find(p => p.id === values.addetto);
     const addettoName = selectedAddetto ? `${selectedAddetto.nome} ${selectedAddetto.cognome}` : "N/A";
 
-    const subject = `Rapporto di Cantiere - ${clientName} - ${values.cantiere} - ${format(values.reportDate, 'dd/MM/yyyy')}`;
+    const subject = `Rapporto di Cantiere - ${clientName} - ${servicePointName} - ${format(values.reportDate, 'dd/MM/yyyy')}`;
     
     let body = `Dettagli Rapporto di Cantiere:\n\n`;
     body += `Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}\n`;
@@ -214,8 +213,7 @@ export function CantiereForm() {
       body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
     }
     body += `Cliente: ${clientName}\n`;
-    body += `Punto Servizio: ${servicePointName}\n`;
-    body += `Cantiere: ${values.cantiere}\n`;
+    body += `Punto Servizio / Cantiere: ${servicePointName}\n`;
     body += `Addetto: ${addettoName}\n`;
     body += `Servizio: ${values.servizio}\n`;
     body += `Ore di Servizio: ${values.oreServizio}\n`;
@@ -318,7 +316,7 @@ export function CantiereForm() {
             name="servicePointId"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Punto Servizio</FormLabel>
+                <FormLabel>Punto Servizio / Cantiere</FormLabel>
                 <Popover open={isServicePointOpen} onOpenChange={setIsServicePointOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -350,19 +348,6 @@ export function CantiereForm() {
                     </Command>
                   </PopoverContent>
                 </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="cantiere"
-            render={({ field }) => (
-              <FormItem className="mb-4">
-                <FormLabel>Cantiere / Nome Sito</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nome o indirizzo del cantiere" {...field} />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
