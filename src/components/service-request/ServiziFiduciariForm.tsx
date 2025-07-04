@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { isDateHoliday } from "@/lib/date-utils";
 import { PuntoServizio, Fornitore } from "@/lib/anagrafiche-data";
-import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching"; // Import calculateServiceCost
+import { fetchPuntiServizio, fetchFornitori, calculateServiceCost } from "@/lib/data-fetching";
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
@@ -155,12 +155,17 @@ export function ServiziFiduciariForm({ serviceId, onSaveSuccess, onCancel }: Ser
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const normalizedStartTime = values.startTime.replace('.', ':');
     const normalizedEndTime = values.endTime.replace('.', ':');
-    const startDateTimeStr = `${format(values.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
-    const endDateTimeStr = `${format(values.endDate, "yyyy-MM-dd")}T${normalizedEndTime}:00`;
-    const start = parseISO(startDateTimeStr);
-    const end = parseISO(endDateTimeStr);
+    
+    const start = values.startDate;
+    const end = values.endDate;
 
-    if (!isValid(start) || !isValid(end) || end.getTime() < start.getTime()) {
+    // Combine date with time for a full datetime comparison using local time
+    const startDateTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(),
+                                   parseInt(normalizedStartTime.split(':')[0]), parseInt(normalizedStartTime.split(':')[1]));
+    const endDateTime = new Date(end.getFullYear(), end.getMonth(), end.getDate(),
+                                 parseInt(normalizedEndTime.split(':')[0]), parseInt(normalizedEndTime.split(':')[1]));
+
+    if (endDateTime.getTime() < startDateTime.getTime()) {
       form.setError("endDate", {
         type: "manual",
         message: "La data/ora di fine non può essere precedente alla data/ora di inizio.",
