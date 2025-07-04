@@ -38,7 +38,7 @@ import { supabase } from "@/integrations/supabase/client"; // Import Supabase cl
 const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
 
 const dailyHoursSchema = z.object({
-  day: z.string(),
+  day: z.string().min(1, "Il giorno è richiesto."), // Made 'day' required
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
