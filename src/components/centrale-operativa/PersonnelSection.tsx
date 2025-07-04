@@ -1,13 +1,12 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data';
-import { useFormContext } from 'react-hook-form'; // Import useFormContext
-import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
+import { useFormContext } from 'react-hook-form';
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
 
 interface PersonnelSectionProps {
   operatoriNetworkList: OperatoreNetwork[];
@@ -26,9 +25,9 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
   isGpgInterventionOpen,
   setIsGpgInterventionOpen,
 }) => {
-  const { control, watch } = useFormContext(); // Get form methods from context
+  const { control, watch } = useFormContext();
 
-  const formData = watch(); // Watch all form data
+  const formData = watch();
 
   return (
     <section className="space-y-4">
@@ -37,7 +36,7 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
         name="operatorNetworkId"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="operator-network">Operatore Network</Label>
+            <FormLabel>Operatore Network</FormLabel>
             <Popover open={isOperatorNetworkOpen} onOpenChange={setIsOperatorNetworkOpen}>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -91,7 +90,7 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
         name="gpgIntervention"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="gpg-intervention">G.P.G. Intervento *</Label>
+            <FormLabel>G.P.G. Intervento *</FormLabel>
             <Popover open={isGpgInterventionOpen} onOpenChange={setIsGpgInterventionOpen}>
               <PopoverTrigger asChild>
                 <FormControl>

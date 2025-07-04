@@ -1,13 +1,12 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useFormContext } from 'react-hook-form'; // Import useFormContext
-import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
+import { useFormContext } from 'react-hook-form';
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
 
 export const AccessDetailsSection: React.FC = () => {
-  const { control, watch } = useFormContext(); // Get form methods from context
+  const { control, watch } = useFormContext();
 
-  const formData = watch(); // Watch all form data
+  const formData = watch();
 
   return (
     <section className="space-y-4">
@@ -16,7 +15,7 @@ export const AccessDetailsSection: React.FC = () => {
         name="fullAccess"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label>Accesso Completo</Label>
+            <FormLabel>Accesso Completo</FormLabel>
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
@@ -25,11 +24,11 @@ export const AccessDetailsSection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="fullAccessSi" />
-                  <Label htmlFor="fullAccessSi">SI</Label>
+                  <FormLabel htmlFor="fullAccessSi">SI</FormLabel>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="fullAccessNo" />
-                  <Label htmlFor="fullAccessNo">NO</Label>
+                  <FormLabel htmlFor="fullAccessNo">NO</FormLabel>
                 </div>
               </RadioGroup>
             </FormControl>
@@ -43,7 +42,7 @@ export const AccessDetailsSection: React.FC = () => {
         name="vaultAccess"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label>Accesso Caveau</Label>
+            <FormLabel>Accesso Caveau</FormLabel>
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
@@ -52,11 +51,11 @@ export const AccessDetailsSection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="vaultAccessSi" />
-                  <Label htmlFor="vaultAccessSi">SI</Label>
+                  <FormLabel htmlFor="vaultAccessSi">SI</FormLabel>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="vaultAccessNo" />
-                  <Label htmlFor="vaultAccessNo">NO</Label>
+                  <FormLabel htmlFor="vaultAccessNo">NO</FormLabel>
                 </div>
               </RadioGroup>
             </FormControl>

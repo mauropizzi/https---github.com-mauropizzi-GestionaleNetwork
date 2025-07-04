@@ -1,14 +1,13 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { useFormContext } from 'react-hook-form'; // Import useFormContext
-import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
+import { useFormContext } from 'react-hook-form';
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
 
 export const AnomaliesDelaySection: React.FC = () => {
-  const { control, watch } = useFormContext(); // Get form methods from context
+  const { control, watch } = useFormContext();
 
-  const formData = watch(); // Watch all form data
+  const formData = watch();
 
   return (
     <section className="space-y-4">
@@ -17,7 +16,7 @@ export const AnomaliesDelaySection: React.FC = () => {
         name="anomalies"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label>Anomalie Riscontrate</Label>
+            <FormLabel>Anomalie Riscontrate</FormLabel>
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
@@ -26,11 +25,11 @@ export const AnomaliesDelaySection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="anomaliesSi" />
-                  <Label htmlFor="anomaliesSi">SI</Label>
+                  <FormLabel htmlFor="anomaliesSi">SI</FormLabel>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="anomaliesNo" />
-                  <Label htmlFor="anomaliesNo">NO</Label>
+                  <FormLabel htmlFor="anomaliesNo">NO</FormLabel>
                 </div>
               </RadioGroup>
             </FormControl>
@@ -64,7 +63,7 @@ export const AnomaliesDelaySection: React.FC = () => {
         name="delay"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label>Ritardo</Label>
+            <FormLabel>Ritardo</FormLabel>
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
@@ -73,11 +72,11 @@ export const AnomaliesDelaySection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="delaySi" />
-                  <Label htmlFor="delaySi">SI</Label>
+                  <FormLabel htmlFor="delaySi">SI</FormLabel>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="delayNo" />
-                  <Label htmlFor="delayNo">NO</Label>
+                  <FormLabel htmlFor="delayNo">NO</FormLabel>
                 </div>
               </RadioGroup>
             </FormControl>

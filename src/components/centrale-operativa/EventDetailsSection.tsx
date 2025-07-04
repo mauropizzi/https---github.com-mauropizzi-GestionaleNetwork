@@ -1,5 +1,4 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,9 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Personale } from '@/lib/anagrafiche-data';
 import { requestTypeOptions } from '@/lib/centrale-options';
-import { useFormContext } from 'react-hook-form'; // Import useFormContext
-import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
+import { useFormContext } from 'react-hook-form';
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
+import { Label } from '@/components/ui/label'; // Keep generic Label for non-form elements
 
 interface EventDetailsSectionProps {
   handleSetCurrentTime: (field: string) => void;
@@ -45,7 +45,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
         name="servicePoint"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="service-point">Punto Servizio *</Label>
+            <FormLabel>Punto Servizio *</FormLabel>
             <Popover open={isServicePointOpen} onOpenChange={setIsServicePointOpen}>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -108,7 +108,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
         name="requestType"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="request-type">Tipologia Servizio Richiesto *</Label>
+            <FormLabel>Tipologia Servizio Richiesto *</FormLabel>
             <Select
               onValueChange={field.onChange}
               value={field.value}
@@ -136,7 +136,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
         name="coOperator"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="co-operator">Operatore C.O. Security Service *</Label>
+            <FormLabel>Operatore C.O. Security Service *</FormLabel>
             <Popover open={isCoOperatorOpen} onOpenChange={setIsCoOperatorOpen}>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -190,7 +190,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
         name="requestTime"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="request-time">Orario Richiesta C.O. Security Service *</Label>
+            <FormLabel>Orario Richiesta C.O. Security Service *</FormLabel>
             <div className="flex gap-2">
               <FormControl>
                 <Input

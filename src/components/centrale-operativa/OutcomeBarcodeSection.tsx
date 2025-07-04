@@ -1,15 +1,14 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { serviceOutcomeOptions } from '@/lib/centrale-options';
-import { useFormContext } from 'react-hook-form'; // Import useFormContext
-import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
+import { useFormContext } from 'react-hook-form';
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
 
 export const OutcomeBarcodeSection: React.FC = () => {
-  const { control, watch } = useFormContext(); // Get form methods from context
+  const { control, watch } = useFormContext();
 
-  const formData = watch(); // Watch all form data
+  const formData = watch();
 
   return (
     <section className="space-y-4">
@@ -18,7 +17,7 @@ export const OutcomeBarcodeSection: React.FC = () => {
         name="serviceOutcome"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="service-outcome">Esito Evento</Label>
+            <FormLabel>Esito Evento</FormLabel>
             <Select
               onValueChange={field.onChange}
               value={field.value || ''}
@@ -46,7 +45,7 @@ export const OutcomeBarcodeSection: React.FC = () => {
         name="barcode"
         render={({ field }) => (
           <FormItem className="space-y-2">
-            <Label htmlFor="barcode">Barcode</Label>
+            <FormLabel>Barcode</FormLabel>
             <FormControl>
               <Input
                 type="text"
