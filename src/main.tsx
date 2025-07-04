@@ -1,14 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import reportWebVitals from './reportWebVitals';
 
 createRoot(document.getElementById("root")!).render(
   <>
     <App />
-    <Toaster />
     <Sonner />
   </>
 );

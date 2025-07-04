@@ -38,7 +38,7 @@ const formSchema = z.object({
   startKm: z.coerce.number().min(0, "KM iniziali non validi."),
   endKm: z.coerce.number().min(0, "KM finali non validi."),
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo è richiesto."),
-  danniVeicolo: z.string().optional().nullable(), // Changed to optional().nullable()
+  danniVeicolo: z.string().optional().nullable(),
   vehicleAnomalies: z.string().optional().nullable(),
   gps: z.enum(['si', 'no'], { required_error: 'Il campo GPS è obbligatorio.' }),
   radioVehicle: z.enum(['si', 'no'], { required_error: 'Il campo Radio Veicolare è obbligatorio.' }),
@@ -53,21 +53,28 @@ const formSchema = z.object({
   path: ["endKm"],
 });
 
-export default function ServiceReportForm() {
+interface ServiceReportFormProps {
+  reportId?: string; // Optional ID for editing
+  onSaveSuccess?: () => void; // Callback for successful save/update
+  onCancel?: () => void; // Callback for cancel
+}
+
+export default function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: ServiceReportFormProps) {
   const [personaleList, setPersonaleList] = useState<Personale[]>([]);
   const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
   const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false);
-  const [loadingDropdowns, setLoadingDropdowns] = useState(true); // Keep this for dropdowns
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
+  const [loadingInitialReport, setLoadingInitialReport] = useState(!!reportId);
 
   useEffect(() => {
     const loadData = async () => {
-      setLoadingDropdowns(true); // Set loading true at start
+      setLoadingDropdowns(true);
       const fetchedPersonale = await fetchPersonale();
       setPersonaleList(fetchedPersonale);
       const fetchedPuntiServizio = await fetchPuntiServizio();
       setPuntiServizioList(fetchedPuntiServizio);
-      setLoadingDropdowns(false); // Set loading false after all fetches
+      setLoadingDropdowns(false);
     };
     loadData();
   }, []);
@@ -86,7 +93,7 @@ export default function ServiceReportForm() {
       startKm: 0,
       endKm: 0,
       vehicleInitialState: "",
-      danniVeicolo: null, // Changed default to null
+      danniVeicolo: null,
       vehicleAnomalies: null,
       gps: undefined,
       radioVehicle: undefined,
@@ -99,13 +106,64 @@ export default function ServiceReportForm() {
     },
   });
 
+  useEffect(() => {
+    const fetchReportData = async () => {
+      if (reportId && !loadingDropdowns) {
+        setLoadingInitialReport(true);
+        const { data: report, error } = await supabase
+          .from('rapporti_servizio')
+          .select('*')
+          .eq('id', reportId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero del rapporto: ${error.message}`);
+          console.error("Error fetching service report for edit:", error);
+          setLoadingInitialReport(false);
+          return;
+        }
+
+        if (report) {
+          methods.reset({
+            serviceDate: (report.service_date && typeof report.service_date === 'string') ? parseISO(report.service_date) : new Date(),
+            employeeId: report.employee_id || "",
+            servicePointId: report.service_location_id || "",
+            serviceType: report.service_type || "",
+            startTime: report.start_time || "09:00",
+            endTime: report.end_time || "17:00",
+            vehicleMakeModel: report.vehicle_make_model || "",
+            vehiclePlate: report.vehicle_plate || "",
+            startKm: report.start_km || 0,
+            endKm: report.end_km || 0,
+            vehicleInitialState: report.vehicle_initial_state || "",
+            danniVeicolo: report.danni_veicolo || null,
+            vehicleAnomalies: report.vehicle_anomalies || null,
+            gps: report.gps ? 'si' : 'no',
+            radioVehicle: report.radio_vehicle ? 'si' : 'no',
+            swivelingLamp: report.swiveling_lamp ? 'si' : 'no',
+            radioPortable: report.radio_portable ? 'si' : 'no',
+            flashlight: report.flashlight ? 'si' : 'no',
+            extinguisher: report.extinguisher ? 'si' : 'no',
+            spareTire: report.spare_tire ? 'si' : 'no',
+            highVisibilityVest: report.high_visibility_vest ? 'si' : 'no',
+          });
+        }
+        setLoadingInitialReport(false);
+      } else if (!reportId) {
+        setLoadingInitialReport(false);
+      }
+    };
+
+    fetchReportData();
+  }, [reportId, loadingDropdowns, methods]);
+
   const selectedVehiclePlate = methods.watch("vehiclePlate");
   const vehicleInitialState = methods.watch("vehicleInitialState");
   const employeeId = methods.watch("employeeId");
 
   useEffect(() => {
     const fetchLastKm = async () => {
-      if (selectedVehiclePlate) {
+      if (selectedVehiclePlate && !reportId) { // Only fetch for new reports
         const { data, error } = await supabase
           .from('rapporti_servizio')
           .select('end_km')
@@ -125,13 +183,13 @@ export default function ServiceReportForm() {
           methods.setValue("startKm", 0, { shouldValidate: true });
           showInfo(`Nessun KM precedente trovato per la targa ${selectedVehiclePlate}. KM Iniziali impostati a 0.`);
         }
-      } else {
+      } else if (!reportId) { // For new reports, if no plate selected, reset to 0
         methods.setValue("startKm", 0, { shouldValidate: true });
       }
     };
 
     fetchLastKm();
-  }, [selectedVehiclePlate, methods]);
+  }, [selectedVehiclePlate, methods, reportId]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log("Dati Rapporto di Servizio:", values);
@@ -143,7 +201,7 @@ export default function ServiceReportForm() {
       service_date: format(values.serviceDate, 'yyyy-MM-dd'),
       employee_id: values.employeeId,
       service_location: servicePointName,
-      service_location_id: values.servicePointId, // Now saving the ID
+      service_location_id: values.servicePointId,
       service_type: values.serviceType,
       start_time: values.startTime,
       end_time: values.endTime,
@@ -164,45 +222,101 @@ export default function ServiceReportForm() {
       high_visibility_vest: values.highVisibilityVest === 'si',
     };
 
-    const { data, error } = await supabase
-      .from('rapporti_servizio')
-      .insert([payload])
-      .select(); // Select the inserted data to get its ID
+    let result;
+    let currentReportId = reportId;
 
-    if (error) {
-      showError(`Errore durante la registrazione del rapporto: ${error.message}`);
-      console.error("Error inserting service report:", error);
+    if (reportId) {
+      result = await supabase
+        .from('rapporti_servizio')
+        .update(payload)
+        .eq('id', reportId);
+    } else {
+      result = await supabase
+        .from('rapporti_servizio')
+        .insert([payload])
+        .select();
+      currentReportId = result.data?.[0]?.id;
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${reportId ? 'modifica' : 'registrazione'} del rapporto: ${result.error.message}`);
+      console.error(`Error ${reportId ? 'updating' : 'inserting'} service report:`, result.error);
       return;
     }
 
-    const newReportId = data?.[0]?.id;
-
-    // Create maintenance ticket if vehicleInitialState is "RICHIESTA MANUTENZIONE"
-    if (values.vehicleInitialState === "RICHIESTA MANUTENZIONE" && newReportId) {
+    // Handle maintenance ticket logic
+    if (values.vehicleInitialState === "RICHIESTA MANUTENZIONE" && currentReportId) {
       const maintenanceIssueDescription = `Veicolo: ${values.vehicleMakeModel} (${values.vehiclePlate}), Stato Iniziale: ${values.vehicleInitialState}, Danni: ${values.danniVeicolo}. Anomalie: ${values.vehicleAnomalies || 'Nessuna'}.`;
-      const { error: maintenanceError } = await supabase
+      
+      const { data: existingTicket, error: fetchTicketError } = await supabase
         .from('richieste_manutenzione')
-        .insert({
-          report_id: newReportId,
-          service_point_id: values.servicePointId,
-          vehicle_plate: values.vehiclePlate,
-          issue_description: maintenanceIssueDescription,
-          status: 'Pending',
-          priority: 'Medium',
-          requested_by_employee_id: values.employeeId,
-        });
+        .select('id')
+        .eq('report_id', currentReportId)
+        .single();
 
-      if (maintenanceError) {
-        showError(`Errore durante la creazione del ticket di manutenzione: ${maintenanceError.message}`);
-        console.error("Error creating maintenance ticket:", maintenanceError);
+      if (fetchTicketError && fetchTicketError.code !== 'PGRST116') {
+        console.error("Error checking for existing maintenance ticket:", fetchTicketError);
+        showError(`Errore durante la verifica del ticket di manutenzione esistente: ${fetchTicketError.message}`);
+        return;
+      }
+
+      if (existingTicket) {
+        const { error: updateTicketError } = await supabase
+          .from('richieste_manutenzione')
+          .update({
+            service_point_id: values.servicePointId,
+            vehicle_plate: values.vehiclePlate,
+            issue_description: maintenanceIssueDescription,
+            requested_by_employee_id: values.employeeId,
+          })
+          .eq('id', existingTicket.id);
+
+        if (updateTicketError) {
+          showError(`Errore durante l'aggiornamento del ticket di manutenzione: ${updateTicketError.message}`);
+          console.error("Error updating maintenance ticket:", updateTicketError);
+        } else {
+          showSuccess("Ticket di manutenzione aggiornato con successo!");
+        }
       } else {
-        showSuccess("Ticket di manutenzione creato con successo!");
+        const { error: createTicketError } = await supabase
+          .from('richieste_manutenzione')
+          .insert({
+            report_id: currentReportId,
+            service_point_id: values.servicePointId,
+            vehicle_plate: values.vehiclePlate,
+            issue_description: maintenanceIssueDescription,
+            status: 'Pending',
+            priority: 'Medium',
+            requested_by_employee_id: values.employeeId,
+          });
+
+        if (createTicketError) {
+          showError(`Errore durante la creazione del ticket di manutenzione: ${createTicketError.message}`);
+          console.error("Error creating maintenance ticket:", createTicketError);
+        } else {
+          showSuccess("Nuovo ticket di manutenzione creato con successo!");
+        }
+      }
+    } else if (currentReportId) {
+      const { error: deleteTicketError } = await supabase
+        .from('richieste_manutenzione')
+        .delete()
+        .eq('report_id', currentReportId);
+      
+      if (deleteTicketError && deleteTicketError.code !== 'PGRST116') {
+        console.error("Error deleting maintenance ticket:", deleteTicketError);
+        showError(`Errore durante l'eliminazione del ticket di manutenzione: ${deleteTicketError.message}`);
+      } else if (deleteTicketError?.code === 'PGRST116') {
+        // No ticket found to delete, which is fine
+      } else {
+        showInfo("Ticket di manutenzione rimosso (stato veicolo non richiede manutenzione).");
       }
     }
 
-    showSuccess("Rapporto di servizio registrato con successo!");
-    console.log("Service report saved successfully:", data);
+    showSuccess(`Rapporto di servizio ${reportId ? 'aggiornato' : 'registrato'} con successo!`);
+    console.log("Service report saved successfully:", result.data);
     methods.reset();
+    onSaveSuccess?.();
   };
 
   const handleSetCurrentTime = (field: "startTime" | "endTime") => {
@@ -224,13 +338,7 @@ export default function ServiceReportForm() {
     const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali saluti.";
     
     showInfo("Generazione PDF per l'allegato email...");
-    // For new reports, we don't have a reportId yet, so we generate PDF from current form values
-    // This requires a utility function that can take form values directly or a temporary ID
-    // For simplicity, I'll adapt generateDotazioniReportPdfBlob to take values directly if no ID.
-    // NOTE: The existing generateDotazioniReportPdfBlob expects an ID and fetches from DB.
-    // For a new report, we need to pass the form data directly.
-    // I will modify printReport.ts to support this.
-    const pdfBlob = await generateDotazioniReportPdfBlob(undefined, values, personaleList, puntiServizioList);
+    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values, personaleList, puntiServizioList);
 
     if (pdfBlob) {
       const reader = new FileReader();
@@ -257,8 +365,7 @@ export default function ServiceReportForm() {
 
   const handlePrintPdf = methods.handleSubmit(async (values) => {
     showInfo("Generazione PDF per la stampa...");
-    // Same as above, for new reports, generate from current form values
-    const pdfBlob = await generateDotazioniReportPdfBlob(undefined, values, personaleList, puntiServizioList);
+    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values, personaleList, puntiServizioList);
     if (pdfBlob) {
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, '_blank');
@@ -268,8 +375,12 @@ export default function ServiceReportForm() {
     }
   });
 
-  if (loadingDropdowns) { // Only check for dropdown loading
-    return <div className="text-center py-8">Caricamento dati...</div>;
+  if (loadingDropdowns || loadingInitialReport) {
+    return (
+      <div className="text-center py-8">
+        Caricamento dati rapporto...
+      </div>
+    );
   }
 
   return (
@@ -290,10 +401,11 @@ export default function ServiceReportForm() {
         <EquipmentCheckSection />
 
         <ReportActionButtons
-          isEditMode={false}
+          isEditMode={!!reportId}
           vehicleInitialState={vehicleInitialState}
           handleEmail={handleEmail}
           handlePrintPdf={handlePrintPdf}
+          onCancel={onCancel}
         />
       </form>
     </FormProvider>
