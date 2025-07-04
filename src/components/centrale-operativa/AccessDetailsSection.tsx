@@ -1,12 +1,10 @@
 import React from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form';
 
 export const AccessDetailsSection: React.FC = () => {
-  const { control, watch } = useFormContext();
-
-  const formData = watch();
+  const { control } = useFormContext();
 
   return (
     <section className="space-y-4">
@@ -24,11 +22,11 @@ export const AccessDetailsSection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="fullAccessSi" />
-                  <FormLabel htmlFor="fullAccessSi">SI</FormLabel>
+                  <label htmlFor="fullAccessSi" className="font-normal cursor-pointer">SI</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="fullAccessNo" />
-                  <FormLabel htmlFor="fullAccessNo">NO</FormLabel>
+                  <label htmlFor="fullAccessNo" className="font-normal cursor-pointer">NO</label>
                 </div>
               </RadioGroup>
             </FormControl>
@@ -51,11 +49,11 @@ export const AccessDetailsSection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="vaultAccessSi" />
-                  <FormLabel htmlFor="vaultAccessSi">SI</FormLabel>
+                  <label htmlFor="vaultAccessSi" className="font-normal cursor-pointer">SI</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="vaultAccessNo" />
-                  <FormLabel htmlFor="vaultAccessNo">NO</FormLabel>
+                  <label htmlFor="vaultAccessNo" className="font-normal cursor-pointer">NO</label>
                 </div>
               </RadioGroup>
             </FormControl>

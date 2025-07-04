@@ -2,7 +2,7 @@ import React from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form'; // Added FormLabel
+import { FormField, FormItem, FormControl, FormMessage, FormLabel } from '@/components/ui/form';
 
 export const AnomaliesDelaySection: React.FC = () => {
   const { control, watch } = useFormContext();
@@ -25,11 +25,11 @@ export const AnomaliesDelaySection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="anomaliesSi" />
-                  <FormLabel htmlFor="anomaliesSi">SI</FormLabel>
+                  <label htmlFor="anomaliesSi" className="font-normal cursor-pointer">SI</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="anomaliesNo" />
-                  <FormLabel htmlFor="anomaliesNo">NO</FormLabel>
+                  <label htmlFor="anomaliesNo" className="font-normal cursor-pointer">NO</label>
                 </div>
               </RadioGroup>
             </FormControl>
@@ -72,11 +72,11 @@ export const AnomaliesDelaySection: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="si" id="delaySi" />
-                  <FormLabel htmlFor="delaySi">SI</FormLabel>
+                  <label htmlFor="delaySi" className="font-normal cursor-pointer">SI</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="delayNo" />
-                  <FormLabel htmlFor="delayNo">NO</FormLabel>
+                  <label htmlFor="delayNo" className="font-normal cursor-pointer">NO</label>
                 </div>
               </RadioGroup>
             </FormControl>
