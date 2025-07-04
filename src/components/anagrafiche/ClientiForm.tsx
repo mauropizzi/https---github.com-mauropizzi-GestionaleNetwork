@@ -1,5 +1,5 @@
-import React from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import React, { useEffect } from "react";
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,10 @@ import { supabase } from "@/integrations/supabase/client"; // Import Supabase cl
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle } from "lucide-react";
 import { ClientContactFormSection } from "./ClientContactFormSection"; // Import the new component
+import { Cliente } from "@/lib/anagrafiche-data"; // Import Cliente interface
 
 const contactSchema = z.object({
+  id: z.string().optional(), // Add id for existing contacts
   department: z.string().min(1, "Il dipartimento è richiesto."),
   contact_name: z.string().optional().nullable(),
   email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
@@ -46,7 +48,13 @@ const formSchema = z.object({
   contacts: z.array(contactSchema).optional(), // New field for contacts
 });
 
-export function ClientiForm() {
+interface ClientiFormProps {
+  cliente?: Cliente | null; // Optional prop for editing
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function ClientiForm({ cliente, onSaveSuccess, onCancel }: ClientiFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,13 +75,63 @@ export function ClientiForm() {
     },
   });
 
+  useEffect(() => {
+    if (cliente) {
+      const loadContacts = async () => {
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('client_contacts')
+          .select('*')
+          .eq('client_id', cliente.id);
+
+        if (contactsError) {
+          console.error("Error fetching client contacts:", contactsError);
+          // Proceed without contacts if there's an error
+        }
+
+        form.reset({
+          nome_cliente: cliente.nome_cliente,
+          partita_iva: cliente.partita_iva || null,
+          codice_fiscale: cliente.codice_fiscale || null,
+          indirizzo: cliente.indirizzo || null,
+          citta: cliente.citta || null,
+          cap: cliente.cap || null,
+          provincia: cliente.provincia || null,
+          telefono: cliente.telefono || null,
+          email: cliente.email || null,
+          pec: cliente.pec || null,
+          sdi: cliente.sdi || null,
+          attivo: cliente.attivo ?? true,
+          note: cliente.note || null,
+          contacts: contactsData || [],
+        });
+      };
+      loadContacts();
+    } else {
+      form.reset({
+        nome_cliente: "",
+        codice_fiscale: null,
+        partita_iva: null,
+        indirizzo: null,
+        citta: null,
+        cap: null,
+        provincia: null,
+        telefono: null,
+        email: null,
+        pec: null,
+        sdi: null,
+        attivo: true,
+        note: null,
+        contacts: [],
+      });
+    }
+  }, [cliente, form]);
+
   const { fields: contactFields, append: appendContact, remove: removeContact } = useFieldArray({
     control: form.control,
     name: "contacts",
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Ensure empty strings are converted to null for optional fields
     const clientPayload = {
       nome_cliente: values.nome_cliente,
       partita_iva: values.partita_iva || null,
@@ -90,52 +148,79 @@ export function ClientiForm() {
       note: values.note || null,
     };
 
-    const { data: clientData, error: clientError } = await supabase
-      .from('clienti')
-      .insert([clientPayload])
-      .select('id'); // Select the ID of the newly inserted client
+    let currentClientId = cliente?.id;
+    let clientError = null;
+
+    if (cliente) {
+      // Update existing client
+      const { error } = await supabase
+        .from('clienti')
+        .update(clientPayload)
+        .eq('id', cliente.id);
+      clientError = error;
+    } else {
+      // Insert new client
+      const { data, error } = await supabase
+        .from('clienti')
+        .insert([clientPayload])
+        .select('id');
+      currentClientId = data?.[0]?.id;
+      clientError = error;
+    }
 
     if (clientError) {
-      showError(`Errore durante la registrazione del cliente: ${clientError.message}`);
-      console.error("Error inserting cliente:", clientError);
+      showError(`Errore durante la ${cliente ? 'modifica' : 'registrazione'} del cliente: ${clientError.message}`);
+      console.error(`Error ${cliente ? 'updating' : 'inserting'} cliente:`, clientError);
       return;
     }
 
-    const newClientId = clientData?.[0]?.id;
-    if (!newClientId) {
-      showError("Errore: ID cliente non ricevuto dopo la registrazione.");
+    if (!currentClientId) {
+      showError("Errore: ID cliente non disponibile dopo l'operazione.");
       return;
     }
 
-    // Handle contacts
+    // Handle contacts: delete existing and insert new/updated ones
+    // For simplicity, we'll delete all existing contacts for this client and re-insert them.
+    // A more robust solution would involve checking for existing contacts and only updating/inserting/deleting changes.
+    const { error: deleteContactsError } = await supabase
+      .from('client_contacts')
+      .delete()
+      .eq('client_id', currentClientId);
+
+    if (deleteContactsError) {
+      console.error("Error deleting old client contacts:", deleteContactsError);
+      showError(`Errore durante l'aggiornamento dei contatti: ${deleteContactsError.message}`);
+      return;
+    }
+
     if (values.contacts && values.contacts.length > 0) {
       const contactsPayload = values.contacts.map(contact => ({
         ...contact,
-        client_id: newClientId, // Link contact to the new client
+        client_id: currentClientId, // Link contact to the client
         contact_name: contact.contact_name || null,
         email: contact.email || null,
         phone: contact.phone || null,
         notes: contact.notes || null,
       }));
 
-      const { error: contactsError } = await supabase
+      const { error: insertContactsError } = await supabase
         .from('client_contacts')
         .insert(contactsPayload);
 
-      if (contactsError) {
-        showError(`Errore durante la registrazione dei contatti: ${contactsError.message}`);
-        console.error("Error inserting client contacts:", contactsError);
-        // Optionally, you might want to delete the client if contacts fail to save
+      if (insertContactsError) {
+        showError(`Errore durante la registrazione dei contatti: ${insertContactsError.message}`);
+        console.error("Error inserting client contacts:", insertContactsError);
       }
     }
 
-    showSuccess("Cliente e contatti salvati con successo!");
-    console.log("Dati Cliente salvati:", clientData);
+    showSuccess(`Cliente ${cliente ? 'modificato' : 'salvato'} con successo!`);
+    console.log("Dati Cliente salvati:", clientPayload);
     form.reset(); // Reset form after successful submission
+    onSaveSuccess?.(); // Call success callback
   };
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <h3 className="text-lg font-semibold">Dettagli Cliente</h3>
         <FormField
@@ -339,8 +424,17 @@ export function ClientiForm() {
           <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Contatto
         </Button>
 
-        <Button type="submit" className="w-full">Salva Cliente</Button>
+        <div className="flex justify-end gap-2 mt-6">
+          {cliente && onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button type="submit" className="w-full">
+            {cliente ? "Salva Modifiche" : "Salva Cliente"}
+          </Button>
+        </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }

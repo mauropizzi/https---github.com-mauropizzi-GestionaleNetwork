@@ -20,31 +20,33 @@ import { Input } from "@/components/ui/input";
 import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CantiereReport as CantiereReportBase } from "@/lib/anagrafiche-data";
+import { RegistroDiCantiere as RegistroDiCantiereBase } from "@/lib/anagrafiche-data"; // Corrected import
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CantiereReportForm } from "./CantiereReportForm";
-import { CantiereReportDetailsDialog } from "./CantiereReportDetailsDialog";
+import { CantiereReportForm } from "./CantiereReportForm"; // Corrected import
+import { CantiereReportDetailsDialog } from "./CantiereReportDetailsDialog"; // Corrected import
 
-// Extend CantiereReportBase to include joined data
-interface CantiereReport extends CantiereReportBase {
+// Extend RegistroDiCantiereBase to include joined data
+interface RegistroDiCantiere extends RegistroDiCantiereBase {
   clienti: { nome_cliente: string }[];
   addetto: { nome: string; cognome: string }[];
+  automezzi_utilizzati?: Array<{ tipologia: string; marca: string; targa: string }> | null;
+  attrezzi_utilizzati?: Array<{ tipologia: string; marca: string; quantita: number }> | null;
 }
 
 export function CantiereHistoryTable() {
-  const [data, setData] = useState<CantiereReport[]>([]);
+  const [data, setData] = useState<RegistroDiCantiere[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedReportForEdit, setSelectedReportForEdit] = useState<CantiereReport | null>(null);
+  const [selectedReportForEdit, setSelectedReportForEdit] = useState<RegistroDiCantiere | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedReportForDetails, setSelectedReportForDetails] = useState<CantiereReport | null>(null);
+  const [selectedReportForDetails, setSelectedReportForDetails] = useState<RegistroDiCantiere | null>(null);
 
   const fetchCantiereReports = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('cantiere_reports')
-      .select('*, clienti(nome_cliente), addetto:operatori_network(nome, cognome)') // Select all from reports, nome_cliente from clienti, nome and cognome from operatori_network (aliased as addetto)
+      .from('registri_cantiere') // Corrected table name
+      .select('*, clienti(nome_cliente), addetto:personale(nome, cognome), automezzi_utilizzati(*), attrezzi_utilizzati(*)') // Select all from reports, nome_cliente from clienti, nome and cognome from personale (aliased as addetto)
       .order('report_date', { ascending: false })
       .order('report_time', { ascending: false });
 
@@ -53,10 +55,12 @@ export function CantiereHistoryTable() {
       console.error("Error fetching cantiere reports:", error);
       setData([]);
     } else {
-      const mappedData: CantiereReport[] = data.map(report => ({
+      const mappedData: RegistroDiCantiere[] = data.map(report => ({
         ...report,
         clienti: report.clienti || [],
         addetto: report.addetto || [],
+        automezzi_utilizzati: report.automezzi_utilizzati || [],
+        attrezzi_utilizzati: report.attrezzi_utilizzati || [],
       }));
       setData(mappedData);
     }
@@ -67,12 +71,12 @@ export function CantiereHistoryTable() {
     fetchCantiereReports();
   }, [fetchCantiereReports]);
 
-  const handleEdit = useCallback((report: CantiereReport) => {
+  const handleEdit = useCallback((report: RegistroDiCantiere) => {
     setSelectedReportForEdit(report);
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleViewDetails = useCallback((report: CantiereReport) => {
+  const handleViewDetails = useCallback((report: RegistroDiCantiere) => {
     setSelectedReportForDetails(report);
     setIsDetailsDialogOpen(true);
   }, []);
@@ -96,7 +100,7 @@ export function CantiereHistoryTable() {
   const handleDelete = async (reportId: string, reportDescription: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare il report "${reportDescription}"?`)) {
       const { error } = await supabase
-        .from('cantiere_reports')
+        .from('registri_cantiere') // Corrected table name
         .delete()
         .eq('id', reportId);
 
@@ -124,7 +128,7 @@ export function CantiereHistoryTable() {
     });
   }, [data, searchTerm]);
 
-  const columns: ColumnDef<CantiereReport>[] = useMemo(() => [
+  const columns: ColumnDef<RegistroDiCantiere>[] = useMemo(() => [
     {
       accessorKey: "report_date",
       header: "Data Report",

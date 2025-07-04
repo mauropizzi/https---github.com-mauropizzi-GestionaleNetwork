@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import { ServiceReport } from "@/lib/anagrafiche-data";
+import { RapportoServizio } from "@/lib/anagrafiche-data"; // Corrected import
 
 const dotazioniFormSchema = z.object({
   report_date: z.date({ required_error: "La data del report è richiesta." }),
@@ -42,9 +42,9 @@ const dotazioniFormSchema = z.object({
 type DotazioniFormValues = z.infer<typeof dotazioniFormSchema>;
 
 interface ServiceReportFormProps {
-  report?: ServiceReport;
-  onSaveSuccess: () => void;
-  onCancel: () => void;
+  report?: RapportoServizio; // Corrected type
+  onSaveSuccess?: () => void; // Made optional
+  onCancel?: () => void; // Made optional
 }
 
 export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceReportFormProps) {
@@ -57,9 +57,17 @@ export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceRe
     defaultValues: report
       ? {
           ...report,
-          report_date: new Date(report.report_date),
-          automezzi_used: report.automezzi_used || false,
-          attrezzi_used: report.attrezzi_used || false,
+          report_date: new Date(report.service_date), // Map service_date to report_date
+          report_time: report.start_time, // Map start_time to report_time
+          client_id: report.service_location_id || "", // Assuming service_location_id maps to client_id for this form's purpose
+          site_name: report.service_location, // Map service_location to site_name
+          employee_id: report.employee_id,
+          service_provided: report.service_type, // Map service_type to service_provided
+          automezzi_used: false, // These fields are not in RapportoServizio, set defaults
+          automezzi_details: "",
+          attrezzi_used: false,
+          attrezzi_details: "",
+          notes: report.vehicle_anomalies || "", // Map vehicle_anomalies to notes
         }
       : {
           report_date: new Date(),
@@ -85,10 +93,10 @@ export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceRe
     }
 
     const { data: employeesData, error: employeesError } = await supabase
-      .from('operatori_network')
+      .from('personale') // Fetch from 'personale' table
       .select('id, nome, cognome');
     if (employeesError) {
-      showError(`Errore nel recupero operatori: ${employeesError.message}`);
+      showError(`Errore nel recupero personale: ${employeesError.message}`);
       console.error("Error fetching employees:", employeesError);
     } else {
       setEmployees(employeesData || []);
@@ -102,20 +110,40 @@ export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceRe
 
   const onSubmit = async (values: DotazioniFormValues) => {
     const formattedValues = {
-      ...values,
-      report_date: format(values.report_date, "yyyy-MM-dd"),
+      service_date: format(values.report_date, "yyyy-MM-dd"), // Map back to service_date
+      start_time: values.report_time, // Map back to start_time
+      employee_id: values.employee_id,
+      service_location: values.site_name, // Map back to service_location
+      service_location_id: values.client_id, // Map client_id to service_location_id
+      service_type: values.service_provided, // Map back to service_type
+      end_time: values.report_time, // Assuming end_time is same as start_time for this form
+      vehicle_make_model: "", // Not present in this form, set default
+      vehicle_plate: "", // Not present in this form, set default
+      start_km: 0, // Not present in this form, set default
+      end_km: 0, // Not present in this form, set default
+      vehicle_initial_state: "", // Not present in this form, set default
+      danni_veicolo: null, // Not present in this form, set default
+      vehicle_anomalies: values.notes, // Map notes to vehicle_anomalies
+      gps: false, // Not present in this form, set default
+      radio_vehicle: false, // Not present in this form, set default
+      swiveling_lamp: false, // Not present in this form, set default
+      radio_portable: false, // Not present in this form, set default
+      flashlight: false, // Not present in this form, set default
+      extinguisher: false, // Not present in this form, set default
+      spare_tire: false, // Not present in this form, set default
+      high_visibility_vest: false, // Not present in this form, set default
     };
 
     let error = null;
     if (report) {
       const { error: updateError } = await supabase
-        .from('cantiere_reports')
+        .from('rapporti_servizio') // Corrected table name
         .update(formattedValues)
         .eq('id', report.id);
       error = updateError;
     } else {
       const { error: insertError } = await supabase
-        .from('cantiere_reports')
+        .from('rapporti_servizio') // Corrected table name
         .insert(formattedValues);
       error = insertError;
     }
@@ -125,7 +153,7 @@ export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceRe
       console.error("Error saving report:", error);
     } else {
       showSuccess("Report salvato con successo!");
-      onSaveSuccess();
+      onSaveSuccess?.(); // Call success callback
     }
   };
 

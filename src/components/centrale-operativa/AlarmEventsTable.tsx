@@ -48,7 +48,7 @@ interface AllarmeIntervento {
 }
 
 interface PuntoServizioExtended extends PuntoServizio {
-  procedure?: Procedure | null;
+  procedure?: { nome_procedura: string } | null; // Adjusted to match the fetched data structure
 }
 
 interface AlarmEventsTableProps {
@@ -105,7 +105,7 @@ export function AlarmEventsTable({ type }: AlarmEventsTableProps) {
     const [personnelPattuglia, personnelCo, servicePoints] = await Promise.all([
       fetchPersonale('Pattuglia'),
       fetchPersonale('Operatore C.O.'),
-      fetchPuntiServizio(),
+      supabase.from('punti_servizio').select('*, procedure(nome_procedura)'), // Fetch procedure name directly
     ]);
 
     const mapPattuglia = new Map<string, Personale>();
@@ -117,11 +117,14 @@ export function AlarmEventsTable({ type }: AlarmEventsTableProps) {
     setCoOperatorsPersonnelMap(mapCo);
 
     const mapPuntiServizio = new Map<string, PuntoServizioExtended>();
-    servicePoints.forEach(p => {
-      mapPuntiServizio.set(p.id, p);
-      if (p.codice_sicep) mapPuntiServizio.set(p.codice_sicep, p);
-      if (p.codice_cliente) mapPuntiServizio.set(p.codice_cliente, p);
-      if (p.nome_punto_servizio) mapPuntiServizio.set(p.nome_punto_servizio, p);
+    servicePoints.data?.forEach(p => {
+      mapPuntiServizio.set(p.id, {
+        ...p,
+        procedure: p.procedure || null, // Ensure procedure is correctly mapped
+      });
+      if (p.codice_sicep) mapPuntiServizio.set(p.codice_sicep, { ...p, procedure: p.procedure || null });
+      if (p.codice_cliente) mapPuntiServizio.set(p.codice_cliente, { ...p, procedure: p.procedure || null });
+      if (p.nome_punto_servizio) mapPuntiServizio.set(p.nome_punto_servizio, { ...p, procedure: p.procedure || null });
     });
     setPuntiServizioMap(mapPuntiServizio);
   }, []);
@@ -209,7 +212,7 @@ export function AlarmEventsTable({ type }: AlarmEventsTableProps) {
   const handleViewProcedure = useCallback((servicePointCode: string) => {
     const servicePoint = puntiServizioMap.get(servicePointCode);
     if (servicePoint && servicePoint.procedure) {
-      setSelectedProcedureForDetails(servicePoint.procedure);
+      setSelectedProcedureForDetails(servicePoint.procedure as Procedure); // Cast to Procedure
       setIsProcedureDetailsDialogOpen(true);
     } else {
       showInfo("Nessuna procedura associata a questo punto servizio o dettagli non disponibili.");

@@ -55,15 +55,8 @@ export function ClientiTable() {
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback((updatedCliente: Cliente) => {
-    // Update local state to reflect changes immediately
-    setData(prevData =>
-      prevData.map(c =>
-        c.id === updatedCliente.id ? updatedCliente : c
-      )
-    );
-    // Optionally, refetch all data to ensure consistency with backend
-    fetchClientiData(); // Uncomment if you prefer a full re-fetch
+  const handleSaveEdit = useCallback(() => {
+    fetchClientiData(); // Refresh data after save
     setIsEditDialogOpen(false);
     setSelectedClienteForEdit(null);
   }, [fetchClientiData]);

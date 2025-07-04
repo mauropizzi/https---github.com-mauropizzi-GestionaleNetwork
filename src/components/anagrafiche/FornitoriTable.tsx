@@ -19,7 +19,7 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Fornitore } from "@/lib/anagrafiche-data";
-import { FornitoreEditDialog } from "./FornitoriEditDialog"; // Import the new dialog
+import { FornitoreEditDialog } from "./FornitoreEditDialog"; // Corrected import
 
 export function FornitoriTable() {
   const [data, setData] = useState<Fornitore[]>([]);
@@ -53,18 +53,12 @@ export function FornitoriTable() {
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback((updatedFornitore: Fornitore) => {
-    // Update local state to reflect changes immediately
-    setData(prevData =>
-      prevData.map(f =>
-        f.id === updatedFornitore.id ? updatedFornitore : f
-      )
-    );
-    // Optionally, refetch all data to ensure consistency with backend
-    // fetchFornitoriData(); // Uncomment if you prefer a full re-fetch
+  const handleSaveEdit = useCallback(() => { // Removed updatedFornitore parameter as it's not used directly here
+    // The dialog's onSaveSuccess will trigger a re-fetch, ensuring data consistency.
+    fetchFornitoriData(); 
     setIsEditDialogOpen(false);
     setSelectedFornitoreForEdit(null);
-  }, []);
+  }, [fetchFornitoriData]);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
