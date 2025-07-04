@@ -240,8 +240,7 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
 
   return (
     <FormProvider {...methods}>
-      <Form {...methods}>
-        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
           <ReportDetailsSection
             personaleList={personaleList}
             puntiServizioList={puntiServizioList}
@@ -261,7 +260,6 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
             onCancel={onCancel}
           />
         </form>
-      </Form>
     </FormProvider>
   );
 }
