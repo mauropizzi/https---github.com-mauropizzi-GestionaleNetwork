@@ -5,7 +5,7 @@ import Unauthorized from './Unauthorized';
 import { UserAccessTable } from '@/components/access-management/UserAccessTable';
 
 const AccessManagementPage = () => {
-  const { role, loading } = useUserRole();
+  const { userProfile, loading } = useUserRole();
 
   if (loading) {
     return (
@@ -15,7 +15,7 @@ const AccessManagementPage = () => {
     );
   }
 
-  if (role !== 'Amministratore') {
+  if (userProfile?.role !== 'Amministratore') {
     return <Unauthorized />;
   }
 
