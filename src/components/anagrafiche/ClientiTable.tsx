@@ -21,7 +21,7 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
-import { ClienteEditDialog } from "./ClientiEditDialog"; // Corrected import name
+import { ClienteEditDialog } from "./ClientiEditDialog";
 
 export function ClientiTable() {
   const [data, setData] = useState<Cliente[]>([]);

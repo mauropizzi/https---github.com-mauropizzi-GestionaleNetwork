@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
 import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog";
-import { PuntiServizioDetailsDialog } from "./PuntiServizioDetailsDialog"; // Import the new dialog
+import { PuntiServizioDetailsDialog } from "./PuntiServizioDetailsDialog";
 
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;

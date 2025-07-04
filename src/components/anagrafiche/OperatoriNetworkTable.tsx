@@ -22,11 +22,11 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { OperatoriNetworkForm } from "./OperatoriNetworkForm"; // Corrected import path
+import { OperatoriNetworkForm } from "./OperatoriNetworkForm";
 
 // Extend OperatoreNetwork to include joined client data
 interface OperatoreNetworkExtended extends OperatoreNetwork {
-  clienti: { nome_cliente: string }[];
+  clienti: { nome_cliente: string } | null; // Changed to single object or null
 }
 
 export function OperatoriNetworkTable() {
@@ -48,10 +48,9 @@ export function OperatoriNetworkTable() {
       console.error("Error fetching operatori network:", error);
       setData([]);
     } else {
-      // Map the data to ensure 'clienti' is always an array, even if empty or single
       const mappedData: OperatoreNetworkExtended[] = data.map(op => ({
         ...op,
-        clienti: op.clienti || [], // Ensure it's an array
+        clienti: op.clienti || null,
       }));
       setData(mappedData);
     }
@@ -102,10 +101,10 @@ export function OperatoriNetworkTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         operatore.nome.toLowerCase().includes(searchLower) ||
-        operatore.cognome.toLowerCase().includes(searchLower) ||
+        (operatore.cognome || '').toLowerCase().includes(searchLower) ||
         (operatore.email?.toLowerCase().includes(searchLower)) ||
         (operatore.telefono?.toLowerCase().includes(searchLower)) ||
-        (operatore.clienti && operatore.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) // Access nome_cliente from the first element of the array
+        (operatore.clienti?.nome_cliente?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
@@ -134,7 +133,7 @@ export function OperatoriNetworkTable() {
     {
       accessorKey: "client_id",
       header: "Cliente Associato",
-      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>, // Access nome_cliente from the first element of the array
+      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente || 'N/A'}</span>,
     },
     {
       id: "actions",

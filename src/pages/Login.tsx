@@ -4,18 +4,18 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/components/auth/SessionContextProvider";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 export default function Login() {
   const { session, loading } = useSession();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && session) {
-      router.push("/dashboard");
+      navigate("/");
     }
-  }, [session, loading, router]);
+  }, [session, loading, navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -43,43 +43,40 @@ export default function Login() {
             },
           }}
           providers={["google"]}
-          redirectTo={process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000/dashboard"}
+          redirectTo={window.location.origin}
           localization={{
             variables: {
               sign_in: {
-                email_input_label: "Indirizzo Email",
-                password_input_label: "Password",
+                email_label: "Indirizzo Email",
+                password_label: "Password",
                 button_label: "Accedi",
-                social_auth_button_text: "Accedi con {{provider}}",
-                // link_text: "Hai già un account? Accedi", // Removed as it's not a standard supported property
+                social_provider_text: "Accedi con {{provider}}",
               },
               sign_up: {
-                email_input_label: "Indirizzo Email",
-                password_input_label: "Crea una Password",
+                email_label: "Indirizzo Email",
+                password_label: "Crea una Password",
                 button_label: "Registrati",
-                social_auth_button_text: "Registrati con {{provider}}",
-                // link_text: "Non hai un account? Registrati", // Removed as it's not a standard supported property
+                social_provider_text: "Registrati con {{provider}}",
               },
               forgotten_password: {
-                email_input_label: "Indirizzo Email",
+                email_label: "Indirizzo Email",
                 button_label: "Invia istruzioni per il reset",
-                // link_text: "Hai dimenticato la password?", // Removed as it's not a standard supported property
+                link_text: "Hai dimenticato la password?",
               },
               update_password: {
-                password_input_label: "Nuova Password",
+                password_label: "Nuova Password",
                 button_label: "Aggiorna Password",
               },
               magic_link: {
                 email_input_label: "Indirizzo Email",
                 button_label: "Invia Magic Link",
-                // link_text: "Invia un magic link", // Removed as it's not a standard supported property
+                link_text: "Invia un magic link",
               },
               verify_otp: {
                 email_input_label: "Indirizzo Email",
                 phone_input_label: "Numero di Telefono",
                 token_input_label: "Codice OTP",
                 button_label: "Verifica OTP",
-                // link_text: "Hai già un account? Accedi", // Removed as it's not a standard supported property
               },
             },
           }}

@@ -235,21 +235,12 @@ export function CanoneTable() {
       </div>
 
       {selectedCanoneForEdit && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Modifica Servizio a Canone</DialogTitle>
-              <DialogDescription>
-                Apporta modifiche ai dettagli del servizio a canone.
-              </DialogDescription>
-            </DialogHeader>
-            <CanoneEditDialog // Use CanoneEditDialog here
-              canone={selectedCanoneForEdit}
-              onSave={handleSaveEdit} // Pass onSave prop
-              onClose={handleCloseDialog} // Pass onClose prop
-            />
-          </DialogContent>
-        </Dialog>
+        <CanoneEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          canone={selectedCanoneForEdit}
+          onSave={handleSaveEdit}
+        />
       )}
     </div>
   );

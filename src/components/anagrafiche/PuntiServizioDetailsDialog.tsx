@@ -4,9 +4,9 @@ import { PuntoServizio } from "@/lib/anagrafiche-data";
 import { Separator } from "@/components/ui/separator";
 
 interface PuntoServizioExtended extends PuntoServizio {
-  fornitori?: { nome_fornitore: string }[] | null;
-  procedure?: { nome_procedura: string }[] | null;
-  clienti?: { nome_cliente: string }[] | null;
+  fornitori?: { nome_fornitore: string } | null;
+  procedure?: { nome_procedura: string } | null;
+  clienti?: { nome_cliente: string } | null;
 }
 
 interface PuntoServizioDetailsDialogProps {
@@ -48,7 +48,6 @@ export function PuntoServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
             <p className="text-sm font-medium col-span-1">Provincia:</p>
             <p className="text-sm col-span-3">{puntoServizio.provincia || 'N/A'}</p>
           </div>
-          {/* Removed Country as it's not in the interface */}
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Telefono:</p>
             <p className="text-sm col-span-3">{puntoServizio.telefono || 'N/A'}</p>
@@ -59,16 +58,15 @@ export function PuntoServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Fornitore:</p>
-            <p className="text-sm col-span-3">{puntoServizio.fornitori?.[0]?.nome_fornitore || 'N/A'}</p>
+            <p className="text-sm col-span-3">{puntoServizio.fornitori?.nome_fornitore || 'N/A'}</p>
           </div>
-          {/* Removed Tipo Servizio as it's not in the interface */}
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Note:</p>
             <p className="text-sm col-span-3">{puntoServizio.note || 'N/A'}</p>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Procedura:</p>
-            <p className="text-sm col-span-3">{puntoServizio.procedure?.[0]?.nome_procedura || 'N/A'}</p>
+            <p className="text-sm col-span-3">{puntoServizio.procedure?.nome_procedura || 'N/A'}</p>
           </div>
           <Separator className="my-2" />
           <div className="grid grid-cols-4 items-center gap-4">
