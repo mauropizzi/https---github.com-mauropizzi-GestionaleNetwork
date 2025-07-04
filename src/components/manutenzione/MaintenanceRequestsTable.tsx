@@ -28,12 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MaintenanceRequestDetailsDialog } from "./MaintenanceRequestDetailsDialog"; // Import the new dialog
 
 export function MaintenanceRequestsTable() {
   const [data, setData] = useState<RichiestaManutenzione[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("Pending"); // Default filter to Pending
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false); // State for details dialog
+  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<RichiestaManutenzione | null>(null); // State for selected request
 
   const fetchMaintenanceRequests = useCallback(async () => {
     setLoading(true);
@@ -76,6 +79,11 @@ export function MaintenanceRequestsTable() {
       fetchMaintenanceRequests(); // Refresh data
     }
   };
+
+  const handleViewDetails = useCallback((request: RichiestaManutenzione) => {
+    setSelectedRequestForDetails(request);
+    setIsDetailsDialogOpen(true);
+  }, []);
 
   const filteredData = useMemo(() => {
     return data.filter(request => {
@@ -161,12 +169,23 @@ export function MaintenanceRequestsTable() {
         </Select>
       ),
     },
-  ], [handleUpdateStatus]);
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row.original)} title="Visualizza Dettagli">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [handleUpdateStatus, handleViewDetails]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
@@ -246,6 +265,14 @@ export function MaintenanceRequestsTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedRequestForDetails && (
+        <MaintenanceRequestDetailsDialog
+          isOpen={isDetailsDialogOpen}
+          onClose={() => setIsDetailsDialogOpen(false)}
+          request={selectedRequestForDetails}
+        />
+      )}
     </div>
   );
 }
