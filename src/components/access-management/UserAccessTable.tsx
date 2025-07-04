@@ -16,22 +16,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Edit, Trash2 } from "lucide-react"; // Import Edit and Trash2 icons
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface UserProfile {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: 'admin' | 'user';
-}
+import { UserProfile } from "@/lib/anagrafiche-data"; // Import UserProfile
+import { UserEditDialog } from "./UserEditDialog"; // Import the new dialog
 
 export function UserAccessTable() {
   const [data, setData] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserProfile | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -70,6 +66,48 @@ export function UserAccessTable() {
           user.id === userId ? { ...user, role: newRole } : user
         )
       );
+    }
+  };
+
+  const handleEdit = useCallback((user: UserProfile) => {
+    setSelectedUserForEdit(user);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedUser: UserProfile) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(u =>
+        u.id === updatedUser.id ? updatedUser : u
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    // fetchUsers(); // Uncomment if you prefer a full re-fetch
+    setIsEditDialogOpen(false);
+    setSelectedUserForEdit(null);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedUserForEdit(null);
+  }, []);
+
+  const handleDelete = async (userId: string, userEmail: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare l'utente "${userEmail}"? Questa azione è irreversibile e rimuoverà l'utente dal sistema di autenticazione.`)) {
+      showInfo(`Eliminazione utente "${userEmail}" in corso...`);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+      });
+
+      if (error) {
+        showError(`Errore durante l'eliminazione dell'utente: ${error.message}`);
+        console.error("Error deleting user via Edge Function:", error);
+      } else {
+        showSuccess(`Utente "${userEmail}" eliminato con successo!`);
+        fetchUsers(); // Refresh data after deletion
+      }
+    } else {
+      showInfo(`Eliminazione dell'utente "${userEmail}" annullata.`);
     }
   };
 
@@ -116,7 +154,21 @@ export function UserAccessTable() {
         </Select>
       ),
     },
-  ], []);
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.email)} title="Elimina">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [handleRoleChange, handleEdit, handleDelete]);
 
   const table = useReactTable({
     data: filteredData,
@@ -186,6 +238,15 @@ export function UserAccessTable() {
           </TableBody>
         </Table>
       </div>
+
+      {selectedUserForEdit && (
+        <UserEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          user={selectedUserForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
