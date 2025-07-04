@@ -1,16 +1,21 @@
 import React from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MenuIcon } from "lucide-react";
-import { InProgressEventsCounter } from "@/components/centrale-operativa/InProgressEventsCounter"; // Import the new component
+import { MenuIcon, LogOut } from "lucide-react";
+import { InProgressEventsCounter } from "@/components/centrale-operativa/InProgressEventsCounter";
+import { useSession } from "@/components/auth/SessionContextProvider";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase client directly
 
 const DashboardLayout = () => {
   const isMobile = useIsMobile();
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  // No need to destructure supabase from useSession, it's imported directly now.
+  // const { supabase } = useSession();
 
   // Close the sheet when the route changes on mobile
   React.useEffect(() => {
@@ -22,7 +27,7 @@ const DashboardLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case "/":
-        return "Centrale Operativa"; // Changed title for the root path
+        return "Centrale Operativa";
       case "/service-request":
         return "Richiesta Servizi";
       case "/anagrafiche":
@@ -46,7 +51,6 @@ const DashboardLayout = () => {
       case "/access-management":
         return "Gestione Accessi";
       default:
-        // Handle dynamic routes like /centrale-operativa/edit/:id
         if (location.pathname.startsWith("/centrale-operativa/edit/")) {
           return "Modifica Evento Allarme";
         }
@@ -64,6 +68,16 @@ const DashboardLayout = () => {
   };
 
   const isCentraleOperativaPage = location.pathname === "/" || location.pathname.startsWith("/centrale-operativa");
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error logging out:", error.message);
+      // Optionally show a toast error
+    } else {
+      navigate("/login"); // Redirect to login page after successful logout
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -96,11 +110,16 @@ const DashboardLayout = () => {
             </Sheet>
           )}
           <h1 className="text-2xl font-semibold ml-4">{getPageTitle()}</h1>
-          {isCentraleOperativaPage && (
-            <div className="ml-auto mr-4">
-              <InProgressEventsCounter />
-            </div>
-          )}
+          <div className="flex items-center ml-auto">
+            {isCentraleOperativaPage && (
+              <div className="mr-4">
+                <InProgressEventsCounter />
+              </div>
+            )}
+            <Button variant="ghost" onClick={handleLogout} className="flex items-center">
+              <LogOut className="mr-2 h-4 w-4" /> Logout
+            </Button>
+          </div>
         </header>
         <div className="flex-1 overflow-auto p-4">
           <Outlet /> {/* This is where nested routes will render */}
