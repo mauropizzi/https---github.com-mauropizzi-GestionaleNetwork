@@ -146,7 +146,7 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
     methods.setValue(field, format(new Date(), "HH:mm"));
   }, [methods]);
 
-  const handleEmail = async (values: DotazioniFormValues) => {
+  const handleEmail = async (values: Partial<DotazioniFormValues>) => {
     if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
       showInfo("Nessuna richiesta di manutenzione da inviare.");
       return;

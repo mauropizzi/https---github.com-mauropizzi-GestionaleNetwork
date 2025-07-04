@@ -42,7 +42,7 @@ interface RapportoServizio {
   created_at?: string;
   service_date: string;
   employee_id: string;
-  service_location: string;
+  service_location: string; // This is the name, not ID
   service_location_id?: string | null; // Added for consistency
   service_type: string;
   start_time: string;
@@ -67,7 +67,7 @@ interface RapportoServizio {
 
 // Define a type for the form values for dotazioni report
 interface DotazioniFormValues {
-  serviceDate?: Date;
+  serviceDate: Date;
   employeeId: string;
   servicePointId: string;
   serviceType: string;
@@ -324,7 +324,7 @@ export const printSingleServiceReport = async (reportId: string) => {
 
 export const generateDotazioniReportPdfBlob = async (
   reportId?: string,
-  formData?: DotazioniFormValues,
+  formData?: Partial<DotazioniFormValues>,
   personaleList?: Personale[],
   puntiServizioList?: PuntoServizio[]
 ): Promise<Blob | null> => {
@@ -361,19 +361,19 @@ export const generateDotazioniReportPdfBlob = async (
       id: 'NEW_REPORT', // Placeholder ID
       created_at: new Date().toISOString(),
       service_date: format(formData.serviceDate, 'yyyy-MM-dd'),
-      employee_id: formData.employeeId,
-      service_location_id: formData.servicePointId,
+      employee_id: formData.employeeId!,
+      service_location_id: formData.servicePointId!,
       service_location: puntiServizioList.find(p => p.id === formData.servicePointId)?.nome_punto_servizio || 'N/A',
-      service_type: formData.serviceType,
-      start_time: formData.startTime,
-      end_time: formData.endTime,
-      vehicle_make_model: formData.vehicleMakeModel,
-      vehicle_plate: formData.vehiclePlate,
-      start_km: formData.startKm,
-      end_km: formData.endKm,
-      vehicle_initial_state: formData.vehicleInitialState,
-      danni_veicolo: formData.danniVeicolo,
-      vehicle_anomalies: formData.vehicleAnomalies,
+      service_type: formData.serviceType!,
+      start_time: formData.startTime!,
+      end_time: formData.endTime!,
+      vehicle_make_model: formData.vehicleMakeModel!,
+      vehicle_plate: formData.vehiclePlate!,
+      start_km: formData.startKm!,
+      end_km: formData.endKm!,
+      vehicle_initial_state: formData.vehicleInitialState!,
+      danni_veicolo: formData.danniVeicolo || null,
+      vehicle_anomalies: formData.vehicleAnomalies || null,
       gps: formData.gps === 'si',
       radio_vehicle: formData.radioVehicle === 'si',
       swiveling_lamp: formData.swivelingLamp === 'si',
