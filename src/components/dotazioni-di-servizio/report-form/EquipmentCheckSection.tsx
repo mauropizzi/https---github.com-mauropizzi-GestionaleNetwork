@@ -2,8 +2,8 @@ import React from "react";
 import { useFormContext } from "react-hook-form";
 import {
   FormControl,
-  FormField, // Import FormField
-  FormItem, // Import FormItem
+  FormField,
+  FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
@@ -21,7 +21,7 @@ export function EquipmentCheckSection() {
     { name: "extinguisher", label: "Estintore" },
     { name: "spareTire", label: "Ruota di Scorta" },
     { name: "highVisibilityVest", label: "Giubbotto Alta Visibilità" },
-  ] as const; // Use 'as const' for type inference
+  ] as const;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -39,18 +39,14 @@ export function EquipmentCheckSection() {
                   value={field.value}
                   className="flex flex-row space-x-4"
                 >
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl>
-                      <RadioGroupItem value="si" />
-                    </FormControl>
-                    <FormLabel className="font-normal">Si</FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl>
-                      <RadioGroupItem value="no" />
-                    </FormControl>
-                    <FormLabel className="font-normal">No</FormLabel>
-                  </FormItem>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="si" id={`${item.name}-si`} />
+                    <label htmlFor={`${item.name}-si`} className="font-normal">Si</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id={`${item.name}-no`} />
+                    <label htmlFor={`${item.name}-no`} className="font-normal">No</label>
+                  </div>
                 </RadioGroup>
               </FormControl>
               <FormMessage />
