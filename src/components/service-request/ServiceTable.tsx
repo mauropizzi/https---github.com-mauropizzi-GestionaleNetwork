@@ -20,22 +20,23 @@ import { Input } from "@/components/ui/input";
 import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ServiziRichiesti } from "@/lib/anagrafiche-data"; // Corrected import
-import { ServiceDetailsDialog } from "./ServiceDetailsDialog"; // Corrected import
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { ServiziRichiesti } from "@/lib/anagrafiche-data";
+import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
+import { useNavigate } from "react-router-dom";
+import { calculateServiceCost } from "@/lib/data-fetching"; // Import the calculation function
 
 export function ServiceTable() {
   const navigate = useNavigate();
-  const [data, setData] = useState<ServiziRichiesti[]>([]); // Use ServiziRichiesti directly
+  const [data, setData] = useState<ServiziRichiesti[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<ServiziRichiesti | null>(null); // Use ServiziRichiesti
+  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<ServiziRichiesti | null>(null);
 
   const fetchServiceRequests = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('servizi_richiesti') // Corrected table name
+    const { data: requests, error } = await supabase
+      .from('servizi_richiesti')
       .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
       .order('created_at', { ascending: false });
 
@@ -43,9 +44,43 @@ export function ServiceTable() {
       showError(`Errore nel recupero delle richieste di servizio: ${error.message}`);
       console.error("Error fetching service requests:", error);
       setData([]);
+    } else if (requests) {
+      // Dynamically calculate total_units and unit_of_measure for each request
+      const processedData = await Promise.all(
+        requests.map(async (request) => {
+          if (!request.start_date || !request.end_date) {
+            return request; // Return original request if dates are missing
+          }
+
+          const costDetails = await calculateServiceCost({
+            type: request.type,
+            client_id: request.client_id,
+            service_point_id: request.service_point_id,
+            fornitore_id: request.fornitore_id,
+            start_date: new Date(request.start_date),
+            end_date: new Date(request.end_date),
+            start_time: request.start_time,
+            end_time: request.end_time,
+            num_agents: request.num_agents,
+            cadence_hours: request.cadence_hours,
+            daily_hours_config: request.daily_hours_config,
+            inspection_type: request.inspection_type,
+          });
+
+          if (costDetails) {
+            return {
+              ...request,
+              total_units: costDetails.multiplier,
+              unit_of_measure: costDetails.unitOfMeasure,
+            };
+          }
+          // Fallback to the stored value if calculation fails
+          return request;
+        })
+      );
+      setData(processedData);
     } else {
-      // Data is already mapped correctly by Supabase select with joins
-      setData(data || []);
+      setData([]);
     }
     setLoading(false);
   }, []);
@@ -55,7 +90,7 @@ export function ServiceTable() {
   }, [fetchServiceRequests]);
 
   const handleEdit = useCallback((request: ServiziRichiesti) => {
-    navigate(`/service-list/edit/${request.id}`); // Navigate to the edit page
+    navigate(`/service-list/edit/${request.id}`);
   }, [navigate]);
 
   const handleViewDetails = useCallback((request: ServiziRichiesti) => {
@@ -71,7 +106,7 @@ export function ServiceTable() {
   const handleDelete = async (requestId: string, requestType: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare la richiesta di servizio "${requestType}"?`)) {
       const { error } = await supabase
-        .from('servizi_richiesti') // Corrected table name
+        .from('servizi_richiesti')
         .delete()
         .eq('id', requestId);
 
@@ -80,7 +115,7 @@ export function ServiceTable() {
         console.error("Error deleting service request:", error);
       } else {
         showSuccess(`Richiesta "${requestType}" eliminata con successo!`);
-        fetchServiceRequests(); // Refresh data after deletion
+        fetchServiceRequests();
       }
     } else {
       showInfo(`Eliminazione della richiesta "${requestType}" annullata.`);
@@ -137,10 +172,9 @@ export function ServiceTable() {
       cell: ({ row }) => <span>{row.original.status}</span>,
     },
     {
-      accessorKey: "total_units", // Changed from calculated_cost
-      header: "Quantità Totale", // Changed header text
+      accessorKey: "total_units",
+      header: "Quantità Totale",
       cell: ({ row }) => {
-        console.log(`Row ID: ${row.original.id}, Type: ${row.original.type}, Total Units: ${row.original.total_units}, Unit of Measure: ${row.original.unit_of_measure}`); // NEW LOG
         return (
           <span>
             {row.original.total_units !== null && row.original.total_units !== undefined
