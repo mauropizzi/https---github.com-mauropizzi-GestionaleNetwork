@@ -53,10 +53,6 @@ const formSchema = z.object({
   note: z.string().optional().nullable(),
 });
 
-// Define allowed values for tipo_fornitura for safe casting
-const allowedTipoFornituraValues = ["piantonamento", "fiduciario", "entrambi", ""] as const;
-type AllowedTipoFornitura = typeof allowedTipoFornituraValues[number];
-
 export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSave }: FornitoreEditDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,24 +76,19 @@ export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSave }: Forn
 
   useEffect(() => {
     if (fornitore) {
-      // Safely cast tipo_fornitura to the allowed enum values or null
-      const safeTipoFornitura: AllowedTipoFornitura | null = 
-        (fornitore.tipo_fornitura && allowedTipoFornituraValues.includes(fornitore.tipo_fornitura as AllowedTipoFornitura))
-          ? (fornitore.tipo_fornitura as AllowedTipoFornitura)
-          : null;
-
       form.reset({
         nome_fornitore: fornitore.nome_fornitore,
         partita_iva: fornitore.partita_iva || null,
         codice_fiscale: fornitore.codice_fiscale || null,
         indirizzo: fornitore.indirizzo || null,
+        cap: fornitore.cap || null,
         citta: fornitore.citta || null,
         provincia: fornitore.provincia || null,
         referente: fornitore.referente || null,
         telefono: fornitore.telefono || null,
         email: fornitore.email || null,
         pec: fornitore.pec || null,
-        tipo_fornitura: safeTipoFornitura, // Use the safely casted value
+        tipo_fornitura: fornitore.tipo_fornitura || null,
         attivo: fornitore.attivo ?? true,
         note: fornitore.note || null,
       });
