@@ -16,11 +16,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCcw, Edit, Trash2 } from "lucide-react"; // Import Edit and Trash2 icons
+import { RefreshCcw, Edit, Trash2 } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserProfile } from "@/lib/anagrafiche-data"; // Import UserProfile
-import { UserEditDialog } from "./UserEditDialog"; // Import the new dialog
+import { UserProfile } from "@/lib/anagrafiche-data";
+import { UserEditDialog } from "./UserEditDialog";
 
 export function UserAccessTable() {
   const [data, setData] = useState<UserProfile[]>([]);
@@ -47,7 +47,7 @@ export function UserAccessTable() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'user') => {
+  const handleRoleChange = async (userId: string, newRole: UserProfile['role']) => {
     showInfo(`Aggiornamento ruolo per l'utente...`);
     
     const { error } = await supabase
@@ -60,7 +60,6 @@ export function UserAccessTable() {
       console.error("Error updating user role:", error);
     } else {
       showSuccess("Ruolo aggiornato con successo!");
-      // Update local state to reflect the change immediately
       setData(prevData =>
         prevData.map(user =>
           user.id === userId ? { ...user, role: newRole } : user
@@ -75,14 +74,11 @@ export function UserAccessTable() {
   }, []);
 
   const handleSaveEdit = useCallback((updatedUser: UserProfile) => {
-    // Update local state to reflect changes immediately
     setData(prevData =>
       prevData.map(u =>
         u.id === updatedUser.id ? updatedUser : u
       )
     );
-    // Optionally, refetch all data to ensure consistency with backend
-    // fetchUsers(); // Uncomment if you prefer a full re-fetch
     setIsEditDialogOpen(false);
     setSelectedUserForEdit(null);
   }, []);
@@ -104,7 +100,7 @@ export function UserAccessTable() {
         console.error("Error deleting user via Edge Function:", error);
       } else {
         showSuccess(`Utente "${userEmail}" eliminato con successo!`);
-        fetchUsers(); // Refresh data after deletion
+        fetchUsers();
       }
     } else {
       showInfo(`Eliminazione dell'utente "${userEmail}" annullata.`);
@@ -142,14 +138,16 @@ export function UserAccessTable() {
       cell: ({ row }) => (
         <Select
           value={row.original.role}
-          onValueChange={(value: 'admin' | 'user') => handleRoleChange(row.original.id, value)}
+          onValueChange={(value: UserProfile['role']) => handleRoleChange(row.original.id, value)}
         >
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Seleziona ruolo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="Amministratore">Amministratore</SelectItem>
+            <SelectItem value="Amministrazione">Amministrazione</SelectItem>
+            <SelectItem value="Centrale Operativa">Centrale Operativa</SelectItem>
+            <SelectItem value="Personale esterno">Personale esterno</SelectItem>
           </SelectContent>
         </Select>
       ),

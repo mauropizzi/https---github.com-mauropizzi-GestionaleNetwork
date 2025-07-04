@@ -35,7 +35,7 @@ serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !userProfile || userProfile.role !== 'admin') {
+    if (profileError || !userProfile || userProfile.role !== 'Amministratore') {
       return new Response(JSON.stringify({ error: 'Unauthorized: User is not an admin' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

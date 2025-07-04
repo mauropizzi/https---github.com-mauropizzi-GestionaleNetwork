@@ -34,7 +34,7 @@ interface UserEditDialogProps {
 const formSchema = z.object({
   first_name: z.string().optional().nullable(),
   last_name: z.string().optional().nullable(),
-  role: z.enum(['admin', 'user'], {
+  role: z.enum(['Amministratore', 'Amministrazione', 'Centrale Operativa', 'Personale esterno'], {
     required_error: "Il ruolo è richiesto.",
   }),
 });
@@ -45,7 +45,7 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
     defaultValues: {
       first_name: null,
       last_name: null,
-      role: 'user',
+      role: 'Personale esterno',
     },
   });
 
@@ -138,8 +138,10 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="Amministratore">Amministratore</SelectItem>
+                      <SelectItem value="Amministrazione">Amministrazione</SelectItem>
+                      <SelectItem value="Centrale Operativa">Centrale Operativa</SelectItem>
+                      <SelectItem value="Personale esterno">Personale esterno</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

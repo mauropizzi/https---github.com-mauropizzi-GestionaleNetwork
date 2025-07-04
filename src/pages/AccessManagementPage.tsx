@@ -15,7 +15,7 @@ const AccessManagementPage = () => {
     );
   }
 
-  if (role !== 'admin') {
+  if (role !== 'Amministratore') {
     return <Unauthorized />;
   }
 
