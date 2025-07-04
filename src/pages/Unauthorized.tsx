@@ -11,8 +11,8 @@ const Unauthorized = () => {
         <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
           Non disponi delle autorizzazioni necessarie per visualizzare questa pagina.
         </p>
-        <Link to="/">
-          <Button size="lg">Torna alla Home</Button>
+        <Link to="/login"> {/* Changed to /login */}
+          <Button size="lg">Torna al Login</Button>
         </Link>
       </div>
     </div>
