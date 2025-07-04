@@ -21,7 +21,7 @@ import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
-import { ClienteEditDialog } from "./ClientiEditDialog"; // Corrected import
+import { ClienteEditDialog } from "./ClientiEditDialog"; // Corrected import name
 
 export function ClientiTable() {
   const [data, setData] = useState<Cliente[]>([]);
@@ -55,10 +55,15 @@ export function ClientiTable() {
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback(() => { // Removed updatedCliente parameter as it's not used
+  const handleSaveEdit = useCallback((updatedCliente: Cliente) => {
     // Update local state to reflect changes immediately
-    // This part is handled by the form's own submission and then a re-fetch
-    fetchClientiData(); // Refresh data after successful save/update
+    setData(prevData =>
+      prevData.map(c =>
+        c.id === updatedCliente.id ? updatedCliente : c
+      )
+    );
+    // Optionally, refetch all data to ensure consistency with backend
+    fetchClientiData(); // Uncomment if you prefer a full re-fetch
     setIsEditDialogOpen(false);
     setSelectedClienteForEdit(null);
   }, [fetchClientiData]);

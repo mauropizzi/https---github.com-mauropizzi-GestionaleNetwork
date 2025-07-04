@@ -1,13 +1,13 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FornitoriForm } from "./FornitoriForm"; // Corrected import
+import { FornitoriForm } from "./FornitoriForm";
 import { Fornitore } from "@/lib/anagrafiche-data";
 
 interface FornitoreEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fornitore: Fornitore | null;
-  onSaveSuccess: () => void; // Added onSaveSuccess prop
+  onSaveSuccess: () => void;
 }
 
 export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSaveSuccess }: FornitoreEditDialogProps) {

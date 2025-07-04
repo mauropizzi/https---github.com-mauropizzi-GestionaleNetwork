@@ -1,6 +1,6 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ClientiForm } from "./ClientiForm"; // Corrected import
+import { ClientiForm } from "./ClientiForm";
 import { Cliente } from "@/lib/anagrafiche-data";
 
 interface ClienteEditDialogProps {
