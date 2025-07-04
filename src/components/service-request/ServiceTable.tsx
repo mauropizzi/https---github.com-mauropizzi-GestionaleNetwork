@@ -20,32 +20,22 @@ import { Input } from "@/components/ui/input";
 import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ServiceRequest as ServiceRequestBase } from "@/lib/anagrafiche-data";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ServiceRequestForm } from "./ServiceRequestForm";
-import { ServiceRequestDetailsDialog } from "./ServiceRequestDetailsDialog";
-
-// Extend ServiceRequestBase to include joined data
-interface ServiceRequest extends ServiceRequestBase {
-  clienti: { nome_cliente: string }[];
-  punti_servizio: { nome_punto_servizio: string }[];
-  fornitori: { nome_fornitore: string }[];
-  client?: { nome_cliente: string }; // Added optional client property
-}
+import { ServiziRichiesti } from "@/lib/anagrafiche-data"; // Corrected import
+import { ServiceDetailsDialog } from "./ServiceDetailsDialog"; // Corrected import
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export function ServiceTable() {
-  const [data, setData] = useState<ServiceRequest[]>([]);
+  const navigate = useNavigate();
+  const [data, setData] = useState<ServiziRichiesti[]>([]); // Use ServiziRichiesti directly
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<ServiceRequest | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<ServiceRequest | null>(null);
+  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<ServiziRichiesti | null>(null); // Use ServiziRichiesti
 
   const fetchServiceRequests = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('service_requests')
+      .from('servizi_richiesti') // Corrected table name
       .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
       .order('created_at', { ascending: false });
 
@@ -54,15 +44,8 @@ export function ServiceTable() {
       console.error("Error fetching service requests:", error);
       setData([]);
     } else {
-      const mappedData: ServiceRequest[] = data.map(req => ({
-        ...req,
-        clienti: req.clienti || [],
-        punti_servizio: req.punti_servizio || [],
-        fornitori: req.fornitori || [],
-        // Map the first client object directly if it exists
-        client: req.clienti && req.clienti.length > 0 ? req.clienti[0] : undefined,
-      }));
-      setData(mappedData);
+      // Data is already mapped correctly by Supabase select with joins
+      setData(data || []);
     }
     setLoading(false);
   }, []);
@@ -71,25 +54,13 @@ export function ServiceTable() {
     fetchServiceRequests();
   }, [fetchServiceRequests]);
 
-  const handleEdit = useCallback((request: ServiceRequest) => {
-    setSelectedRequestForEdit(request);
-    setIsEditDialogOpen(true);
-  }, []);
+  const handleEdit = useCallback((request: ServiziRichiesti) => {
+    navigate(`/service-list/edit/${request.id}`); // Navigate to the edit page
+  }, [navigate]);
 
-  const handleViewDetails = useCallback((request: ServiceRequest) => {
+  const handleViewDetails = useCallback((request: ServiziRichiesti) => {
     setSelectedRequestForDetails(request);
     setIsDetailsDialogOpen(true);
-  }, []);
-
-  const handleSaveEdit = useCallback(() => {
-    fetchServiceRequests(); // Refresh data after save
-    setIsEditDialogOpen(false);
-    setSelectedRequestForEdit(null);
-  }, [fetchServiceRequests]);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setIsEditDialogOpen(false);
-    setSelectedRequestForEdit(null);
   }, []);
 
   const handleCloseDetailsDialog = useCallback(() => {
@@ -100,7 +71,7 @@ export function ServiceTable() {
   const handleDelete = async (requestId: string, requestType: string) => {
     if (window.confirm(`Sei sicuro di voler eliminare la richiesta di servizio "${requestType}"?`)) {
       const { error } = await supabase
-        .from('service_requests')
+        .from('servizi_richiesti') // Corrected table name
         .delete()
         .eq('id', requestId);
 
@@ -121,15 +92,15 @@ export function ServiceTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         request.type.toLowerCase().includes(searchLower) ||
-        (request.clienti && request.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) ||
-        (request.punti_servizio && request.punti_servizio[0]?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
-        (request.fornitori && request.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (request.clienti?.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        (request.punti_servizio?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (request.fornitori?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
         request.status.toLowerCase().includes(searchLower)
       );
     });
   }, [data, searchTerm]);
 
-  const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
+  const columns: ColumnDef<ServiziRichiesti>[] = useMemo(() => [
     {
       accessorKey: "type",
       header: "Tipo",
@@ -138,17 +109,17 @@ export function ServiceTable() {
     {
       accessorKey: "client_id",
       header: "Cliente",
-      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente || 'N/A'}</span>,
     },
     {
       accessorKey: "service_point_id",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.punti_servizio[0]?.nome_punto_servizio || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.punti_servizio?.nome_punto_servizio || 'N/A'}</span>,
     },
     {
       accessorKey: "fornitore_id",
       header: "Fornitore",
-      cell: ({ row }) => <span>{row.original.fornitori[0]?.nome_fornitore || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.fornitori?.nome_fornitore || 'N/A'}</span>,
     },
     {
       accessorKey: "start_date",
@@ -158,7 +129,7 @@ export function ServiceTable() {
     {
       accessorKey: "start_time",
       header: "Ora Inizio",
-      cell: ({ row }) => <span>{row.original.start_time}</span>,
+      cell: ({ row }) => <span>{row.original.start_time || 'N/A'}</span>,
     },
     {
       accessorKey: "status",
@@ -258,29 +229,25 @@ export function ServiceTable() {
         </Table>
       </div>
 
-      {selectedRequestForEdit && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Modifica Richiesta di Servizio</DialogTitle>
-              <DialogDescription>
-                Apporta modifiche ai dettagli della richiesta.
-              </DialogDescription>
-            </DialogHeader>
-            <ServiceRequestForm
-              request={selectedRequestForEdit}
-              onSaveSuccess={handleSaveEdit}
-              onCancel={handleCloseEditDialog}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
       {selectedRequestForDetails && (
-        <ServiceRequestDetailsDialog
+        <ServiceDetailsDialog
           isOpen={isDetailsDialogOpen}
           onClose={handleCloseDetailsDialog}
-          request={selectedRequestForDetails}
+          service={{
+            id: selectedRequestForDetails.id,
+            type: selectedRequestForDetails.type,
+            client: selectedRequestForDetails.clienti?.nome_cliente || 'N/A',
+            location: selectedRequestForDetails.punti_servizio?.nome_punto_servizio || 'N/A',
+            startDate: new Date(selectedRequestForDetails.start_date),
+            endDate: selectedRequestForDetails.end_date ? new Date(selectedRequestForDetails.end_date) : new Date(selectedRequestForDetails.start_date),
+            status: selectedRequestForDetails.status,
+            startTime: selectedRequestForDetails.start_time || undefined,
+            endTime: selectedRequestForDetails.end_time || undefined,
+            numAgents: selectedRequestForDetails.num_agents || undefined,
+            cadenceHours: selectedRequestForDetails.cadence_hours || undefined,
+            inspectionType: selectedRequestForDetails.inspection_type || undefined,
+            dailyHoursConfig: selectedRequestForDetails.daily_hours_config || undefined,
+          }}
         />
       )}
     </div>

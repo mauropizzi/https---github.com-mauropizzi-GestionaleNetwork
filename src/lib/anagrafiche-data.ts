@@ -154,6 +154,7 @@ export interface ServiziRichiesti { // Renamed from ServiceRequest
   type: string;
   client_id?: string | null;
   service_point_id?: string | null;
+  fornitore_id?: string | null;
   start_date: string;
   start_time?: string | null;
   end_date?: string | null;
@@ -164,7 +165,10 @@ export interface ServiziRichiesti { // Renamed from ServiceRequest
   cadence_hours?: number | null;
   inspection_type?: string | null;
   daily_hours_config?: any | null; // JSONB type
-  fornitore_id?: string | null;
+  // Joined fields (Supabase returns these as direct objects if single, or null)
+  clienti?: { nome_cliente: string } | null;
+  punti_servizio?: { nome_punto_servizio: string } | null;
+  fornitori?: { nome_fornitore: string } | null;
 }
 
 export interface RegistroDiCantiere { // Renamed from CantiereReport

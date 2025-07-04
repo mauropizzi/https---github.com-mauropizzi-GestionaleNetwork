@@ -1,21 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
-import { ServiceRequest as ServiceRequestBase, PuntoServizio as PuntoServizioBase, Fornitore, Cliente } from '@/lib/anagrafiche-data';
+import { ServiziRichiesti, PuntoServizio as PuntoServizioBase, Fornitore, Cliente } from '@/lib/anagrafiche-data'; // Corrected import
 
 // Extend types to include joined data structure
-interface ServiceRequest extends ServiceRequestBase {
-  clienti: { nome_cliente: string }[];
-  punti_servizio: { nome_punto_servizio: string }[];
-  fornitori: { nome_fornitore: string }[];
-}
-
 interface PuntoServizioExtended extends PuntoServizioBase {
   clienti: { nome_cliente: string }[];
 }
 
 export const useServiceRequests = () => {
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<ServiziRichiesti[]>([]); // Use ServiziRichiesti
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +17,7 @@ export const useServiceRequests = () => {
     setLoading(true);
     setError(null);
     const { data, error } = await supabase
-      .from('service_requests')
+      .from('servizi_richiesti') // Corrected table name
       .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
       .order('created_at', { ascending: false });
 
@@ -32,13 +26,8 @@ export const useServiceRequests = () => {
       setError(error.message);
       setServiceRequests([]);
     } else {
-      const mappedData: ServiceRequest[] = data.map(req => ({
-        ...req,
-        clienti: req.clienti || [],
-        punti_servizio: req.punti_servizio || [],
-        fornitori: req.fornitori || [],
-      }));
-      setServiceRequests(mappedData);
+      // Data is already mapped correctly by Supabase select with joins
+      setServiceRequests(data || []);
     }
     setLoading(false);
   }, []);
