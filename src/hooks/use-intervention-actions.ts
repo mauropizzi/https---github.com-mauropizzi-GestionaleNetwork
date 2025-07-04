@@ -5,7 +5,7 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { UseFormTrigger, UseFormSetError, UseFormClearErrors } from 'react-hook-form';
-import { z } from 'zod';
+import { z } from 'zod'; // Added import for z
 
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
@@ -284,7 +284,7 @@ export const useInterventionActions = ({
       barcode: barcode || null,
       start_latitude: startLatitude || null,
       start_longitude: startLongitude || null,
-      end_latitude: endLatitude || null,
+      end_latitude: endLongitude || null,
     };
 
     let allarmeResult;

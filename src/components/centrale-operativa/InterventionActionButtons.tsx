@@ -5,8 +5,8 @@ interface InterventionActionButtonsProps {
   eventId?: string;
   handleEmail: () => Promise<void>;
   handlePrintPdf: () => Promise<void>;
-  handleRegisterEvent: () => void; // Changed to accept no arguments
-  handleCloseEvent: () => void; // Changed to accept no arguments
+  handleRegisterEvent: (e?: React.BaseSyntheticEvent) => Promise<void>; // Changed signature
+  handleCloseEvent: (e?: React.BaseSyntheticEvent) => Promise<void>; // Changed signature
   onCancel?: () => void;
   isPublicMode?: boolean; // New prop to indicate public mode
 }
