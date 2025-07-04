@@ -1,26 +1,28 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FornitoriForm } from "./FornitoriForm";
 import { Fornitore } from "@/lib/anagrafiche-data";
+import { FornitoriEditForm } from "./FornitoriEditForm"; // Import the new edit form
 
 interface FornitoreEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fornitore: Fornitore | null;
-  onSaveSuccess: () => void;
+  onSaveSuccess: (updatedFornitore: Fornitore) => void; // Changed signature to pass updated fornitore
 }
 
 export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSaveSuccess }: FornitoreEditDialogProps) {
+  if (!fornitore) return null; // Render nothing if no fornitore is provided
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{fornitore ? "Modifica Fornitore" : "Aggiungi Nuovo Fornitore"}</DialogTitle>
+          <DialogTitle>Modifica Fornitore</DialogTitle>
           <DialogDescription>
-            {fornitore ? "Apporta modifiche ai dettagli del fornitore." : "Compila i campi per aggiungere un nuovo fornitore."}
+            Apporta modifiche ai dettagli del fornitore.
           </DialogDescription>
         </DialogHeader>
-        <FornitoriForm fornitore={fornitore} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
+        <FornitoriEditForm fornitore={fornitore} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
       </DialogContent>
     </Dialog>
   );
