@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente, Fornitore, OperatoreNetwork, PuntoServizio, Procedure, ServiziCanone, ServiziRichiesti, RegistroDiCantiere, Personale } from "@/lib/anagrafiche-data";
-import { format, differenceInDays, differenceInMonths, getDaysInMonth, isWeekend, isSameDay, parseISO, isValid } from 'date-fns';
+import { format, differenceInDays, differenceInMonths, getDaysInMonth, isWeekend, isSameDay, parseISO, isValid, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 import { showError } from "@/utils/toast";
@@ -222,7 +222,7 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
           }
           totalHours += hoursForDay; // Accumulate hours for the day
         }
-        currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
+        currentDate = addDays(currentDate, 1); // Use addDays to create a new date
       }
       multiplier = totalHours * (num_agents || 1);
       console.log("calculateServiceCost: Total hours for 'ora' type:", totalHours, "Multiplier:", multiplier); // Log for 'ora'
@@ -240,11 +240,11 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
         }
 
         let totalInspections = 0;
-        let currentDate = new Date(startDateObj);
-        while (currentDate <= endDateObj) {
-          const dayOfWeek = format(currentDate, 'EEEE', { locale: it }); // 'Lunedì', 'Martedì', etc.
-          const isHoliday = isDateHoliday(currentDate);
-          const isWeekendDay = isWeekend(currentDate);
+        let currentDateIterator = new Date(startDateObj); // Create a new iterator date
+        while (currentDateIterator <= endDateObj) {
+          const dayOfWeek = format(currentDateIterator, 'EEEE', { locale: it });
+          const isHoliday = isDateHoliday(currentDateIterator);
+          const isWeekendDay = isWeekend(currentDateIterator);
 
           let dayConfig;
           if (isHoliday) {
@@ -270,7 +270,7 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
             totalInspections += (hoursForDay / cadence_hours);
             console.log(`  Day: ${dayOfWeek}, Hours for day: ${hoursForDay}, Cadence: ${cadence_hours}, Inspections for day: ${hoursForDay / cadence_hours}, Current total inspections: ${totalInspections}`); // Detailed log for inspections
           }
-          currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
+          currentDateIterator = addDays(currentDateIterator, 1); // Use addDays to create a new date
         }
         multiplier = totalInspections;
         console.log("calculateServiceCost: Total inspections for 'intervento' type (Ispezioni):", totalInspections, "Multiplier:", multiplier); // Log for 'intervento' (Ispezioni)
