@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -15,8 +17,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
-import { it } from 'date-fns/locale';
 import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,7 +93,9 @@ export function ClientiTable() {
         (cliente.codice_fiscale?.toLowerCase().includes(searchLower)) ||
         (cliente.partita_iva?.toLowerCase().includes(searchLower)) ||
         (cliente.citta?.toLowerCase().includes(searchLower)) ||
-        (cliente.email?.toLowerCase().includes(searchLower))
+        (cliente.email?.toLowerCase().includes(searchLower)) ||
+        (cliente.telefono?.toLowerCase().includes(searchLower)) || // Use telefono
+        (cliente.indirizzo?.toLowerCase().includes(searchLower)) // Use indirizzo
       );
     });
   }, [data, searchTerm]);
@@ -128,6 +130,11 @@ export function ClientiTable() {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "indirizzo", // Use indirizzo
+      header: "Indirizzo",
+      cell: ({ row }) => <span>{row.original.indirizzo || 'N/A'}</span>,
     },
     {
       accessorKey: "attivo",

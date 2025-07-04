@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
-import { Cliente, Fornitore, OperatoreNetwork, PuntoServizio, Procedure, ServiziCanone, ServiceRequest, CantiereReport, UserProfile } from '@/lib/anagrafiche-data';
+import { Cliente, Fornitore, OperatoreNetwork, PuntoServizio, Procedure, ServiziCanone, ServiziRichiesti, RegistroDiCantiere, Personale, RichiestaManutenzione, UserProfile } from '@/lib/anagrafiche-data';
 
 // Define a generic error type for parsing issues
 interface ParserError {
@@ -96,119 +96,184 @@ function mapRowToSchema(row: any, tableName: string): any {
   const mapped: any = {};
   for (const key in row) {
     const originalValue = row[key];
-    let dbKey = key.toLowerCase().replace(/ /g, '_'); // Convert to snake_case
+    const lowerCaseKey = key.toLowerCase().replace(/ /g, '_'); // Convert to snake_case
 
     // Specific mappings for common fields that might have different names or types
     switch (tableName) {
       case 'clienti':
-        if (dbKey === 'nome_cliente') mapped.nome_cliente = sanitizeString(originalValue);
-        else if (dbKey === 'partita_iva') mapped.partita_iva = sanitizeString(originalValue);
-        else if (dbKey === 'codice_fiscale') mapped.codice_fiscale = sanitizeString(originalValue);
-        else if (dbKey === 'email') mapped.email = sanitizeString(originalValue);
-        else if (dbKey === 'phone') mapped.phone = sanitizeString(originalValue);
-        else if (dbKey === 'address') mapped.address = sanitizeString(originalValue);
-        else if (dbKey === 'city') mapped.city = sanitizeString(originalValue);
-        else if (dbKey === 'zip_code') mapped.zip_code = sanitizeString(originalValue);
-        else if (dbKey === 'province') mapped.province = sanitizeString(originalValue);
-        else if (dbKey === 'country') mapped.country = sanitizeString(originalValue);
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
+        if (lowerCaseKey === 'nome_cliente' || lowerCaseKey === 'ragione_sociale') mapped.nome_cliente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'partita_iva') mapped.partita_iva = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_fiscale') mapped.codice_fiscale = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'email') mapped.email = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'phone' || lowerCaseKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'address' || lowerCaseKey === 'indirizzo') mapped.indirizzo = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'city' || lowerCaseKey === 'citta') mapped.citta = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'zip_code' || lowerCaseKey === 'cap') mapped.cap = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'province' || lowerCaseKey === 'provincia') mapped.provincia = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'pec') mapped.pec = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'sdi') mapped.sdi = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'attivo') mapped.attivo = sanitizeBoolean(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
         break;
       case 'fornitori':
-        if (dbKey === 'nome_fornitore') mapped.nome_fornitore = sanitizeString(originalValue);
-        else if (dbKey === 'partita_iva') mapped.partita_iva = sanitizeString(originalValue);
-        else if (dbKey === 'codice_fiscale') mapped.codice_fiscale = sanitizeString(originalValue);
-        else if (dbKey === 'email') mapped.email = sanitizeString(originalValue);
-        else if (dbKey === 'phone') mapped.phone = sanitizeString(originalValue);
-        else if (dbKey === 'address') mapped.address = sanitizeString(originalValue);
-        else if (dbKey === 'city') mapped.city = sanitizeString(originalValue);
-        else if (dbKey === 'zip_code') mapped.zip_code = sanitizeString(originalValue);
-        else if (dbKey === 'province') mapped.province = sanitizeString(originalValue);
-        else if (dbKey === 'country') mapped.country = sanitizeString(originalValue);
-        else if (dbKey === 'service_type') mapped.service_type = sanitizeString(originalValue); // Assuming this is a string type in DB
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
+        if (lowerCaseKey === 'nome_fornitore' || lowerCaseKey === 'ragione_sociale') mapped.nome_fornitore = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'partita_iva') mapped.partita_iva = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_fiscale') mapped.codice_fiscale = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'referente') mapped.referente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'phone' || lowerCaseKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'email') mapped.email = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'tipo_fornitura' || lowerCaseKey === 'tipo_servizio') mapped.tipo_fornitura = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'address' || lowerCaseKey === 'indirizzo') mapped.indirizzo = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'zip_code' || lowerCaseKey === 'cap') mapped.cap = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'city' || lowerCaseKey === 'citta') mapped.citta = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'province' || lowerCaseKey === 'provincia') mapped.provincia = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'pec') mapped.pec = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'attivo') mapped.attivo = sanitizeBoolean(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
         break;
       case 'operatori_network':
-        if (dbKey === 'nome') mapped.nome = sanitizeString(originalValue);
-        else if (dbKey === 'cognome') mapped.cognome = sanitizeString(originalValue);
-        else if (dbKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
-        else if (dbKey === 'email') mapped.email = sanitizeString(originalValue);
-        else if (dbKey === 'client_id') mapped.client_id = sanitizeString(originalValue); // Assuming client_id is a string UUID
+        if (lowerCaseKey === 'nome') mapped.nome = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'cognome') mapped.cognome = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'email') mapped.email = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'client_id' || lowerCaseKey === 'clienteid') mapped.client_id = sanitizeString(originalValue);
         break;
       case 'punti_servizio':
-        if (dbKey === 'nome_punto_servizio') mapped.nome_punto_servizio = sanitizeString(originalValue);
-        else if (dbKey === 'address') mapped.address = sanitizeString(originalValue);
-        else if (dbKey === 'city') mapped.city = sanitizeString(originalValue);
-        else if (dbKey === 'zip_code') mapped.zip_code = sanitizeString(originalValue);
-        else if (dbKey === 'province') mapped.province = sanitizeString(originalValue);
-        else if (dbKey === 'country') mapped.country = sanitizeString(originalValue);
-        else if (dbKey === 'phone') mapped.phone = sanitizeString(originalValue);
-        else if (dbKey === 'email') mapped.email = sanitizeString(originalValue);
-        else if (dbKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue); // Assuming fornitore_id is a string UUID
-        else if (dbKey === 'client_id') mapped.client_id = sanitizeString(originalValue); // Assuming client_id is a string UUID
-        else if (dbKey === 'service_type') mapped.service_type = sanitizeString(originalValue); // Assuming this is a string type in DB
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
-        else if (dbKey === 'procedure_id') mapped.procedure_id = sanitizeString(originalValue); // Assuming procedure_id is a string UUID
+        if (lowerCaseKey === 'nome_punto_servizio' || lowerCaseKey === 'nomepuntoservizio') mapped.nome_punto_servizio = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'id_cliente' || lowerCaseKey === 'idcliente') mapped.id_cliente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'address' || lowerCaseKey === 'indirizzo') mapped.indirizzo = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'city' || lowerCaseKey === 'citta') mapped.citta = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'zip_code' || lowerCaseKey === 'cap') mapped.cap = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'province' || lowerCaseKey === 'provincia') mapped.provincia = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'referente') mapped.referente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'telefono_referente' || lowerCaseKey === 'telefonoreferente') mapped.telefono_referente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'phone' || lowerCaseKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'email') mapped.email = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'tempo_intervento' || lowerCaseKey === 'tempointervento') mapped.tempo_intervento = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'fornitore_id' || lowerCaseKey === 'fornitoreid') mapped.fornitore_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_cliente' || lowerCaseKey === 'codicecliente') mapped.codice_cliente = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_sicep' || lowerCaseKey === 'codicesicep') mapped.codice_sicep = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_fatturazione' || lowerCaseKey === 'codicefatturazione') mapped.codice_fatturazione = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'latitude') mapped.latitude = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'longitude') mapped.longitude = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'procedure_id' || lowerCaseKey === 'nomeprocedura') mapped.procedure_id = sanitizeString(originalValue); // Assuming nomeprocedura maps to procedure_id
         break;
       case 'procedure':
-        if (dbKey === 'nome_procedura') mapped.nome_procedura = sanitizeString(originalValue);
-        else if (dbKey === 'description') mapped.description = sanitizeString(originalValue);
-        else if (dbKey === 'file_url') mapped.file_url = sanitizeString(originalValue);
+        if (lowerCaseKey === 'nome_procedura') mapped.nome_procedura = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'descrizione') mapped.descrizione = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'versione') mapped.versione = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'data_ultima_revisione') mapped.data_ultima_revisione = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'responsabile') mapped.responsabile = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'documento_url') mapped.documento_url = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'attivo') mapped.attivo = sanitizeBoolean(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
+        break;
+      case 'personale':
+        if (lowerCaseKey === 'nome') mapped.nome = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'cognome') mapped.cognome = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'codice_fiscale' || lowerCaseKey === 'codicefiscale') mapped.codice_fiscale = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'ruolo') mapped.ruolo = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'telefono') mapped.telefono = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'email') mapped.email = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'data_nascita') mapped.data_nascita = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'luogo_nascita') mapped.luogo_nascita = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'indirizzo') mapped.indirizzo = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'cap') mapped.cap = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'citta') mapped.citta = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'provincia') mapped.provincia = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'data_assunzione') mapped.data_assunzione = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'data_cessazione') mapped.data_cessazione = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'attivo') mapped.attivo = sanitizeBoolean(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
+        break;
+      case 'tariffe':
+        if (lowerCaseKey === 'client_id' || lowerCaseKey === 'cliente_id') mapped.client_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'service_type' || lowerCaseKey === 'tipo_servizio') mapped.service_type = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'client_rate' || lowerCaseKey === 'importo') mapped.client_rate = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'supplier_rate') mapped.supplier_rate = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'unita_misura') mapped.unita_misura = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'punto_servizio_id') mapped.punto_servizio_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'data_inizio_validita') mapped.data_inizio_validita = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'data_fine_validita') mapped.data_fine_validita = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'note') mapped.note = sanitizeString(originalValue);
         break;
       case 'servizi_canone':
-        if (dbKey === 'tipo_canone') mapped.tipo_canone = sanitizeString(originalValue);
-        else if (dbKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
-        else if (dbKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue);
-        else if (dbKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
-        else if (dbKey === 'start_date') mapped.start_date = sanitizeDate(originalValue);
-        else if (dbKey === 'end_date') mapped.end_date = sanitizeDate(originalValue);
-        else if (dbKey === 'status') mapped.status = sanitizeString(originalValue);
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
-        else if (dbKey === 'cost') mapped.cost = sanitizeNumber(originalValue);
-        else if (dbKey === 'frequency') mapped.frequency = sanitizeString(originalValue);
+        if (lowerCaseKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'tipo_canone') mapped.tipo_canone = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'start_date') mapped.start_date = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'end_date') mapped.end_date = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'status') mapped.status = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'notes') mapped.notes = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'calculated_cost') mapped.calculated_cost = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'unita_misura') mapped.unita_misura = sanitizeString(originalValue);
         break;
-      case 'service_requests':
-        if (dbKey === 'type') mapped.type = sanitizeString(originalValue);
-        else if (dbKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
-        else if (dbKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
-        else if (dbKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue);
-        else if (dbKey === 'start_date') mapped.start_date = sanitizeDate(originalValue);
-        else if (dbKey === 'start_time') mapped.start_time = sanitizeTime(originalValue);
-        else if (dbKey === 'end_date') mapped.end_date = sanitizeDate(originalValue);
-        else if (dbKey === 'end_time') mapped.end_time = sanitizeTime(originalValue);
-        else if (dbKey === 'status') mapped.status = sanitizeString(originalValue);
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
-        else if (dbKey === 'calculated_cost') mapped.calculated_cost = sanitizeNumber(originalValue);
-        else if (dbKey === 'multiplier') mapped.multiplier = sanitizeNumber(originalValue);
+      case 'servizi_richiesti':
+        if (lowerCaseKey === 'type') mapped.type = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'fornitore_id') mapped.fornitore_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'start_date') mapped.start_date = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'start_time') mapped.start_time = sanitizeTime(originalValue);
+        else if (lowerCaseKey === 'end_date') mapped.end_date = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'end_time') mapped.end_time = sanitizeTime(originalValue);
+        else if (lowerCaseKey === 'status') mapped.status = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'calculated_cost') mapped.calculated_cost = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'num_agents') mapped.num_agents = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'cadence_hours') mapped.cadence_hours = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'inspection_type') mapped.inspection_type = sanitizeString(originalValue);
+        // daily_hours_config is complex, usually not imported via simple excel
         break;
-      case 'cantiere_reports':
-        if (dbKey === 'report_date') mapped.report_date = sanitizeDate(originalValue);
-        else if (dbKey === 'report_time') mapped.report_time = sanitizeTime(originalValue);
-        else if (dbKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
-        else if (dbKey === 'site_name') mapped.site_name = sanitizeString(originalValue);
-        else if (dbKey === 'employee_id') mapped.employee_id = sanitizeString(originalValue);
-        else if (dbKey === 'service_provided') mapped.service_provided = sanitizeString(originalValue);
-        else if (dbKey === 'automezzi_used') mapped.automezzi_used = sanitizeBoolean(originalValue);
-        else if (dbKey === 'automezzi_details') mapped.automezzi_details = sanitizeString(originalValue);
-        else if (dbKey === 'attrezzi_used') mapped.attrezzi_used = sanitizeBoolean(originalValue);
-        else if (dbKey === 'attrezzi_details') mapped.attrezzi_details = sanitizeString(originalValue);
-        else if (dbKey === 'notes') mapped.notes = sanitizeString(originalValue);
+      case 'registri_cantiere':
+        if (lowerCaseKey === 'report_date') mapped.report_date = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'report_time') mapped.report_time = sanitizeTime(originalValue);
+        else if (lowerCaseKey === 'client_id') mapped.client_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'site_name') mapped.site_name = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'employee_id') mapped.employee_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'service_provided') mapped.service_provided = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'notes') mapped.notes = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'start_datetime') mapped.start_datetime = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'end_datetime') mapped.end_datetime = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'status') mapped.status = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'addetto_riconsegna_security_service') mapped.addetto_riconsegna_security_service = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'responsabile_committente_riconsegna') mapped.responsabile_committente_riconsegna = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'esito_servizio') mapped.esito_servizio = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'consegne_servizio') mapped.consegne_servizio = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'latitude') mapped.latitude = sanitizeNumber(originalValue);
+        else if (lowerCaseKey === 'longitude') mapped.longitude = sanitizeNumber(originalValue);
+        // automezzi_utilizzati and attrezzi_utilizzati are nested, usually not imported via simple excel
         break;
-      case 'user_profiles':
-        if (dbKey === 'user_id') mapped.user_id = sanitizeString(originalValue);
-        else if (dbKey === 'username') mapped.username = sanitizeString(originalValue);
-        else if (dbKey === 'full_name') mapped.full_name = sanitizeString(originalValue);
-        else if (dbKey === 'avatar_url') mapped.avatar_url = sanitizeString(originalValue);
+      case 'richieste_manutenzione':
+        if (lowerCaseKey === 'report_id') mapped.report_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'service_point_id') mapped.service_point_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'vehicle_plate') mapped.vehicle_plate = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'issue_description') mapped.issue_description = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'status') mapped.status = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'priority') mapped.priority = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'requested_by_employee_id') mapped.requested_by_employee_id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'requested_at') mapped.requested_at = sanitizeDate(originalValue);
+        else if (lowerCaseKey === 'repair_activities') mapped.repair_activities = sanitizeString(originalValue);
+        break;
+      case 'profiles': // Assuming this is for user profiles
+        if (lowerCaseKey === 'id') mapped.id = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'first_name') mapped.first_name = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'last_name') mapped.last_name = sanitizeString(originalValue);
+        else if (lowerCaseKey === 'role') mapped.role = sanitizeString(originalValue);
         break;
       default:
         // Fallback for other fields, try to sanitize based on common types
         if (typeof originalValue === 'string') {
-          mapped[dbKey] = sanitizeString(originalValue);
+          mapped[lowerCaseKey] = sanitizeString(originalValue);
         } else if (typeof originalValue === 'number') {
-          mapped[dbKey] = sanitizeNumber(originalValue);
+          mapped[lowerCaseKey] = sanitizeNumber(originalValue);
         } else if (typeof originalValue === 'boolean') {
-          mapped[dbKey] = sanitizeBoolean(originalValue);
+          mapped[lowerCaseKey] = sanitizeBoolean(originalValue);
         } else {
-          mapped[dbKey] = originalValue;
+          mapped[lowerCaseKey] = originalValue;
         }
         break;
     }
@@ -233,7 +298,7 @@ function validateData(data: any, tableName: string): string[] {
       break;
     case 'punti_servizio':
       if (!data.nome_punto_servizio) errors.push('Nome Punto Servizio è richiesto.');
-      if (!data.client_id) errors.push('ID Cliente è richiesto.');
+      if (!data.id_cliente) errors.push('ID Cliente è richiesto.');
       break;
     case 'procedure':
       if (!data.nome_procedura) errors.push('Nome Procedura è richiesto.');
@@ -243,20 +308,27 @@ function validateData(data: any, tableName: string): string[] {
       if (!data.service_point_id) errors.push('ID Punto Servizio è richiesto.');
       if (!data.start_date) errors.push('Data Inizio è richiesta.');
       break;
-    case 'service_requests':
+    case 'servizi_richiesti':
       if (!data.type) errors.push('Tipo Richiesta è richiesto.');
       if (!data.client_id) errors.push('ID Cliente è richiesto.');
       if (!data.start_date) errors.push('Data Inizio è richiesta.');
       break;
-    case 'cantiere_reports':
+    case 'registri_cantiere':
       if (!data.report_date) errors.push('Data Report è richiesta.');
       if (!data.site_name) errors.push('Nome Cantiere è richiesto.');
       if (!data.client_id) errors.push('ID Cliente è richiesto.');
       if (!data.employee_id) errors.push('ID Addetto è richiesto.');
       break;
-    case 'user_profiles':
-      if (!data.user_id) errors.push('ID Utente è richiesto.');
-      if (!data.username) errors.push('Username è richiesto.');
+    case 'richieste_manutenzione':
+      if (!data.vehicle_plate) errors.push('Targa Veicolo è richiesta.');
+      if (!data.issue_description) errors.push('Descrizione Problema è richiesta.');
+      if (!data.status) errors.push('Stato è richiesto.');
+      if (!data.priority) errors.push('Priorità è richiesta.');
+      if (!data.requested_at) errors.push('Data Richiesta è richiesta.');
+      break;
+    case 'profiles':
+      if (!data.id) errors.push('ID Utente è richiesto.');
+      if (!data.role) errors.push('Ruolo è richiesto.');
       break;
     default:
       break;
@@ -274,17 +346,19 @@ function getUniqueConstraintColumns(tableName: string): string[] {
     case 'operatori_network':
       return ['nome', 'cognome']; // Assuming combination of nome and cognome is unique
     case 'punti_servizio':
-      return ['nome_punto_servizio', 'client_id']; // Assuming unique per client
+      return ['nome_punto_servizio', 'id_cliente']; // Assuming unique per client
     case 'procedure':
       return ['nome_procedura'];
     case 'servizi_canone':
       return ['tipo_canone', 'service_point_id', 'start_date']; // Example unique constraint
-    case 'service_requests':
-      return ['client_id', 'service_point_id', 'start_date', 'start_time']; // Example unique constraint
-    case 'cantiere_reports':
+    case 'servizi_richiesti':
+      return ['client_id', 'service_point_id', 'start_date', 'start_time', 'type']; // Example unique constraint
+    case 'registri_cantiere':
       return ['report_date', 'report_time', 'client_id', 'site_name']; // Example unique constraint
-    case 'user_profiles':
-      return ['username'];
+    case 'richieste_manutenzione':
+      return ['vehicle_plate', 'requested_at']; // Assuming unique by plate and request time
+    case 'profiles':
+      return ['id']; // User ID is unique
     default:
       return [];
   }
@@ -325,39 +399,52 @@ export async function importDataFromExcel(file: File, tableName: string): Promis
           }
 
           let isDuplicate = false;
+          let existingRecordId: string | null = null;
+
           if (uniqueColumns.length > 0) {
-            const query = supabase.from(tableName).select('id');
+            let query = supabase.from(tableName).select('id');
+            let hasAllUniqueCols = true;
             uniqueColumns.forEach(col => {
               if (mappedData[col]) {
-                query.eq(col, mappedData[col]);
+                query = query.eq(col, mappedData[col]);
+              } else {
+                hasAllUniqueCols = false; // Cannot check for uniqueness if a unique column is missing
               }
             });
-            const { data: existingRecords, error: fetchError } = await query;
 
-            if (fetchError) {
-              importErrors.push(`Error checking for duplicates for row ${JSON.stringify(row)}: ${fetchError.message}`);
-              continue;
-            }
+            if (hasAllUniqueCols) {
+              const { data: existingRecords, error: fetchError } = await query;
 
-            if (existingRecords && existingRecords.length > 0) {
-              isDuplicate = true;
-              duplicateRecords.push(row);
+              if (fetchError) {
+                importErrors.push(`Error checking for duplicates for row ${JSON.stringify(row)}: ${fetchError.message}`);
+                continue;
+              }
+
+              if (existingRecords && existingRecords.length > 0) {
+                isDuplicate = true;
+                existingRecordId = existingRecords[0].id;
+                duplicateRecords.push(row); // Still log as duplicate even if updated
+              }
             }
           }
 
-          if (isDuplicate) {
-            // Optionally, update existing records instead of skipping
-            // For now, we'll just skip and count as duplicate
-            continue;
-          }
-
-          // Attempt to insert new record
-          const { error: insertError } = await supabase.from(tableName).insert(mappedData);
-
-          if (insertError) {
-            importErrors.push(`Error inserting row ${JSON.stringify(row)}: ${insertError.message}`);
+          if (isDuplicate && existingRecordId) {
+            // Attempt to update existing record
+            const { error: updateError } = await supabase.from(tableName).update(mappedData).eq('id', existingRecordId);
+            if (updateError) {
+              importErrors.push(`Error updating row ${JSON.stringify(row)} (ID: ${existingRecordId}): ${updateError.message}`);
+            } else {
+              updatedRecordsCount++;
+            }
           } else {
-            newRecordsCount++;
+            // Attempt to insert new record
+            const { error: insertError } = await supabase.from(tableName).insert(mappedData);
+
+            if (insertError) {
+              importErrors.push(`Error inserting row ${JSON.stringify(row)}: ${insertError.message}`);
+            } else {
+              newRecordsCount++;
+            }
           }
         }
 
