@@ -60,14 +60,10 @@ const OperatoriNetworkPage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per gli Operatori Network...`);
       const result = await importDataFromExcel(file, "operatori-network");
 
-      setImportSummary(result.details);
+      setImportSummary(result); // Pass the whole result object
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // showSuccess and showError are now handled by the dialog based on the summary content.
       event.target.value = '';
     }
   };

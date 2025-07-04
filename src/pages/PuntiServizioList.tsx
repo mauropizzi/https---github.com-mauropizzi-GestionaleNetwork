@@ -17,11 +17,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, RefreshCcw, PlusCircle, Upload, Eye } from "lucide-react";
+import { Edit, Trash2, RefreshCcw, PlusCircle, Upload, Eye, MapPin } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio } from "@/lib/anagrafiche-data";
-import { PuntoServizioEditDialog } from "@/components/anagrafiche/PuntiServizioEditDialog";
+import { PuntiServizioEditDialog } from "@/components/anagrafiche/PuntiServizioEditDialog";
 import { PuntoServizioDetailsDialog } from "@/components/anagrafiche/PuntiServizioDetailsDialog";
 import { importDataFromExcel } from "@/utils/import"; // Assuming this utility exists
 
@@ -162,14 +162,23 @@ export default function PuntiServizioList() {
 
   const filteredData = useMemo(() => {
     return data.filter(puntoServizio => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        puntoServizio.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (puntoServizio.indirizzo?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.citta?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.fornitori?.[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.clienti?.[0]?.nome_cliente?.toLowerCase().includes(searchLower))
-      );
+      const searchLower = searchTerm.toLowerCase().trim(); // Also trim the search term
+      const nomePuntoServizioLower = (puntoServizio.nome_punto_servizio || '').toLowerCase().trim();
+      const nomeClienteLower = (puntoServizio.clienti?.[0]?.nome_cliente || '').toLowerCase().trim();
+      const indirizzoLower = (puntoServizio.indirizzo || '').toLowerCase().trim();
+      const cittaLower = (puntoServizio.citta || '').toLowerCase().trim();
+      const referenteLower = (puntoServizio.referente || '').toLowerCase().trim();
+      const nomeProceduraLower = (puntoServizio.procedure?.[0]?.nome_procedura || '').toLowerCase().trim(); // Nuovo campo
+
+      const matches =
+        nomePuntoServizioLower.includes(searchLower) ||
+        nomeClienteLower.includes(searchLower) ||
+        indirizzoLower.includes(searchLower) ||
+        cittaLower.includes(searchLower) ||
+        referenteLower.includes(searchLower) ||
+        nomeProceduraLower.includes(searchLower); // Includi la ricerca per nome procedura
+
+      return matches;
     });
   }, [data, searchTerm]);
 
