@@ -33,7 +33,7 @@ export function ServiceDetailsDialog({ isOpen, onClose, service }: ServiceDetail
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Dettagli Servizio: {service.id}</DialogTitle>
+          <DialogTitle>Dettagli Servizio</DialogTitle>
           <DialogDescription>
             Informazioni complete sul servizio richiesto.
           </DialogDescription>
