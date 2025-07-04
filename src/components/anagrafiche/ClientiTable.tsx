@@ -17,12 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Edit, Trash2, RefreshCcw, AddressBook } from "lucide-react"; // Import AddressBook icon
+import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
-import { ClientiEditDialog } from "./ClientiEditDialog";
-import { ClientContactsDialog } from "./ClientContactsDialog"; // Import the new dialog
+import { ClientiEditDialog } from "./ClientiEditDialog"; // Import the new dialog
 
 export function ClientiTable() {
   const [data, setData] = useState<Cliente[]>([]);
@@ -30,8 +29,6 @@ export function ClientiTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
-  const [isContactsDialogOpen, setIsContactsDialogOpen] = useState(false); // New state for contacts dialog
-  const [selectedClienteForContacts, setSelectedClienteForContacts] = useState<Cliente | null>(null); // New state for contacts dialog
 
   const fetchClientiData = useCallback(async () => {
     setLoading(true);
@@ -71,24 +68,13 @@ export function ClientiTable() {
     setSelectedClienteForEdit(null);
   }, [fetchClientiData]);
 
-  const handleCloseEditDialog = useCallback(() => {
+  const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedClienteForEdit(null);
   }, []);
 
-  const handleOpenContacts = useCallback((cliente: Cliente) => {
-    setSelectedClienteForContacts(cliente);
-    setIsContactsDialogOpen(true);
-  }, []);
-
-  const handleCloseContactsDialog = useCallback(() => {
-    setIsContactsDialogOpen(false);
-    setSelectedClienteForContacts(null);
-    fetchClientiData(); // Refresh client data in case contacts were modified
-  }, [fetchClientiData]);
-
   const handleDelete = async (clienteId: string, nomeCliente: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il cliente "${nomeCliente}"? Questa azione eliminerà anche tutti i contatti associati.`)) {
+    if (window.confirm(`Sei sicuro di voler eliminare il cliente "${nomeCliente}"?`)) {
       const { error } = await supabase
         .from('clienti')
         .delete()
@@ -163,16 +149,13 @@ export function ClientiTable() {
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleOpenContacts(row.original)} title="Rubrica Contatti">
-            <AddressBook className="h-4 w-4" />
-          </Button>
           <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_cliente)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleEdit, handleOpenContacts, handleDelete]);
+  ], [handleEdit, handleDelete]);
 
   const table = useReactTable({
     data: filteredData,
@@ -246,17 +229,9 @@ export function ClientiTable() {
       {selectedClienteForEdit && (
         <ClientiEditDialog
           isOpen={isEditDialogOpen}
-          onClose={handleCloseEditDialog}
+          onClose={handleCloseDialog}
           cliente={selectedClienteForEdit}
           onSave={handleSaveEdit}
-        />
-      )}
-
-      {selectedClienteForContacts && (
-        <ClientContactsDialog
-          isOpen={isContactsDialogOpen}
-          onClose={handleCloseContactsDialog}
-          cliente={selectedClienteForContacts}
         />
       )}
     </div>

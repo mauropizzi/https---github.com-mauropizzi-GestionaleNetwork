@@ -1,15 +1,41 @@
 import React from 'react';
-import { useParams } from 'react-router-dom'; // Assuming react-router-dom for useParams
-import { ServiceReportForm } from '@/components/dotazioni-di-servizio/ServiceReportForm'; // Changed to named import
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { showError } from "@/utils/toast";
+import ServiceReportForm from "@/components/dotazioni-di-servizio/ServiceReportForm"; // Use the unified form
 
-export default function EditServiceReportPage() {
-  const { id } = useParams<{ id: string }>(); // Get ID from URL
+const EditServiceReportPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const handleSaveSuccess = () => {
+    navigate('/dotazioni-di-servizio?tab=storico-rapporti');
+  };
+
+  const handleCancel = () => {
+    navigate('/dotazioni-di-servizio?tab=storico-rapporti');
+  };
+
+  if (!id) {
+    showError("ID rapporto non fornito.");
+    navigate('/dotazioni-di-servizio?tab=storico-rapporti');
+    return null;
+  }
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Modifica Rapporto di Servizio {id ? `(ID: ${id})` : ''}</h1>
-      {/* You would typically fetch the report data using the ID and pass it to the form */}
-      <ServiceReportForm reportId={id} /> {/* Pass reportId to the form */}
+    <div className="container mx-auto p-4">
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">Modifica Rapporto Dotazioni di Servizio</CardTitle>
+          <CardDescription className="text-center">Apporta modifiche al rapporto selezionato.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ServiceReportForm reportId={id} onSaveSuccess={handleSaveSuccess} onCancel={handleCancel} />
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default EditServiceReportPage;

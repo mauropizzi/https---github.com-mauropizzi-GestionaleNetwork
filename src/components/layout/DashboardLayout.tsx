@@ -59,9 +59,6 @@ const DashboardLayout = () => {
         if (location.pathname.startsWith("/richiesta-manutenzione/edit/")) {
           return "Modifica Richiesta Manutenzione";
         }
-        if (location.pathname.startsWith("/anagrafiche/clienti/") && location.pathname.includes("/contacts")) {
-          return "Rubrica Contatti Cliente"; // New title for client contacts page
-        }
         return "Dashboard";
     }
   };
