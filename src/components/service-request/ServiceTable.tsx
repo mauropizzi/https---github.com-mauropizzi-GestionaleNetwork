@@ -139,13 +139,16 @@ export function ServiceTable() {
     {
       accessorKey: "total_units", // Changed from calculated_cost
       header: "Quantità Totale", // Changed header text
-      cell: ({ row }) => (
-        <span>
-          {row.original.total_units !== null && row.original.total_units !== undefined
-            ? `${row.original.total_units.toFixed(2)} ${row.original.unit_of_measure || ''}`
-            : 'N/A'}
-        </span>
-      ),
+      cell: ({ row }) => {
+        console.log(`Row ID: ${row.original.id}, Type: ${row.original.type}, Total Units: ${row.original.total_units}, Unit of Measure: ${row.original.unit_of_measure}`); // NEW LOG
+        return (
+          <span>
+            {row.original.total_units !== null && row.original.total_units !== undefined
+              ? `${row.original.total_units.toFixed(2)} ${row.original.unit_of_measure || ''}`
+              : 'N/A'}
+          </span>
+        );
+      },
     },
     {
       id: "actions",
@@ -201,36 +204,7 @@ export function ServiceTable() {
                         )}
                   </TableHead>
                 ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento richieste di servizio...
-                </TableCell>
-              </TableRow>
-            ) : (table && table.getRowModel().rows?.length) ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessuna richiesta di servizio trovata.
-                </TableCell>
-              </TableRow>
-            )}
+              </TableHeader>
           </TableBody>
         </Table>
       </div>

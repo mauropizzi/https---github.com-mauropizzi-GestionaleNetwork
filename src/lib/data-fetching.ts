@@ -130,6 +130,7 @@ interface ServiceCostDetails {
 }
 
 export async function calculateServiceCost(details: ServiceCostDetails): Promise<{ clientRate: number; supplierRate: number; multiplier: number; unitOfMeasure: string } | null> {
+  console.log("calculateServiceCost: Input details:", details); // Log input details
   const { type, client_id, service_point_id, fornitore_id, start_date, end_date, start_time, end_time, num_agents, cadence_hours, daily_hours_config, inspection_type } = details;
 
   // Fetch all tariffs
@@ -166,6 +167,7 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
   });
 
   const tariff = matchingTariffs[0];
+  console.log("calculateServiceCost: Matched tariff:", tariff); // Log matched tariff
 
   if (!tariff) {
     showError(`Nessuna tariffa trovata per il servizio '${type}' per il cliente selezionato nel periodo specificato.`);
@@ -176,6 +178,7 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
   const startDateObj = start_date;
   const endDateObj = end_date;
   const unitOfMeasure = tariff.unita_misura; // Get unit of measure from the matched tariff
+  console.log("calculateServiceCost: Unit of Measure:", unitOfMeasure); // Log unit of measure
 
   if (!isValid(startDateObj) || !isValid(endDateObj)) {
     showError("Date di inizio/fine servizio non valide per il calcolo del costo.");
@@ -200,10 +203,10 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
         if (isHoliday) {
           dayConfig = daily_hours_config.find(d => d.day === "Festivi");
         } else if (isWeekendDay) {
-          dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+          dayConfig = daily_hours_config.find(d => d.day.toLowerCase() === dayOfWeek.toLowerCase()); // Fixed: case-insensitive comparison
           if (!dayConfig) dayConfig = daily_hours_config.find(d => d.day === "Domenica"); // Fallback for Sunday if specific config not found
         } else {
-          dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+          dayConfig = daily_hours_config.find(d => d.day.toLowerCase() === dayOfWeek.toLowerCase()); // Fixed: case-insensitive comparison
         }
 
         if (dayConfig) {
@@ -217,10 +220,12 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
             if (hoursDiff < 0) hoursDiff += 24; // Handle overnight shifts
             hoursForDay = hoursDiff;
           }
+          totalHours += hoursForDay; // Accumulate hours for the day
         }
         currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
       }
       multiplier = totalHours * (num_agents || 1);
+      console.log("calculateServiceCost: Total hours for 'ora' type:", totalHours, "Multiplier:", multiplier); // Log for 'ora'
       break;
 
     case "intervento":
@@ -245,10 +250,10 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
           if (isHoliday) {
             dayConfig = daily_hours_config.find(d => d.day === "Festivi");
           } else if (isWeekendDay) {
-            dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+            dayConfig = daily_hours_config.find(d => d.day.toLowerCase() === dayOfWeek.toLowerCase()); // Fixed: case-insensitive comparison
             if (!dayConfig) dayConfig = daily_hours_config.find(d => d.day === "Domenica"); // Fallback for Sunday if specific config not found
           } else {
-            dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+            dayConfig = daily_hours_config.find(d => d.day.toLowerCase() === dayOfWeek.toLowerCase()); // Fixed: case-insensitive comparison
           }
 
           if (dayConfig) {
@@ -263,14 +268,17 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
               hoursForDay = hoursDiff;
             }
             totalInspections += (hoursForDay / cadence_hours);
+            console.log(`  Day: ${dayOfWeek}, Hours for day: ${hoursForDay}, Cadence: ${cadence_hours}, Inspections for day: ${hoursForDay / cadence_hours}, Current total inspections: ${totalInspections}`); // Detailed log for inspections
           }
           currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
         }
         multiplier = totalInspections;
+        console.log("calculateServiceCost: Total inspections for 'intervento' type (Ispezioni):", totalInspections, "Multiplier:", multiplier); // Log for 'intervento' (Ispezioni)
       } else {
-        // For other service types that are 'intervento' but not 'Ispezioni' (e.g., Bonifiche, Gestione Chiavi, Apertura/Chiusura)
+        // For other service types that are 'intervento' but not 'Ispezioni' (e.g., Bonifiche, Gestione Chiavi, Apertura/Chiusura, Intervento)
         // These are typically single interventions, so multiplier remains 1.
         multiplier = 1;
+        console.log("calculateServiceCost: Multiplier for 'intervento' type (non-Ispezioni):", multiplier); // Log for 'intervento' (non-Ispezioni)
       }
       break;
 
@@ -278,45 +286,49 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
       // Logic for KM based services, if applicable. Needs start_km and end_km in details.
       // For now, assuming 1 unit if not specified.
       multiplier = 1;
+      console.log("calculateServiceCost: Multiplier for 'km' type:", multiplier); // Log for 'km'
       break;
 
     case "mese":
       const monthsDiff = differenceInMonths(endDateObj, startDateObj);
-      const daysDiff = differenceInDays(endDateObj, startDateObj);
+      const daysInStartMonth = getDaysInMonth(startDateObj);
+      const daysInEndMonth = getDaysInMonth(endDateObj);
       const startDay = startDateObj.getDate();
       const endDay = endDateObj.getDate();
 
-      if (monthsDiff === 0 && daysDiff < getDaysInMonth(startDateObj)) {
+      if (monthsDiff === 0) {
         // Less than a month, prorate based on days
-        multiplier = daysDiff / getDaysInMonth(startDateObj);
+        multiplier = (differenceInDays(endDateObj, startDateObj) + 1) / daysInStartMonth;
       } else {
-        // Full months + prorated last month if applicable
+        // Calculate full months
         multiplier = monthsDiff;
-        if (endDay < startDay) {
-          // If end day is before start day in the last month, it means a full month hasn't passed yet for that partial month
-          // Example: Jan 15 - Mar 10. Diff is 1 month. But it's 1 full month (Feb) + partial Jan + partial Mar.
-          // For simplicity, if end day is before start day, count it as one less full month and add partial days.
-          // Or, if it's Jan 15 - Feb 14, it's 1 month. If Jan 15 - Feb 15, it's 1 month.
-          // If Jan 15 - Feb 16, it's 1 month + 1 day.
-          // A simpler approach for monthly billing is often just full months.
-          // Let's assume full months for now, and if there's a partial month, it's rounded up or down based on business logic.
-          // For now, if end_date is after start_date, count as at least 1 month.
-          multiplier = Math.max(1, monthsDiff);
-        } else {
-          multiplier = monthsDiff + (daysDiff % getDaysInMonth(startDateObj) > 0 ? 1 : 0); // Add 1 if there's any partial month
+        // Add partial month at the end if applicable
+        if (endDay > startDay) {
+          multiplier += (endDay - startDay + 1) / daysInEndMonth;
+        } else if (endDay < startDay) {
+          // If end day is before start day, it means the last month is not full,
+          // but we already counted it as a full month in monthsDiff.
+          // This logic needs to be careful. A simpler way:
+          // Count days, divide by average days in month (30.44) or specific month days.
+          // For simplicity, let's assume full months + 1 if any partial month.
+          // This is a common business logic for subscriptions.
+          multiplier = monthsDiff + 1; // Count partial month as full month
         }
       }
       // Ensure at least 1 if there's any duration
-      if (multiplier === 0 && daysDiff >= 0) {
+      if (multiplier <= 0 && differenceInDays(endDateObj, startDateObj) >= 0) {
         multiplier = 1;
       }
+      console.log("calculateServiceCost: Multiplier for 'mese' type:", multiplier); // Log for 'mese'
       break;
 
     default:
       multiplier = 1; // Default to 1 unit if unit of measure is unknown
+      console.log("calculateServiceCost: Multiplier for unknown unit of measure:", multiplier); // Log for unknown
       break;
   }
 
+  console.log("calculateServiceCost: Final multiplier:", multiplier); // Log final multiplier
   return {
     clientRate: tariff.client_rate,
     supplierRate: tariff.supplier_rate,
