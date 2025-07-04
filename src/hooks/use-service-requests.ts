@@ -1,83 +1,147 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { ServiceRequest } from '@/lib/service-request-data'; // Corrected import path
-import { PuntoServizio } from '@/lib/anagrafiche-data'; // Assuming PuntoServizio type is defined here
-import { showError } from '@/utils/toast';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { format, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { calculateServiceMultiplier } from "@/lib/data-fetching";
+import { showError } from "@/utils/toast";
+import { PuntoServizio } from "@/lib/anagrafiche-data";
 
-interface UseServiceRequestsResult {
-  serviceRequests: ServiceRequest[];
-  isLoading: boolean;
-  error: string | null;
-  refreshServiceRequests: () => void;
+interface ServiceRequest {
+  id: string;
+  type: string;
+  client_id?: string | null;
+  service_point_id?: string | null;
+  start_date: string;
+  start_time?: string | null;
+  end_date: string;
+  end_time?: string | null;
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  calculated_cost?: number | null;
+  multiplier?: number | null; // Added multiplier field
+  num_agents?: number | null;
+  cadence_hours?: number | null;
+  inspection_type?: string | null;
+  daily_hours_config?: any | null;
+  fornitore_id?: string | null;
+
+  clienti?: { nome_cliente: string } | null;
+  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
 }
 
-export const useServiceRequests = (): UseServiceRequestsResult => {
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface UseServiceRequestsResult {
+  data: ServiceRequest[];
+  loading: boolean;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  startDateFilter: Date | undefined;
+  setStartDateFilter: (date: Date | undefined) => void;
+  endDateFilter: Date | undefined;
+  setEndDateFilter: (date: Date | undefined) => void;
+  fetchServices: () => Promise<void>;
+  handleResetFilters: () => void;
+  puntiServizioMap: Map<string, PuntoServizio & { nome_cliente?: string }>;
+}
 
-  const fetchServiceRequests = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select(`
-          id,
-          type,
-          client_id,
-          service_point_id,
-          fornitore_id,
-          start_date,
-          start_time,
-          end_date,
-          end_time,
-          status,
-          notes,
-          calculated_cost,
-          multiplier,
-          created_at,
-          updated_at,
-          clienti:client_id(nome_cliente),
-          punti_servizio:service_point_id(nome_punto_servizio, id_cliente, clienti(nome_cliente)),
-          fornitori:fornitore_id(nome)
-        `)
-        .order('created_at', { ascending: false });
+export function useServiceRequests(): UseServiceRequestsResult {
+  const [data, setData] = useState<ServiceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
+  const [puntiServizioMap, setPuntiServizioMap] = useState<Map<string, PuntoServizio & { nome_cliente?: string }>>(new Map());
 
-      if (error) {
-        throw error;
-      }
+  const fetchServices = useCallback(async () => {
+    setLoading(true);
+    let query = supabase
+      .from('servizi_richiesti')
+      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio, id_cliente)');
 
-      // Map the fetched data to match the ServiceRequest type,
-      // ensuring 'clienti', 'punti_servizio', and 'fornitori' are handled as single objects or null.
-      const formattedData: ServiceRequest[] = data.map((req: any) => {
-        return {
-          ...req,
-          // Ensure 'clienti' is a single object or null
-          clienti: req.clienti || null,
-          // Ensure 'punti_servizio' is a single object or null, and its nested 'clienti' is also a single object or null
-          punti_servizio: req.punti_servizio ? {
-            ...req.punti_servizio,
-            clienti: req.punti_servizio.clienti || null
-          } : null,
-          // Ensure 'fornitori' is a single object or null
-          fornitori: req.fornitori || null,
-        };
-      });
-
-      setServiceRequests(formattedData);
-    } catch (err: any) {
-      console.error("Error fetching service requests:", err);
-      setError(err.message || "Failed to fetch service requests.");
-      showError(err.message || "Failed to fetch service requests.");
-    } finally {
-      setIsLoading(false);
+    if (startDateFilter) {
+      query = query.gte('start_date', format(startDateFilter, 'yyyy-MM-dd'));
     }
+    if (endDateFilter) {
+      query = query.lte('end_date', format(endDateFilter, 'yyyy-MM-dd'));
+    }
+
+    const { data: servicesData, error } = await query;
+
+    if (error) {
+      showError(`Errore nel recupero dei servizi: ${error.message}`);
+      console.error("Error fetching services:", error);
+      setData([]);
+    } else {
+      const servicesWithMultiplier = await Promise.all(servicesData.map(async (service) => {
+        // Ensure dates are valid strings before parsing
+        const serviceStartDate = service.start_date ? parseISO(service.start_date) : new Date();
+        const serviceEndDate = service.end_date ? parseISO(service.end_date) : new Date();
+
+        const detailsForMultiplier = {
+          type: service.type,
+          client_id: service.client_id,
+          service_point_id: service.service_point_id,
+          fornitore_id: service.fornitore_id,
+          start_date: serviceStartDate,
+          end_date: serviceEndDate,
+          start_time: service.start_time,
+          end_time: service.end_time,
+          num_agents: service.num_agents,
+          cadence_hours: service.cadence_hours,
+          daily_hours_config: service.daily_hours_config,
+          inspection_type: service.inspection_type,
+        };
+        const calculatedMultiplier = await calculateServiceMultiplier(detailsForMultiplier);
+        return { 
+          ...service, 
+          calculated_cost: null, // Set cost to null
+          multiplier: calculatedMultiplier,
+        };
+      }));
+      setData(servicesWithMultiplier || []);
+    }
+    setLoading(false);
+  }, [startDateFilter, endDateFilter]);
+
+  const fetchAnagraficheMaps = useCallback(async () => {
+    const fetchedPuntiServizio = await supabase
+      .from('punti_servizio')
+      .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)');
+
+    if (fetchedPuntiServizio.error) {
+      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
+      return;
+    }
+
+    const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
+    fetchedPuntiServizio.data.forEach(ps => {
+      psMap.set(ps.id, {
+        ...ps,
+        nome_cliente: ps.clienti?.nome_cliente || 'N/A'
+      });
+    });
+    setPuntiServizioMap(psMap);
   }, []);
 
   useEffect(() => {
-    fetchServiceRequests();
-  }, [fetchServiceRequests]);
+    fetchServices();
+    fetchAnagraficheMaps();
+  }, [fetchServices, fetchAnagraficheMaps]);
 
-  return { serviceRequests, isLoading, error, refreshServiceRequests: fetchServiceRequests };
-};
+  const handleResetFilters = useCallback(() => {
+    setSearchTerm("");
+    setStartDateFilter(undefined);
+    setEndDateFilter(undefined);
+  }, []);
+
+  return {
+    data,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    startDateFilter,
+    setStartDateFilter,
+    endDateFilter,
+    setEndDateFilter,
+    fetchServices,
+    handleResetFilters,
+    puntiServizioMap,
+  };
+}

@@ -1,15 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  ColumnFiltersState,
-  getFilteredRowModel,
 } from "@tanstack/react-table";
+
 import {
   Table,
   TableBody,
@@ -19,212 +15,260 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowUpDown, Edit, Trash2, Eye, PlusCircle } from "lucide-react"; // Re-added PlusCircle
-import { ServiceRequest } from "@/lib/service-request-data"; // Corrected import path
-import { ServiceRequestEditDialog } from "./ServiceRequestEditDialog"; // Corrected import path
-import { ConfirmDialog } from "@/components/ConfirmDialog"; // Confirmed path
+import { showInfo, showSuccess, showError } from "@/utils/toast";
+import { format, parseISO } from "date-fns";
+import { it } from 'date-fns/locale';
+import { Eye, Edit, Trash2 } from "lucide-react";
+import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
+// import { ServiceEditDialog } from "./ServiceEditDialog"; // REMOVE THIS IMPORT
 import { supabase } from "@/integrations/supabase/client";
-import { showError, showSuccess } from "@/utils/toast";
+import { calculateServiceMultiplier } from "@/lib/data-fetching";
+import { useServiceRequests } from "@/hooks/use-service-requests";
+import { ServiceTableFilters } from "./ServiceTableFilters";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
-interface ServiceTableProps {
-  data: ServiceRequest[];
-  isLoading: boolean;
-  onRefresh: () => void;
+interface ServiceRequest {
+  id: string;
+  type: string;
+  client_id?: string | null;
+  service_point_id?: string | null;
+  start_date: string;
+  start_time?: string | null;
+  end_date: string;
+  end_time?: string | null;
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  calculated_cost?: number | null;
+  multiplier?: number | null;
+  num_agents?: number | null;
+  cadence_hours?: number | null;
+  inspection_type?: string | null;
+  daily_hours_config?: any | null;
+  fornitore_id?: string | null;
+
+  clienti?: { nome_cliente: string } | null;
+  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
 }
 
-export function ServiceTable({ data, isLoading, onRefresh }: ServiceTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
-
-  const columns: ColumnDef<ServiceRequest>[] = useMemo(
-    () => [
-      {
-        accessorKey: "type",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Tipo
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => <div className="capitalize">{row.getValue("type")}</div>,
-      },
-      {
-        accessorKey: "clienti", // This accessor key points to the 'clienti' object
-        header: "Cliente",
-        cell: ({ cell }) => {
-          const clienti = cell.getValue() as { nome_cliente: string } | null;
-          return (
-            <div>
-              {clienti?.nome_cliente || "N/A"}
-            </div>
-          );
-        },
-        enableSorting: false,
-        enableColumnFilter: true,
-      },
-      {
-        accessorKey: "punti_servizio", // This accessor key points to the 'punti_servizio' object
-        header: "Punto Servizio",
-        cell: ({ cell }) => {
-          const puntiServizio = cell.getValue() as { nome_punto_servizio: string } | null;
-          return (
-            <div>
-              {puntiServizio?.nome_punto_servizio || "N/A"}
-            </div>
-          );
-        },
-        enableSorting: false,
-        enableColumnFilter: true,
-      },
-      {
-        accessorKey: "start_date",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Data Inizio
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => <div>{new Date(row.getValue("start_date") as string).toLocaleDateString()}</div>,
-      },
-      {
-        accessorKey: "end_date",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Data Fine
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => <div>{new Date(row.getValue("end_date") as string).toLocaleDateString()}</div>,
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => <div className="capitalize">{row.getValue("status")}</div>,
-      },
-      {
-        accessorKey: "calculated_cost",
-        header: "Costo Calcolato",
-        cell: ({ row }) => <div>€{parseFloat(row.getValue("calculated_cost")).toFixed(2)}</div>,
-      },
-      {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-          const request = row.original;
-          return (
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEdit(request)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(request)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              {/* Assuming 'client' was meant to be 'clienti?.nome_cliente' for display */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  // Example of how to access client name if needed for a view dialog
-                  const clientName = request.clienti?.nome_cliente || 'N/A';
-                  showSuccess(`Viewing request for client: ${clientName}`);
-                  // Replace with actual view dialog logic
-                }}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        },
-      },
-    ],
-    []
-  );
-
-  const table = useReactTable({
+export function ServiceTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
+  const {
     data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      columnFilters,
-    },
-  });
+    loading,
+    searchTerm,
+    setSearchTerm,
+    startDateFilter,
+    setStartDateFilter,
+    endDateFilter,
+    setEndDateFilter,
+    fetchServices,
+    handleResetFilters,
+    puntiServizioMap,
+  } = useServiceRequests();
 
-  const handleAdd = () => {
-    setSelectedRequest(null);
-    setIsEditDialogOpen(true);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
+
+  const handleView = (service: ServiceRequest) => {
+    const clientName = service.clienti?.nome_cliente || 'N/A';
+    const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
+
+    setSelectedService({
+      ...service,
+      client: clientName,
+      location: servicePointName,
+      startDate: new Date(service.start_date),
+      endDate: new Date(service.end_date),
+      // The following fields are already part of ServiceRequest, but were explicitly added to the dialog's interface
+      // and might need to be mapped if the dialog's interface is not directly ServiceRequest
+      startTime: service.start_time || undefined,
+      endTime: service.end_time || undefined,
+      numAgents: service.num_agents || undefined,
+      cadenceHours: service.cadence_hours || undefined,
+      inspectionType: service.inspection_type || undefined,
+      dailyHoursConfig: service.daily_hours_config || undefined,
+    });
+    setIsDetailsDialogOpen(true);
   };
 
-  const handleEdit = (request: ServiceRequest) => {
-    setSelectedRequest(request);
-    setIsEditDialogOpen(true);
+  const handleEdit = (service: ServiceRequest) => {
+    // Navigate to the dedicated edit page for this service
+    navigate(`/service-list/edit/${service.id}`);
   };
 
-  const handleDelete = (request: ServiceRequest) => {
-    setSelectedRequest(request);
-    setIsConfirmDialogOpen(true);
-  };
+  // REMOVE handleSaveEdit as it's now handled by the dedicated edit page
 
-  const confirmDelete = async () => {
-    if (selectedRequest) {
+  const handleDelete = async (serviceId: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il servizio ${serviceId}?`)) {
       const { error } = await supabase
-        .from("service_requests")
+        .from('servizi_richiesti')
         .delete()
-        .eq("id", selectedRequest.id);
+        .eq('id', serviceId);
 
       if (error) {
-        showError(`Errore durante l'eliminazione: ${error.message}`);
+        showError(`Errore durante l'eliminazione del servizio: ${error.message}`);
+        console.error("Error deleting service:", error);
       } else {
-        showSuccess("Richiesta di servizio eliminata con successo!");
-        onRefresh();
+        showSuccess(`Servizio ${serviceId} eliminato con successo!`);
+        fetchServices();
       }
-      setIsConfirmDialogOpen(false);
-      setSelectedRequest(null);
+    } else {
+      showInfo(`Eliminazione del servizio ${serviceId} annullata.`);
     }
   };
 
+  const filteredData = useMemo(() => {
+    return data.filter(service => {
+      const clientName = service.clienti?.nome_cliente || 'N/A';
+      const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
+
+      const matchesSearch = searchTerm.toLowerCase() === '' ||
+        service.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.status.toLowerCase().includes(searchTerm.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [data, searchTerm]);
+
+  const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
+    {
+      accessorKey: "type",
+      header: "Tipo Servizio",
+    },
+    {
+      accessorKey: "client_id",
+      header: "Cliente",
+      cell: ({ row }) => row.original.clienti?.nome_cliente || 'N/A',
+    },
+    {
+      accessorKey: "service_point_id",
+      header: "Punto Servizio",
+      cell: ({ row }) => row.original.punti_servizio?.nome_punto_servizio || 'N/A',
+    },
+    {
+      accessorKey: "start_date",
+      header: "Data Inizio",
+      cell: ({ row }) => format(new Date(row.original.start_date), "PPP", { locale: it }),
+    },
+    {
+      accessorKey: "end_date",
+      header: "Data Fine",
+      cell: ({ row }) => format(new Date(row.original.end_date), "PPP", { locale: it }),
+    },
+    {
+      accessorKey: "status",
+      header: "Stato",
+      cell: ({ row }) => {
+        const status = row.original.status;
+        let statusClass = "";
+        switch (status) {
+          case "Approved":
+            statusClass = "bg-green-100 text-green-800";
+            break;
+          case "Pending":
+            statusClass = "bg-yellow-100 text-yellow-800";
+            break;
+          case "Rejected":
+            statusClass = "bg-red-100 text-red-800";
+            break;
+          case "Completed":
+            statusClass = "bg-blue-100 text-blue-800";
+            break;
+          default:
+            statusClass = "bg-gray-100 text-gray-800";
+        }
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>
+            {status}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "multiplier",
+      header: "Numero Ore/Servizi",
+      cell: ({ row }) => {
+        const multiplier = row.original.multiplier;
+        let unit = "";
+        switch (row.original.type) {
+          case "Piantonamento":
+          case "Servizi Fiduciari":
+            unit = "ore";
+            break;
+          case "Ispezioni":
+          case "Bonifiche":
+          case "Gestione Chiavi":
+          case "Apertura/Chiusura":
+          case "Intervento":
+            unit = "interventi";
+            break;
+          default:
+            unit = "";
+        }
+        return (
+          <span>
+            {multiplier !== undefined && multiplier !== null
+              ? `${multiplier.toFixed(2)} ${unit}`
+              : "N/A"}
+          </span>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleView(row.original)}
+            title="Visualizza"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEdit(row.original)}
+            title="Modifica"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => handleDelete(row.original.id)}
+            title="Elimina"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [handleView, handleEdit, handleDelete]);
+
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Cerca per tipo..."
-          value={(table.getColumn("type")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("type")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        <Button onClick={handleAdd} className="ml-auto">
-          <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Richiesta
-        </Button>
-      </div>
-      <div className="rounded-md border">
+    <div className="space-y-4">
+      <ServiceTableFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        startDateFilter={startDateFilter}
+        setStartDateFilter={setStartDateFilter}
+        endDateFilter={endDateFilter}
+        setEndDateFilter={setEndDateFilter}
+        handleResetFilters={handleResetFilters}
+        onRefresh={fetchServices}
+        loading={loading}
+      />
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -245,13 +289,13 @@ export function ServiceTable({ data, isLoading, onRefresh }: ServiceTableProps) 
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento richieste...
+                  Caricamento servizi...
                 </TableCell>
               </TableRow>
-            ) : table.getRowModel().rows?.length ? (
+            ) : (table && table.getRowModel().rows?.length) ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -267,46 +311,35 @@ export function ServiceTable({ data, isLoading, onRefresh }: ServiceTableProps) 
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessuna richiesta trovata.
+                  Nessun servizio trovato.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Precedente
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Successiva
-        </Button>
-      </div>
 
-      <ServiceRequestEditDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-        serviceRequest={selectedRequest}
-        onSaveSuccess={onRefresh}
+      <ServiceDetailsDialog
+        isOpen={isDetailsDialogOpen}
+        onClose={() => setIsDetailsDialogOpen(false)}
+        service={selectedService ? {
+          id: selectedService.id,
+          type: selectedService.type,
+          client: selectedService.clienti?.nome_cliente || 'N/A',
+          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
+          startDate: new Date(selectedService.start_date),
+          endDate: new Date(selectedService.end_date),
+          status: selectedService.status,
+          startTime: selectedService.start_time || undefined,
+          endTime: selectedService.end_time || undefined,
+          numAgents: selectedService.num_agents || undefined,
+          cadenceHours: selectedService.cadence_hours || undefined,
+          inspectionType: selectedService.inspection_type || undefined,
+          dailyHoursConfig: selectedService.daily_hours_config || undefined,
+        } : null}
       />
 
-      <ConfirmDialog
-        isOpen={isConfirmDialogOpen}
-        onClose={() => setIsConfirmDialogOpen(false)}
-        onConfirm={confirmDelete}
-        title="Conferma Eliminazione"
-        description={`Sei sicuro di voler eliminare la richiesta di servizio ${selectedRequest?.type}? Questa azione non può essere annullata.`}
-      />
+      {/* ServiceEditDialog is no longer used here */}
     </div>
   );
 }

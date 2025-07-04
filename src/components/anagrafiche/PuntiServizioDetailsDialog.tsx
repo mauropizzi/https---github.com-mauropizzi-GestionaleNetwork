@@ -1,232 +1,106 @@
-import React, { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { PuntoServizio } from "@/lib/anagrafiche-data"; // Assuming PuntoServizio type is defined here
-import { supabase } from "@/integrations/supabase/client";
-import { showError } from "@/utils/toast";
+import React from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { it } from 'date-fns/locale';
+import { PuntoServizio } from "@/lib/anagrafiche-data";
+import { ExternalLink } from "lucide-react";
 
 interface PuntoServizioDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  puntoServizioId: string | null;
+  puntoServizio: PuntoServizio | null;
 }
 
-export function PuntoServizioDetailsDialog({
-  isOpen,
-  onClose,
-  puntoServizioId,
-}: PuntoServizioDetailsDialogProps) {
-  const [puntoServizio, setPuntoServizio] = useState<PuntoServizio | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchPuntoServizioDetails() {
-      if (!puntoServizioId) {
-        setPuntoServizio(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("punti_servizio")
-        .select(
-          `
-          *,
-          clienti(nome_cliente),
-          fornitori(nome),
-          procedure_speciali(nome_procedura)
-        `
-        )
-        .eq("id", puntoServizioId)
-        .single();
-
-      if (error) {
-        showError(`Errore nel recupero dei dettagli del punto servizio: ${error.message}`);
-        console.error("Error fetching punto servizio details:", error);
-        setPuntoServizio(null);
-      } else {
-        setPuntoServizio(data);
-      }
-      setIsLoading(false);
-    }
-
-    fetchPuntoServizioDetails();
-  }, [puntoServizioId]);
+export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: PuntoServizioDetailsDialogProps) {
+  if (!puntoServizio) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Dettagli Punto Servizio</DialogTitle>
+          <DialogTitle>Dettagli Punto Servizio: {puntoServizio.nome_punto_servizio}</DialogTitle>
           <DialogDescription>
-            Visualizza le informazioni complete del punto servizio.
+            Informazioni complete sul punto servizio selezionato.
           </DialogDescription>
         </DialogHeader>
-        {isLoading ? (
-          <div className="text-center py-8">Caricamento dettagli...</div>
-        ) : puntoServizio ? (
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nome_punto_servizio" className="text-right">
-                Nome Punto Servizio
-              </Label>
-              <Input
-                id="nome_punto_servizio"
-                value={puntoServizio.nome_punto_servizio || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cliente" className="text-right">
-                Cliente
-              </Label>
-              <Input
-                id="cliente"
-                // Access nome_cliente from the nested 'clienti' object
-                value={puntoServizio.clienti?.nome_cliente || "N/A"}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fornitore" className="text-right">
-                Fornitore
-              </Label>
-              <Input
-                id="fornitore"
-                // Access nome from the nested 'fornitori' object
-                value={puntoServizio.fornitori?.nome || "N/A"} // Corrected access
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="indirizzo" className="text-right">
-                Indirizzo
-              </Label>
-              <Input
-                id="indirizzo"
-                value={puntoServizio.indirizzo || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="citta" className="text-right">
-                Città
-              </Label>
-              <Input
-                id="citta"
-                value={puntoServizio.citta || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cap" className="text-right">
-                CAP
-              </Label>
-              <Input
-                id="cap"
-                value={puntoServizio.cap || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="provincia" className="text-right">
-                Provincia
-              </Label>
-              <Input
-                id="provincia"
-                value={puntoServizio.provincia || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="telefono" className="text-right">
-                Telefono
-              </Label>
-              <Input
-                id="telefono"
-                value={puntoServizio.telefono || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                value={puntoServizio.email || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="referente" className="text-right">
-                Referente
-              </Label>
-              <Input
-                id="referente"
-                value={puntoServizio.referente || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="note" className="text-right">
-                Note
-              </Label>
-              <Textarea
-                id="note"
-                value={puntoServizio.note || ""}
-                readOnly
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="attivo" className="text-right">
-                Attivo
-              </Label>
-              <Checkbox
-                id="attivo"
-                checked={puntoServizio.attivo ?? false} // Corrected access and default
-                disabled
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="procedure_speciali" className="text-right">
-                Procedure Speciali
-              </Label>
-              <Textarea
-                id="procedure_speciali"
-                value={puntoServizio.procedure_speciali?.nome_procedura || "N/A"} // Corrected access
-                readOnly
-                className="col-span-3"
-              />
-            </div>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Nome Punto Servizio:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.nome_punto_servizio}</span>
           </div>
-        ) : (
-          <div className="text-center py-8 text-red-500">
-            Dettagli punto servizio non trovati.
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Cliente Associato:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.nome_cliente || 'N/A'}</span>
           </div>
-        )}
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Indirizzo:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.indirizzo || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Città:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.citta || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">CAP:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.cap || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Provincia:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.provincia || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Referente in loco:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.referente || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Telefono Referente:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.telefono_referente || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Telefono Punto Servizio:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.telefono || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Email Punto Servizio:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.email || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-start gap-4">
+            <span className="text-sm font-medium">Note:</span>
+            <span className="col-span-2 text-sm whitespace-pre-wrap">{puntoServizio.note || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Tempo di Intervento (minuti):</span>
+            <span className="col-span-2 text-sm">{puntoServizio.tempo_intervento !== undefined && puntoServizio.tempo_intervento !== null ? puntoServizio.tempo_intervento : 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Fornitore Associato:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.nome_fornitore || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Codice Cliente Punto:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.codice_cliente || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Codice SICEP:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.codice_sicep || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Codice Fatturazione:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.codice_fatturazione || 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Latitudine:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.latitude !== undefined && puntoServizio.latitude !== null ? puntoServizio.latitude.toFixed(6) : 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Longitudine:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.longitude !== undefined && puntoServizio.longitude !== null ? puntoServizio.longitude.toFixed(6) : 'N/A'}</span>
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <span className="text-sm font-medium">Procedura Associata:</span>
+            <span className="col-span-2 text-sm">{puntoServizio.procedure?.nome_procedura || 'N/A'}</span>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

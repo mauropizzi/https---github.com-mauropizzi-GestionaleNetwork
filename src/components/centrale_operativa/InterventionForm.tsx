@@ -1,96 +1,746 @@
-import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, isValid } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Check, ChevronsUpDown } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { format, parseISO, isValid } from 'date-fns';
 import { showSuccess, showError, showInfo } from "@/utils/toast";
-// import { EventDetailsSection } from './EventDetailsSection'; // Commented out: Cannot find module
-// import { InterventionTimesSection } from './InterventionTimesSection'; // Commented out: Cannot find module
-// import { AccessDetailsSection } from './AccessDetailsSection'; // Commented out: Cannot find module
-// import { PersonnelSection } from './PersonnelSection'; // Commented out: Cannot find module
-// import { AnomaliesDelaySection } from './AnomaliesDelaySection'; // Commented out: Cannot find module
-// import { OutcomeBarcodeSection } from './OutcomeBarcodeSection'; // Commented out: Cannot find module
-// import { InterventionActionButtons } from './InterventionActionButtons'; // Commented out: Cannot find module
-import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { sendEmail } from "@/utils/email";
+import JsBarcode from 'jsbarcode';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchPersonale, fetchOperatoriNetwork, fetchPuntiServizio, calculateServiceCost } from '@/lib/data-fetching';
+import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
 
-// Define your form schema here with at least one field
-const formSchema = z.object({
-  // Placeholder field to resolve 'never' type error
-  interventionName: z.string().min(1, "Intervention name is required."),
-  // ... your actual schema fields
-});
+// Import new modular components
+import { EventDetailsSection } from './EventDetailsSection';
+import { InterventionTimesSection } from './InterventionTimesSection';
+import { AccessDetailsSection } from './AccessDetailsSection';
+import { PersonnelSection } from './PersonnelSection';
+import { AnomaliesDelaySection } from './AnomaliesDelaySection';
+import { OutcomeBarcodeSection } from './OutcomeBarcodeSection';
+import { InterventionActionButtons } from './InterventionActionButtons';
 
-export function InterventionForm() {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      interventionName: "", // Default value for the placeholder field
-      // ... your actual default values
-    },
+interface InterventionFormProps {
+  eventId?: string; // Optional ID for editing
+  onSaveSuccess?: () => void; // Callback for successful save/update
+  onCancel?: () => void; // Callback for cancel
+  isPublicMode?: boolean;
+}
+
+export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMode = false }: InterventionFormProps) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    servicePoint: '',
+    requestType: '',
+    coOperator: '',
+    requestTime: '',
+    startTime: '',
+    endTime: '',
+    fullAccess: undefined as 'si' | 'no' | undefined, // Initialized to undefined
+    vaultAccess: undefined as 'si' | 'no' | undefined, // Initialized to undefined
+    operatorNetworkId: '',
+    gpgIntervention: '',
+    anomalies: undefined as 'si' | 'no' | undefined,
+    anomalyDescription: '',
+    delay: undefined as 'si' | 'no' | undefined,
+    delayNotes: '',
+    serviceOutcome: '',
+    barcode: '', // Added barcode to state
+    startLatitude: undefined as number | undefined,
+    startLongitude: undefined as number | undefined,
+    endLatitude: undefined as number | undefined,
+    endLongitude: undefined as number | undefined,
   });
+  const [operatoriNetworkList, setOperatoriNetworkList] = useState<OperatoreNetwork[]>([]);
+  const [pattugliaPersonale, setPattugliaPersonale] = useState<Personale[]>([]);
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
+  const [coOperatorsPersonnel, setCoOperatorsPersonnel] = useState<Personale[]>([]);
+  const [isOperatorNetworkOpen, setIsOperatorNetworkOpen] = useState(false);
+  const [isGpgInterventionOpen, setIsGpgInterventionOpen] = useState(false);
+  const [isServicePointOpen, setIsServicePointOpen] = useState(false);
+  const [isCoOperatorOpen, setIsCoOperatorOpen] = useState(false);
+  const [loadingInitialData, setLoadingInitialData] = useState(!!eventId);
 
-  // ... other hooks and functions
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      if (isPublicMode) {
+        // Fetch all data from the new edge function
+        const { data, error } = await supabase.functions.invoke('get-intervention-form-data');
+        if (error) {
+          showError(`Errore nel caricamento dei dati per il modulo: ${error.message}`);
+          console.error("Error invoking get-intervention-form-data:", error);
+          return;
+        }
+        setOperatoriNetworkList(data.operatoriNetworkList || []);
+        setPattugliaPersonale(data.pattugliaPersonale || []);
+        setPuntiServizioList(data.puntiServizioList || []);
+        setCoOperatorsPersonnel(data.coOperatorsPersonnel || []);
+      } else {
+        // Fetch data using existing client-side functions for authenticated users
+        const fetchedOperatoriNetwork = await fetchOperatoriNetwork();
+        setOperatoriNetworkList(fetchedOperatoriNetwork);
 
-  // Remove or comment out the problematic 'it' reference
-  // it('should do something', () => { /* ... */ }); // Commented out: Cannot find name 'it'
+        const fetchedPattuglia = await fetchPersonale('Pattuglia');
+        setPattugliaPersonale(fetchedPattuglia);
+
+        const fetchedPuntiServizio = await fetchPuntiServizio();
+        setPuntiServizioList(fetchedPuntiServizio);
+
+        const fetchedCoOperators = await fetchPersonale('Operatore C.O.');
+        setCoOperatorsPersonnel(fetchedCoOperators);
+      }
+    };
+    loadDropdownData();
+  }, [isPublicMode]);
+
+  useEffect(() => {
+    const loadEventDataForEdit = async () => {
+      if (eventId) {
+        setLoadingInitialData(true);
+        
+        const { data: event, error: eventError } = await supabase
+          .from('allarme_interventi')
+          .select('*, start_latitude, start_longitude, end_latitude, end_longitude, barcode') // Select barcode
+          .eq('id', eventId)
+          .single();
+
+        const { data: serviceTimes, error: serviceTimesError } = await supabase
+          .from('servizi_richiesti')
+          .select('start_date, start_time, end_date, end_time')
+          .eq('id', eventId)
+          .single();
+
+        if (eventError) {
+          showError(`Errore nel recupero dei dati dell'evento: ${eventError.message}`);
+          console.error("Error fetching event data for edit:", eventError);
+          setLoadingInitialData(false);
+          return;
+        }
+
+        if (event) {
+          let anomalyDescription = '';
+          let delayNotes = '';
+          let anomalies: 'si' | 'no' | undefined = undefined; // Initialized to undefined
+          let delay: 'si' | 'no' | undefined = undefined;     // Initialized to undefined
+          let fullAccess: 'si' | 'no' | undefined = undefined; // Initialized to undefined
+          let vaultAccess: 'si' | 'no' | undefined = undefined; // Initialized to undefined
+
+          if (event.notes) {
+            const notesArray = event.notes.split('; ').map((s: string) => s.trim());
+
+            const anomalyMatch = notesArray.find((note: string) => note.startsWith('Anomalie:'));
+            if (anomalyMatch) {
+              anomalies = 'si';
+              anomalyDescription = anomalyMatch.replace('Anomalie:', '').trim();
+            } else {
+              anomalies = 'no'; // Explicitly set to 'no' if not found
+            }
+
+            const delayMatch = notesArray.find((note: string) => note.startsWith('Ritardo:'));
+            if (delayMatch) {
+              delay = 'si';
+              delayNotes = delayMatch.replace('Ritardo:', '').trim();
+            } else {
+              delay = 'no'; // Explicitly set to 'no' if not found
+            }
+
+            const fullAccessMatch = notesArray.find((note: string) => note.startsWith('Accesso Completo:'));
+            if (fullAccessMatch) {
+              fullAccess = fullAccessMatch.replace('Accesso Completo:', '').trim().toLowerCase() as 'si' | 'no';
+            }
+            // If not found, it remains undefined.
+
+            const vaultAccessMatch = notesArray.find((note: string) => note.startsWith('Accesso Caveau:'));
+            if (vaultAccessMatch) {
+              vaultAccess = vaultAccessMatch.replace('Accesso Caveau:', '').trim().toLowerCase() as 'si' | 'no';
+            }
+            // If not found, it remains undefined.
+          }
+          // If event.notes is null, all these variables remain undefined, which is the desired "empty" state.
+
+          // Ensure requestTime, startTime, endTime are valid strings or empty before setting
+          const requestTimeString = (event.report_date && event.report_time) 
+            ? `${event.report_date}T${event.report_time.substring(0, 5)}` 
+            : ''; 
+
+          const startTimeString = (serviceTimes?.start_date && serviceTimes?.start_time)
+            ? `${serviceTimes.start_date}T${serviceTimes.start_time.substring(0, 5)}`
+            : ''; 
+
+          const endTimeString = (serviceTimes?.end_date && serviceTimes?.end_time)
+            ? `${serviceTimes.end_date}T${serviceTimes.end_time.substring(0, 5)}`
+            : ''; 
+
+          setFormData({
+            servicePoint: event.service_point_code || '',
+            requestType: event.request_type || '',
+            coOperator: event.co_operator || '',
+            requestTime: requestTimeString,
+            startTime: startTimeString,
+            endTime: endTimeString,
+            fullAccess: fullAccess,
+            vaultAccess: vaultAccess,
+            operatorNetworkId: event.operator_client || '',
+            gpgIntervention: event.gpg_intervention || '',
+            anomalies: anomalies,
+            anomalyDescription: anomalyDescription,
+            delay: delay,
+            delayNotes: delayNotes,
+            serviceOutcome: event.service_outcome || '',
+            barcode: event.barcode || '', // Set barcode from fetched data
+            startLatitude: event.start_latitude || undefined,
+            startLongitude: event.start_longitude || undefined,
+            endLatitude: event.end_latitude || undefined,
+            endLongitude: event.end_longitude || undefined,
+          });
+        }
+        setLoadingInitialData(false);
+      }
+    };
+    loadEventDataForEdit();
+  }, [eventId]);
+
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRadioChange = (name: string, value: 'si' | 'no') => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSetCurrentTime = (field: string) => {
+    const now = new Date();
+    const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm");
+    setFormData(prev => ({ ...prev, [field]: formattedDateTime }));
+  };
+
+  const handleStartGpsTracking = () => {
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS inizio intervento...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({ ...prev, startLatitude: latitude, startLongitude: longitude }));
+          showSuccess(`Posizione GPS inizio intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS inizio intervento: ${error.message}`);
+          console.error("Error getting start GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
+  };
+
+  const handleEndGpsTracking = () => {
+    if (navigator.geolocation) {
+      showInfo("Acquisizione posizione GPS fine intervento...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({ ...prev, endLatitude: latitude, endLongitude: longitude }));
+          showSuccess(`Posizione GPS fine intervento acquisita: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`);
+        },
+        (error) => {
+          showError(`Errore acquisizione GPS fine intervento: ${error.message}`);
+          console.error("Error getting end GPS position:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showError("La geolocalizzazione non è supportata dal tuo browser.");
+    }
+  };
+
+  const generateBarcodeImage = (text: string): string | null => {
+    if (!text) return null;
+    try {
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, text, {
+        format: "CODE128",
+        displayValue: true,
+        height: 50,
+        width: 2,
+        margin: 10,
+      });
+      return canvas.toDataURL("image/png");
+    } catch (error: any) {
+      showError(`Errore nella generazione del codice a barre: ${error.message}`);
+      console.error("Barcode generation error:", error);
+      return null;
+    }
+  };
+
+  const formatDateTimeForPdf = (dateTimeString: string | null | undefined): string => {
+    if (!dateTimeString) return 'N/A';
+    try {
+      const date = parseISO(dateTimeString);
+      if (isValid(date)) {
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: it });
+      }
+      return 'N/A (Data non valida)';
+    } catch (e) {
+      console.error("Error formatting date for PDF:", e);
+      return 'N/A (Errore formato)';
+    }
+  };
+
+  const handlePrintPdf = async () => {
+    showInfo("Generazione PDF per la stampa...");
+    const pdfBlob = await generatePdfBlob();
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      showSuccess("PDF generato con successo!");
+    } else {
+      showError("Impossibile generare il PDF.");
+    }
+  };
+
+  const handleEmail = async () => {
+    const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+    const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+    const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
+    const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
+    
+    showInfo("Generazione PDF per l'allegato email...");
+    const pdfBlob = await generatePdfBlob();
+
+    if (pdfBlob) {
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString().split(',')[1];
+        if (base64data) {
+          sendEmail(subject, textBody, false, {
+            filename: `Rapporto_Intervento_Centrale_Operativa_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
+            content: base64data,
+            contentType: 'application/pdf'
+          });
+        } else {
+          showError("Errore nella conversione del PDF in Base64.");
+        }
+      };
+      reader.onerror = () => {
+        showError("Errore nella lettura del file PDF.");
+      };
+    } else {
+      showError("Impossibile generare il PDF per l'allegato.");
+    }
+  };
+
+  const generatePdfBlob = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const doc = new jsPDF();
+      let y = 20;
+
+      doc.setFontSize(18);
+      doc.text("Rapporto Intervento Centrale Operativa", 14, y);
+      y += 10;
+
+      doc.setFontSize(10);
+      const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+      const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
+      const interventionTime = selectedServicePoint?.tempo_intervento || 'N/A';
+      const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === formData.coOperator);
+      const coOperatorName = selectedCoOperatorForPdf ? `${selectedCoOperatorForPdf.nome} ${selectedCoOperatorForPdf.cognome || ''}` : 'N/A';
+
+
+      doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
+      y += 7;
+      doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
+      y += 7;
+      doc.text(`Tipologia Servizio Richiesto: ${formData.requestType}`, 14, y);
+      y += 7;
+      doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
+      y += 7;
+      doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(formData.requestTime)}`, 14, y);
+      y += 7;
+      if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
+        doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
+        y += 7;
+      }
+      doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(formData.startTime)}`, 14, y);
+      y += 7;
+      if (formData.endLatitude !== undefined && formData.endLatitude !== null && formData.endLongitude !== undefined && formData.endLongitude !== null) {
+        doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
+        y += 7;
+      }
+      doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(formData.endTime)}`, 14, y);
+      y += 7;
+      doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
+      y += 7;
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId);
+      doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
+      y += 7;
+      const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
+      doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Anomalie Riscontrate: ${formData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
+      if (formData.anomalies === 'si' && formData.anomalyDescription) {
+        y += 5;
+        doc.setFontSize(9);
+        const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${formData.anomalyDescription}`, 180);
+        doc.text(splitAnomalyDesc, 18, y);
+        y += (splitAnomalyDesc.length * 4);
+        doc.setFontSize(10);
+      }
+      y += 7;
+      doc.text(`Ritardo: ${formData.delay?.toUpperCase() || 'N/A'}`, 14, y);
+      if (formData.delay === 'si' && formData.delayNotes) {
+        y += 5;
+        doc.setFontSize(9);
+        const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${formData.delayNotes}`, 180);
+        doc.text(splitDelayNotes, 18, y);
+        y += (splitDelayNotes.length * 4);
+        doc.setFontSize(10);
+      }
+      y += 7;
+      doc.text(`Esito Evento: ${formData.serviceOutcome || 'N/A'}`, 14, y);
+      y += 7;
+
+      if (formData.barcode) {
+        const barcodeDataURL = generateBarcodeImage(formData.barcode);
+        if (barcodeDataURL) {
+          doc.text(`Barcode: ${formData.barcode}`, 14, y);
+          y += 5;
+          doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20);
+          y += 25;
+        } else {
+          doc.text(`Barcode: ${formData.barcode} (Impossibile generare immagine)`, 14, y);
+          y += 7;
+        }
+      } else {
+        doc.text(`Barcode: N/A`, 14, y);
+        y += 7;
+      }
+
+      const pdfBlob = doc.output('blob');
+      resolve(pdfBlob);
+    });
+  };
+
+  const saveIntervention = async (isFinal: boolean) => {
+    const {
+      servicePoint,
+      requestType,
+      coOperator,
+      requestTime,
+      startTime,
+      endTime,
+      fullAccess,
+      vaultAccess,
+      operatorNetworkId,
+      gpgIntervention,
+      anomalies,
+      anomalyDescription,
+      delay,
+      delayNotes,
+      serviceOutcome,
+      barcode, // Include barcode
+      startLatitude,
+      startLongitude,
+      endLatitude,
+      endLongitude,
+    } = formData;
+
+    if (!servicePoint || !requestType || !requestTime) {
+      showError("Punto Servizio, Tipologia Servizio Richiesto e Orario Richiesta sono obbligatori.");
+      return;
+    }
+
+    // Validate and parse requestTime
+    const parsedRequestDateTime = requestTime ? parseISO(requestTime) : null;
+    if (!parsedRequestDateTime || !isValid(parsedRequestDateTime)) {
+      showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    // Validate and parse startTime and endTime
+    const parsedStartTime = startTime ? parseISO(startTime) : null;
+    if (startTime && (!parsedStartTime || !isValid(parsedStartTime))) {
+      showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    const parsedEndTime = endTime ? parseISO(endTime) : null;
+    if (endTime && (!parsedEndTime || !isValid(parsedEndTime))) {
+      showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
+      return;
+    }
+
+    // Additional validation for final submission
+    if (isFinal) {
+      if (!parsedStartTime) {
+        showError("Orario Inizio Intervento è obbligatorio per la chiusura.");
+        return;
+      }
+      if (!parsedEndTime) {
+        showError("Orario Fine Intervento è obbligatorio per la chiusura.");
+        return;
+      }
+      if (fullAccess === undefined || vaultAccess === undefined || anomalies === undefined || delay === undefined) {
+        showError("Tutti i campi 'SI/NO' sono obbligatori per la chiusura.");
+        return;
+      }
+      if (!serviceOutcome) {
+        showError("L'Esito Evento è obbligatorio per la chiusura.");
+        return;
+      }
+    }
+
+    const notesCombined = [];
+    // Only include fullAccess and vaultAccess in notes if they have been explicitly selected
+    if (fullAccess !== undefined) {
+      notesCombined.push(`Accesso Completo: ${fullAccess.toUpperCase()}`);
+    }
+    if (vaultAccess !== undefined) {
+      notesCombined.push(`Accesso Caveau: ${vaultAccess.toUpperCase()}`);
+    }
+    
+    if (anomalies === 'si' && anomalyDescription) {
+      notesCombined.push(`Anomalie: ${anomalyDescription}`);
+    }
+    if (delay === 'si' && delayNotes) {
+      notesCombined.push(`Ritardo: ${delayNotes}`);
+    }
+
+    const reportDateForDb = format(parsedRequestDateTime, 'yyyy-MM-dd');
+    const reportTimeForDb = format(parsedRequestDateTime, 'HH:mm:ssXXX'); // Corrected format to include timezone
+
+    const allarmeInterventoPayload = {
+      report_date: reportDateForDb,
+      report_time: reportTimeForDb,
+      service_point_code: servicePoint,
+      request_type: requestType,
+      co_operator: coOperator || null,
+      operator_client: operatorNetworkId || null,
+      gpg_intervention: gpgIntervention || null,
+      service_outcome: isFinal ? (serviceOutcome || null) : null,
+      notes: notesCombined.length > 0 ? notesCombined.join('; ') : null,
+      barcode: barcode || null, // Include barcode in payload
+      start_latitude: startLatitude || null,
+      start_longitude: startLongitude || null,
+      end_latitude: endLatitude || null,
+      end_longitude: endLongitude || null,
+    };
+
+    let allarmeResult;
+    let currentEventId = eventId;
+
+    if (eventId) {
+      allarmeResult = await supabase
+        .from('allarme_interventi')
+        .update(allarmeInterventoPayload)
+        .eq('id', eventId);
+    } else {
+      allarmeResult = await supabase
+        .from('allarme_interventi')
+        .insert([allarmeInterventoPayload])
+        .select('id');
+      if (allarmeResult.data && allarmeResult.data.length > 0) {
+        currentEventId = allarmeResult.data[0].id;
+      }
+    }
+
+    if (allarmeResult.error) {
+      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} dell'evento di allarme: ${allarmeResult.error.message}`);
+      console.error(`Error ${eventId ? 'updating' : 'inserting'} alarm event:`, allarmeResult.error);
+      return;
+    }
+
+    if (!currentEventId) {
+      showError("Impossibile ottenere l'ID dell'evento per la registrazione del servizio.");
+      return;
+    }
+
+    const selectedServicePoint = puntiServizioList.find(p => p.id === servicePoint);
+    const clientId = selectedServicePoint?.id_cliente || null;
+    const fornitoreId = selectedServicePoint?.fornitore_id || null;
+
+    if (!clientId) {
+      showError("Impossibile determinare il cliente associato al punto servizio per l'analisi contabile.");
+      return;
+    }
+
+    const costDetails = {
+      type: "Intervento",
+      client_id: clientId,
+      service_point_id: servicePoint,
+      fornitore_id: fornitoreId,
+      start_date: parsedStartTime || parsedRequestDateTime,
+      end_date: parsedEndTime || parsedStartTime || parsedRequestDateTime,
+      start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ss') : null,
+      end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ss') : null,
+      num_agents: 1,
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
+    };
+
+    const calculatedCostResult = await calculateServiceCost(costDetails);
+    const calculatedCost = calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null;
+
+    let serviceStatus: "Pending" | "Approved" | "Rejected" | "Completed" = "Pending";
+    if (isFinal) {
+      switch (serviceOutcome) {
+        case "Intervento Concluso":
+        case "Falso Allarme":
+        case "Anomalia Riscontrata":
+          serviceStatus = "Completed";
+          break;
+        case "Intervento Annullato":
+          serviceStatus = "Rejected";
+          break;
+        default:
+          serviceStatus = "Pending";
+          break;
+      }
+    }
+
+    const serviziRichiestiPayload = {
+      id: currentEventId,
+      type: "Intervento",
+      client_id: clientId,
+      service_point_id: servicePoint,
+      fornitore_id: fornitoreId,
+      start_date: parsedStartTime ? format(parsedStartTime, 'yyyy-MM-dd') : reportDateForDb, // Fallback to reportDateForDb
+      start_time: parsedStartTime ? format(parsedStartTime, 'HH:mm:ssXXX') : null,
+      end_date: parsedEndTime ? format(parsedEndTime, 'yyyy-MM-dd') : null,
+      end_time: parsedEndTime ? format(parsedEndTime, 'HH:mm:ssXXX') : null,
+      status: serviceStatus,
+      calculated_cost: calculatedCost,
+      num_agents: 1,
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: null,
+    };
+
+    const { error: serviziError } = await supabase
+      .from('servizi_richiesti')
+      .upsert([serviziRichiestiPayload], { onConflict: 'id' });
+
+    if (serviziError) {
+      showError(`Errore durante la ${eventId ? 'modifica' : 'registrazione'} del servizio per analisi contabile: ${serviziError.message}`);
+      console.error(`Error ${eventId ? 'updating' : 'inserting'} servizi_richiesti:`, serviziError);
+      return;
+    }
+
+    showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} e servizio per analisi contabile aggiornato con successo!`);
+    setFormData({
+      servicePoint: '',
+      requestType: '',
+      coOperator: '',
+      requestTime: '',
+      startTime: '',
+      endTime: '',
+      fullAccess: undefined,
+      vaultAccess: undefined,
+      operatorNetworkId: '',
+      gpgIntervention: '',
+      anomalies: undefined,
+      anomalyDescription: '',
+      delay: undefined,
+      delayNotes: '',
+      serviceOutcome: '',
+      barcode: '',
+      startLatitude: undefined,
+      startLongitude: undefined,
+      endLatitude: undefined,
+      endLongitude: undefined,
+    });
+    onSaveSuccess?.();
+  };
+
+  const handleCloseEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveIntervention(true);
+  };
+
+  const handleRegisterEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveIntervention(false);
+  };
+
+  if (loadingInitialData) {
+    return (
+      <div className="text-center py-8">
+        Caricamento dati evento...
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={form.handleSubmit(() => {})} className="space-y-6 p-4">
-      {/* Commented out usage of missing components */}
-      {/* <EventDetailsSection /> */}
-      {/* <InterventionTimesSection /> */}
-      {/* <AccessDetailsSection /> */}
-      {/* <PersonnelSection /> */}
-      {/* <AnomaliesDelaySection /> */}
-      {/* <OutcomeBarcodeSection /> */}
-      {/* <InterventionActionButtons /> */}
-      
-      {/* Existing form fields */}
-      <section className="p-4 border rounded-lg shadow-sm bg-card">
-        <h2 className="text-xl font-semibold mb-4">Intervention Details</h2>
-        {/* Example form field, replace with actual fields */}
-        <FormField
-          control={form.control}
-          name="interventionName" // Using the placeholder field
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Intervention Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <React.Fragment>
+      <form onSubmit={handleCloseEvent} className="space-y-6">
+        <EventDetailsSection
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSelectChange={handleSelectChange}
+          handleSetCurrentTime={handleSetCurrentTime}
+          handleStartGpsTracking={handleStartGpsTracking}
+          puntiServizioList={puntiServizioList}
+          coOperatorsPersonnel={coOperatorsPersonnel}
+          isServicePointOpen={isServicePointOpen}
+          setIsServicePointOpen={setIsServicePointOpen}
+          isCoOperatorOpen={isCoOperatorOpen}
+          setIsCoOperatorOpen={setIsCoOperatorOpen}
         />
-      </section>
 
-      <div className="flex justify-end space-x-2 mt-6">
-        <Button type="submit">Submit</Button>
-      </div>
-    </form>
+        <InterventionTimesSection
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSetCurrentTime={handleSetCurrentTime}
+          handleEndGpsTracking={handleEndGpsTracking}
+        />
+
+        <AccessDetailsSection
+          formData={formData}
+          handleRadioChange={handleRadioChange}
+        />
+
+        <PersonnelSection
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          operatoriNetworkList={operatoriNetworkList}
+          pattugliaPersonale={pattugliaPersonale}
+          isOperatorNetworkOpen={isOperatorNetworkOpen}
+          setIsOperatorNetworkOpen={setIsOperatorNetworkOpen}
+          isGpgInterventionOpen={isGpgInterventionOpen}
+          setIsGpgInterventionOpen={setIsGpgInterventionOpen}
+        />
+
+        <AnomaliesDelaySection
+          formData={formData}
+          handleRadioChange={handleRadioChange}
+          handleInputChange={handleInputChange}
+        />
+
+        <OutcomeBarcodeSection
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          handleInputChange={handleInputChange}
+        />
+
+        <InterventionActionButtons
+          eventId={eventId}
+          handleEmail={handleEmail}
+          handlePrintPdf={handlePrintPdf}
+          handleRegisterEvent={handleRegisterEvent}
+          handleCloseEvent={handleCloseEvent}
+          onCancel={onCancel}
+          isPublicMode={isPublicMode}
+        />
+      </form>
+    </React.Fragment>
   );
 }

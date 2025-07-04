@@ -1,77 +1,63 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session, User, AuthChangeEvent } from "@supabase/supabase-js";
-import { showError } from "@/utils/toast";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { showInfo, showError } from '@/utils/toast';
 
 interface SessionContextType {
   session: Session | null;
-  user: User | null;
-  isLoading: boolean; // Renamed from 'loading' to 'isLoading' for consistency
+  loading: boolean;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-export const SessionContextProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        // The 'USER_DELETED' event is not part of the standard AuthChangeEvent type
-        // from @supabase/supabase-js. Removing this comparison to resolve TS2367.
-        // If user deletion needs to be handled, it should be done via database triggers
-        // or a different mechanism that provides a compatible event type.
-        // if (event === "USER_DELETED") {
-        //   showError("Il tuo account è stato eliminato.");
-        //   await supabase.auth.signOut();
-        //   setSession(null);
-        //   setUser(null);
-        //   setIsLoading(false);
-        //   return;
-        // }
-
-        setSession(session);
-        setUser(session?.user || null);
-        setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('SessionContextProvider: Auth state changed!', { event, currentSession });
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        setSession(currentSession);
+        console.log('SessionContextProvider: User SIGNED_IN or UPDATED. Session:', currentSession);
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        console.log('SessionContextProvider: User SIGNED_OUT. Session is null.');
+        showInfo("Sei stato disconnesso. Effettua nuovamente l'accesso.");
+      } else if (event === 'INITIAL_SESSION') {
+        setSession(currentSession);
+        console.log('SessionContextProvider: Initial session loaded. Session:', currentSession);
+      } else if (event === 'TOKEN_REFRESHED') {
+        setSession(currentSession);
+        console.log('SessionContextProvider: Token refreshed. New session:', currentSession);
+      } else if (event === 'USER_DELETED') {
+        setSession(null);
+        console.log('SessionContextProvider: User deleted. Session is null.');
+        showError("Il tuo account è stato eliminato.");
       }
-    );
+      setLoading(false);
+    });
 
-    // Initial session check
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user || null);
-      })
-      .catch((error) => {
-        console.error("Error fetching session:", error);
-        showError("Errore nel recupero della sessione.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-
-    return () => {
-      subscription.unsubscribe();
+    // Fetch initial session
+    const getInitialSession = async () => {
+      console.log('SessionContextProvider: Fetching initial session...');
+      const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("SessionContextProvider: Error fetching initial session:", error);
+        showError(`Errore nel recupero della sessione: ${error.message}`);
+      }
+      setSession(initialSession);
+      setLoading(false);
+      console.log('SessionContextProvider: Initial session fetch complete. Session:', initialSession);
     };
+
+    getInitialSession();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
-    <SessionContext.Provider value={{ session, user, isLoading }}>
+    <SessionContext.Provider value={{ session, loading }}>
       {children}
     </SessionContext.Provider>
   );
@@ -80,7 +66,7 @@ export const SessionContextProvider = ({
 export const useSession = () => {
   const context = useContext(SessionContext);
   if (context === undefined) {
-    throw new Error("useSession must be used within a SessionContextProvider");
+    throw new Error('useSession must be used within a SessionContextProvider');
   }
   return context;
 };

@@ -1,14 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  ColumnFiltersState,
-  getFilteredRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -20,168 +15,209 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown } from "lucide-react";
-import { Canone } from "@/lib/canone-data"; // Corrected import path
+import { format, parseISO } from "date-fns";
+import { it } from 'date-fns/locale';
+import { Edit, Trash2, RefreshCcw } from "lucide-react";
+import { showInfo, showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ServiziCanone } from "@/lib/anagrafiche-data";
+import { CanoneEditDialog } from "./CanoneEditDialog";
 
-interface CanoneTableProps {
-  data: Canone[];
-  isLoading: boolean;
-  onRefresh: () => void;
+interface ServiziCanoneExtended extends ServiziCanone {
+  nome_punto_servizio?: string;
+  nome_fornitore?: string;
+  nome_cliente?: string;
 }
 
-export function CanoneTable({ data, isLoading, onRefresh }: CanoneTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+export function CanoneTable() {
+  const [data, setData] = useState<ServiziCanoneExtended[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedCanoneForEdit, setSelectedCanoneForEdit] = useState<ServiziCanoneExtended | null>(null);
 
-  const columns: ColumnDef<Canone>[] = useMemo(
-    () => [
-      {
-        accessorKey: "data_inizio",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Data Inizio
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+  const fetchServiziCanoneData = useCallback(async () => {
+    setLoading(true);
+    const { data: canoneData, error } = await supabase
+      .from('servizi_canone')
+      .select('id, created_at, service_point_id, fornitore_id, tipo_canone, start_date, end_date, status, notes, client_id, unita_misura, punti_servizio(nome_punto_servizio), fornitori(nome_fornitore), clienti(nome_cliente)'); // Removed calculated_cost
+
+    if (error) {
+      showError(`Errore nel recupero dei servizi a canone: ${error.message}`);
+      console.error("Error fetching servizi_canone:", error);
+      setData([]);
+    } else {
+      const mappedData = canoneData.map(sc => ({
+        ...sc,
+        nome_punto_servizio: sc.punti_servizio?.nome_punto_servizio || 'N/A',
+        nome_fornitore: sc.fornitori?.nome_fornitore || 'N/A',
+        nome_cliente: sc.clienti?.nome_cliente || 'N/A',
+      }));
+      setData(mappedData || []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchServiziCanoneData();
+  }, [fetchServiziCanoneData]);
+
+  const handleEdit = useCallback((canone: ServiziCanoneExtended) => {
+    setSelectedCanoneForEdit(canone);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback((updatedCanone: ServiziCanone) => {
+    // Update local state to reflect changes immediately
+    setData(prevData =>
+      prevData.map(sc =>
+        sc.id === updatedCanone.id ? { ...sc, ...updatedCanone } : sc
+      )
+    );
+    fetchServiziCanoneData(); // Re-fetch to ensure data consistency (e.g., updated names)
+    setIsEditDialogOpen(false);
+    setSelectedCanoneForEdit(null);
+  }, [fetchServiziCanoneData]);
+
+  const handleCloseDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedCanoneForEdit(null);
+  }, []);
+
+  const handleDelete = async (canoneId: string, tipoCanone: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il servizio a canone "${tipoCanone}"?`)) {
+      const { error } = await supabase
+        .from('servizi_canone')
+        .delete()
+        .eq('id', canoneId);
+
+      if (error) {
+        showError(`Errore durante l'eliminazione del servizio a canone: ${error.message}`);
+        console.error("Error deleting servizi_canone:", error);
+      } else {
+        showSuccess(`Servizio a canone "${tipoCanone}" eliminato con successo!`);
+        fetchServiziCanoneData(); // Refresh data after deletion
+      }
+    } else {
+      showInfo(`Eliminazione del servizio a canone "${tipoCanone}" annullata.`);
+    }
+  };
+
+  const filteredData = useMemo(() => {
+    return data.filter(canone => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        canone.tipo_canone.toLowerCase().includes(searchLower) ||
+        (canone.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (canone.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (canone.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        canone.status.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [data, searchTerm]);
+
+  const columns: ColumnDef<ServiziCanoneExtended>[] = useMemo(() => [
+    {
+      accessorKey: "tipo_canone",
+      header: "Tipo Canone",
+      cell: ({ row }) => <span>{row.original.tipo_canone}</span>,
+    },
+    {
+      accessorKey: "nome_cliente",
+      header: "Cliente",
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
+    },
+    {
+      accessorKey: "nome_punto_servizio",
+      header: "Punto Servizio",
+      cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
+    },
+    {
+      accessorKey: "nome_fornitore",
+      header: "Fornitore",
+      cell: ({ row }) => <span>{row.original.nome_fornitore || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "start_date",
+      header: "Data Inizio",
+      cell: ({ row }) => <span>{format(parseISO(row.original.start_date), "PPP", { locale: it })}</span>,
+    },
+    {
+      accessorKey: "end_date",
+      header: "Data Fine",
+      cell: ({ row }) => <span>{row.original.end_date ? format(parseISO(row.original.end_date), "PPP", { locale: it }) : "N/A"}</span>,
+    },
+    {
+      accessorKey: "status",
+      header: "Stato",
+      cell: ({ row }) => <span>{row.original.status}</span>,
+    },
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
+            <Edit className="h-4 w-4" />
           </Button>
-        ),
-        cell: ({ row }) => <div>{new Date(row.getValue("data_inizio") as string).toLocaleDateString()}</div>,
-      },
-      {
-        accessorKey: "data_fine",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Data Fine
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.tipo_canone)} title="Elimina">
+            <Trash2 className="h-4 w-4" />
           </Button>
-        ),
-        cell: ({ row }) => <div>{new Date(row.getValue("data_fine") as string).toLocaleDateString()}</div>,
-      },
-      {
-        accessorKey: "punti_servizio", // Access the nested object
-        header: "Punto Servizio",
-        cell: ({ cell }) => {
-          const puntiServizio = cell.getValue() as { nome_punto_servizio: string } | null;
-          return (
-            <div>
-              {puntiServizio?.nome_punto_servizio || "N/A"}
-            </div>
-          );
-        },
-        enableSorting: false,
-        enableColumnFilter: false,
-      },
-      {
-        accessorKey: "fornitori", // Access the nested object
-        header: "Fornitore",
-        cell: ({ cell }) => {
-          const fornitori = cell.getValue() as { nome: string } | null;
-          return (
-            <div>
-              {fornitori?.nome || "N/A"}
-            </div>
-          );
-        },
-        enableSorting: false,
-        enableColumnFilter: false,
-      },
-      {
-        accessorKey: "clienti", // Access the nested object
-        header: "Cliente",
-        cell: ({ cell }) => {
-          const clienti = cell.getValue() as { nome_cliente: string } | null;
-          return (
-            <div>
-              {clienti?.nome_cliente || "N/A"}
-            </div>
-          );
-        },
-        enableSorting: false,
-        enableColumnFilter: false,
-      },
-      {
-        accessorKey: "importo",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Importo
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => <div>€{parseFloat(row.getValue("importo")).toFixed(2)}</div>,
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => <div className="capitalize">{row.getValue("status")}</div>,
-      },
-      // Add actions column if needed
-    ],
-    []
-  );
+        </div>
+      ),
+    },
+  ], [handleEdit, handleDelete]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      columnFilters,
-    },
   });
 
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-4 items-center">
         <Input
-          placeholder="Cerca per punto servizio..."
-          value={(table.getColumn("punti_servizio")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("punti_servizio")?.setFilterValue(event.target.value)
-          }
+          placeholder="Cerca per tipo canone, punto servizio, cliente..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        {/* Add other filters or buttons here */}
+        <Button variant="outline" onClick={fetchServiziCanoneData} disabled={loading}>
+          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        </Button>
       </div>
-      <div className="rounded-md border">
+
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
+            {table.getHeaderGroups().map((headerGroup) => { // Explicit return here
+              return (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => { // Explicit return here
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              );
+            })}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento canoni...
+                  Caricamento servizi a canone...
                 </TableCell>
               </TableRow>
-            ) : table.getRowModel().rows?.length ? (
+            ) : (table && table.getRowModel().rows?.length) ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -197,31 +233,22 @@ export function CanoneTable({ data, isLoading, onRefresh }: CanoneTableProps) {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun canone trovato.
+                  Nessun servizio a canone trovato.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Precedente
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Successiva
-        </Button>
-      </div>
+
+      {selectedCanoneForEdit && (
+        <CanoneEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          canone={selectedCanoneForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
