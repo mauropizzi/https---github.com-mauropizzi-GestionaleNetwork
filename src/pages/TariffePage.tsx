@@ -47,7 +47,6 @@ const TariffePage = () => {
         cliente_id: clientId,
         tipo_servizio: serviceType,
         punto_servizio_id: servicePointId || "",
-        fornitore_id: fornitoreId || "",
         data_inizio_validita: startDate ? new Date(startDate) : null,
         data_fine_validita: endDate ? new Date(endDate) : null,
       };
@@ -100,15 +99,11 @@ const TariffePage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per le Tariffe...`);
       const result = await importDataFromExcel(file, "tariffe");
 
-      setImportSummary(result.details);
+      setImportSummary(result); // Pass the entire result object
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
       setRefreshTable(true); // Trigger table refresh after import
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // The dialog will now handle showing success or error messages.
       event.target.value = '';
     }
   };

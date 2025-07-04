@@ -59,14 +59,10 @@ const FornitoriPage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per i Fornitori...`);
       const result = await importDataFromExcel(file, "fornitori");
 
-      setImportSummary(result.details);
+      setImportSummary(result); // Pass the entire result object
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // The dialog will now handle showing success or error messages.
       event.target.value = '';
     }
   };
