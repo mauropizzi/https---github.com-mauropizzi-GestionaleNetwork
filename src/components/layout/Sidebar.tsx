@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat, FileTextIcon, MailOpen, BarChart2, Wrench } from "lucide-react"; // Import BarChart2 for Analisi Contabile, Wrench for Richiesta Manutenzione
+import { Home, FileText, Users, Briefcase, Building2, Package, Key, DoorOpen, ListChecks, Car, ClipboardList, Radio, Euro, Repeat, FileTextIcon, MailOpen, BarChart2, Wrench, UserCog } from "lucide-react"; // Import BarChart2 for Analisi Contabile, Wrench for Richiesta Manutenzione, UserCog for Access Management
 import { PrefetchLink } from "./PrefetchLink"; // Import the new PrefetchLink
 
 interface NavItem {
@@ -65,6 +65,11 @@ const navItems: NavItem[] = [
       { title: "Tariffe", href: "/anagrafiche/tariffe", icon: Euro },
       { title: "Procedure", href: "/anagrafiche/procedure", icon: FileTextIcon },
     ],
+  },
+  {
+    title: "Gestione Accessi",
+    href: "/access-management",
+    icon: UserCog,
   },
   {
     title: "Email in Arrivo", // New top-level item

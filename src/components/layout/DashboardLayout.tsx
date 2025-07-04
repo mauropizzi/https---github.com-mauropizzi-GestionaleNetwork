@@ -43,6 +43,8 @@ const DashboardLayout = () => {
         return "Analisi Contabile";
       case "/richiesta-manutenzione":
         return "Richieste di Manutenzione";
+      case "/access-management":
+        return "Gestione Accessi";
       default:
         // Handle dynamic routes like /centrale-operativa/edit/:id
         if (location.pathname.startsWith("/centrale-operativa/edit/")) {

@@ -24,6 +24,7 @@ const routePrefetchMap: { [key: string]: () => Promise<any> } = {
   '/incoming-emails': () => import('@/pages/IncomingEmails'),
   '/analisi-contabile': () => import('@/pages/AnalisiContabile'),
   '/richiesta-manutenzione': () => import('@/pages/RichiestaManutenzione'), // New route
+  '/access-management': () => import('@/pages/AccessManagementPage'),
 };
 
 export const PrefetchLink: React.FC<LinkProps> = ({ to, onMouseOver, ...props }) => {

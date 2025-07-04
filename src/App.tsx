@@ -34,6 +34,7 @@ const EditServiceRequestPage = React.lazy(() => import("./pages/EditServiceReque
 const RichiestaManutenzione = React.lazy(() => import("./pages/RichiestaManutenzione"));
 const EditServiceReportPage = React.lazy(() => import("./pages/EditServiceReportPage"));
 const EditMaintenanceRequestPage = React.lazy(() => import("./pages/EditMaintenanceRequestPage")); // New lazy import
+const AccessManagementPage = React.lazy(() => import("./pages/AccessManagementPage")); // New lazy import
 
 const queryClient = new QueryClient();
 
@@ -160,6 +161,11 @@ const App = () => (
                   <Route path="anagrafiche/procedure" element={
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
                       <ProcedurePage />
+                    </React.Suspense>
+                  } />
+                  <Route path="access-management" element={
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <AccessManagementPage />
                     </React.Suspense>
                   } />
                   <Route path="dotazioni-di-servizio" element={
