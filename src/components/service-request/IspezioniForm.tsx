@@ -93,6 +93,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
     },
   });
 
+  // Effect to load initial data for editing
   useEffect(() => {
     const loadInitialServiceData = async () => {
       if (serviceId) {
@@ -114,11 +115,12 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
+            // Add checks for null/undefined/empty string before parsing
             startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             cadenceHours: service.cadence_hours || 2,
             inspectionType: (service.inspection_type as "perimetrale" | "interna" | "completa") || "perimetrale",
-            dailyHours: service.daily_hours_config || [
+            dailyHours: service.daily_hours_config || [ // Ensure default structure if null
               { day: "Lunedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Martedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Mercoledì", startTime: "09:00", endTime: "17:00", is24h: false },
