@@ -23,8 +23,8 @@ interface ServiceRequest {
   daily_hours_config?: any | null;
   fornitore_id?: string | null;
 
-  clienti?: { nome_cliente: string } | null;
-  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
+  clienti?: { nome_cliente: string } | null; // Corrected to single object or null
+  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null; // Corrected to single object or null
 }
 
 interface UseServiceRequestsResult {
@@ -91,6 +91,8 @@ export function useServiceRequests(): UseServiceRequestsResult {
         const calculatedMultiplier = await calculateServiceMultiplier(detailsForMultiplier);
         return { 
           ...service, 
+          clienti: service.clienti || null, // Ensure it's an object or null
+          punti_servizio: service.punti_servizio || null, // Ensure it's an object or null
           calculated_cost: null, // Set cost to null
           multiplier: calculatedMultiplier,
         };
@@ -101,17 +103,17 @@ export function useServiceRequests(): UseServiceRequestsResult {
   }, [startDateFilter, endDateFilter]);
 
   const fetchAnagraficheMaps = useCallback(async () => {
-    const fetchedPuntiServizio = await supabase
+    const { data: fetchedPuntiServizio, error: psError } = await supabase
       .from('punti_servizio')
       .select('id, nome_punto_servizio, id_cliente, clienti(nome_cliente)');
 
-    if (fetchedPuntiServizio.error) {
-      console.error("Error fetching punti_servizio for map:", fetchedPuntiServizio.error);
+    if (psError) {
+      console.error("Error fetching punti_servizio for map:", psError);
       return;
     }
 
     const psMap = new Map<string, PuntoServizio & { nome_cliente?: string }>();
-    fetchedPuntiServizio.data.forEach(ps => {
+    fetchedPuntiServizio.forEach(ps => {
       psMap.set(ps.id, {
         ...ps,
         nome_cliente: ps.clienti?.nome_cliente || 'N/A'

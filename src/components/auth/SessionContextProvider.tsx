@@ -17,9 +17,9 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log('SessionContextProvider: Auth state changed!', { event, currentSession });
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') { // Group these events
         setSession(currentSession);
-        console.log('SessionContextProvider: User SIGNED_IN or UPDATED. Session:', currentSession);
+        console.log('SessionContextProvider: User SIGNED_IN, UPDATED, or TOKEN_REFRESHED. Session:', currentSession);
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
         console.log('SessionContextProvider: User SIGNED_OUT. Session is null.');
@@ -27,10 +27,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       } else if (event === 'INITIAL_SESSION') {
         setSession(currentSession);
         console.log('SessionContextProvider: Initial session loaded. Session:', currentSession);
-      } else if (event === 'TOKEN_REFRESHED') {
-        setSession(currentSession);
-        console.log('SessionContextProvider: Token refreshed. New session:', currentSession);
-      } else if (event === 'USER_DELETED') {
+      } else if (event === 'USER_DELETED') { // Keep USER_DELETED separate
         setSession(null);
         console.log('SessionContextProvider: User deleted. Session is null.');
         showError("Il tuo account è stato eliminato.");

@@ -5,10 +5,16 @@ import { it } from 'date-fns/locale';
 import { PuntoServizio } from "@/lib/anagrafiche-data";
 import { ExternalLink } from "lucide-react";
 
+interface PuntoServizioExtendedForDetails extends PuntoServizio {
+  clienti?: { nome_cliente: string } | null;
+  fornitori?: { nome_fornitore: string } | null;
+  procedure?: { nome_procedura: string } | null;
+}
+
 interface PuntoServizioDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  puntoServizio: PuntoServizio | null;
+  puntoServizio: PuntoServizioExtendedForDetails | null;
 }
 
 export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: PuntoServizioDetailsDialogProps) {
@@ -30,7 +36,7 @@ export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Cliente Associato:</span>
-            <span className="col-span-2 text-sm">{puntoServizio.nome_cliente || 'N/A'}</span>
+            <span className="col-span-2 text-sm">{puntoServizio.clienti?.nome_cliente || 'N/A'}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Indirizzo:</span>
@@ -74,7 +80,7 @@ export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Fornitore Associato:</span>
-            <span className="col-span-2 text-sm">{puntoServizio.nome_fornitore || 'N/A'}</span>
+            <span className="col-span-2 text-sm">{puntoServizio.fornitori?.nome_fornitore || 'N/A'}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Codice Cliente Punto:</span>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useInterventionForm } from '@/hooks/use-intervention-form';
+import { it } from 'date-fns/locale'; // Added missing import
 
 // Import modular components
 import { EventDetailsSection } from './EventDetailsSection';
