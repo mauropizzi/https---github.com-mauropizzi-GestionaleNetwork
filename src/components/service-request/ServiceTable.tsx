@@ -204,7 +204,36 @@ export function ServiceTable() {
                         )}
                   </TableHead>
                 ))}
-              </TableHeader>
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Caricamento richieste di servizio...
+                </TableCell>
+              </TableRow>
+            ) : (table && table.getRowModel().rows?.length) ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Nessuna richiesta di servizio trovata.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
