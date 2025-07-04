@@ -335,8 +335,8 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       service_point_id: values.servicePointId,
       addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
       responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
-      esitoServizio: values.esitoServizio || null,
-      consegneServizio: values.consegneServizio || null,
+      esito_servizio: values.esitoServizio || null,
+      consegne_servizio: values.consegneServizio || null,
       status: "terminato", // Set to "terminato" for this handler
     };
 
@@ -862,9 +862,11 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => generatePdfAndEmail('email')}>
-            INVIA EMAIL
-          </Button>
+          {reportId && ( // Only show INVIA EMAIL if reportId exists
+            <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => generatePdfAndEmail('email')}>
+              INVIA EMAIL
+            </Button>
+          )}
           {reportId && (
             <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => generatePdfAndEmail('print')}>
               STAMPA PDF
