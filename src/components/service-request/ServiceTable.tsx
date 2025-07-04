@@ -24,6 +24,7 @@ import { ServiziRichiesti } from "@/lib/anagrafiche-data";
 import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
 import { useNavigate } from "react-router-dom";
 import { calculateServiceCost } from "@/lib/data-fetching"; // Import the calculation function
+import { format } from "date-fns"; // Import format for date formatting
 
 export function ServiceTable() {
   const navigate = useNavigate();
@@ -122,6 +123,21 @@ export function ServiceTable() {
     }
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "In Attesa";
+      case "Approved":
+        return "Approvato";
+      case "Rejected":
+        return "Rifiutato";
+      case "Completed":
+        return "Completato";
+      default:
+        return status;
+    }
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(request => {
       const searchLower = searchTerm.toLowerCase();
@@ -162,14 +178,14 @@ export function ServiceTable() {
       cell: ({ row }) => <span>{new Date(row.original.start_date).toLocaleDateString()}</span>,
     },
     {
-      accessorKey: "start_time",
-      header: "Ora Inizio",
-      cell: ({ row }) => <span>{row.original.start_time || 'N/A'}</span>,
+      accessorKey: "end_date", // Changed accessorKey
+      header: "Data Fine", // Changed header
+      cell: ({ row }) => <span>{row.original.end_date ? format(new Date(row.original.end_date), 'dd/MM/yyyy') : 'N/A'}</span>, // Format end_date
     },
     {
       accessorKey: "status",
       header: "Stato",
-      cell: ({ row }) => <span>{row.original.status}</span>,
+      cell: ({ row }) => <span>{translateStatus(row.original.status)}</span>, // Translate status
     },
     {
       accessorKey: "total_units",
