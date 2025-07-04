@@ -37,6 +37,8 @@ export interface PuntoServizio {
   codice_fatturazione?: string | null;
   procedure_id?: string | null;
   clienti?: { nome_cliente: string } | null; // Aggiunto per join
+  fornitori?: { nome_fornitore: string } | null; // Added for join
+  procedure?: { nome_procedura: string } | null; // Added for join
 }
 
 export interface Fornitore {
@@ -80,12 +82,16 @@ export interface Personale {
 
 export interface OperatoreNetwork {
   id: string;
-  created_at: string;
+  created_at?: string; // Made optional
   nome: string; // Renamed from nome_operatore
   cognome?: string; // New field
   client_id?: string; // New field
   telefono?: string;
   email?: string;
+}
+
+export interface OperatoreNetworkExtended extends OperatoreNetwork {
+  clienti?: { nome_cliente: string }[] | null; // Added for join, assuming it's an array
 }
 
 export interface Procedure {
@@ -114,6 +120,12 @@ export interface ServiziCanone {
   calculated_cost?: number | null; // New field
   client_id?: string | null; // New field
   unita_misura?: string | null; // New field
+}
+
+export interface ServiziCanoneExtended extends ServiziCanone {
+  punti_servizio?: { nome_punto_servizio: string } | null; // Added for join
+  fornitori?: { nome_fornitore: string } | null; // Added for join
+  clienti?: { nome_cliente: string } | null; // Added for join
 }
 
 export interface RapportoServizio {
@@ -158,6 +170,42 @@ export interface RichiestaManutenzione {
   service_point?: { nome_punto_servizio: string } | null;
   requested_by_employee?: { nome: string; cognome: string } | null;
 }
+
+export interface CantiereReport { // Defined CantiereReport interface
+  id: string;
+  report_date: string;
+  report_time: string;
+  client_id: string;
+  site_name: string;
+  employee_id: string;
+  service_provided: string;
+  automezziCount: number; // Assuming these are part of the report
+  attrezziCount: number; // Assuming these are part of the report
+  // Add other fields as per your DB schema for cantiere_reports
+  clienti?: { nome_cliente: string } | null; // Added for join
+  addetto?: { nome: string; cognome: string } | null; // Added for join
+}
+
+export interface ServiceRequest { // Re-defining or extending existing ServiceRequest
+  id: string;
+  type: string;
+  client_id: string;
+  service_point_id: string;
+  fornitore_id?: string | null;
+  start_date: string;
+  start_time: string;
+  end_date?: string | null;
+  end_time?: string | null;
+  status: "Pending" | "In Progress" | "Completed" | "Cancelled";
+  notes?: string | null;
+  calculated_cost?: number | null;
+  multiplier?: number | null;
+  // Add joined fields
+  clienti?: { nome_cliente: string } | null; // Added for join
+  punti_servizio?: { nome_punto_servizio: string } | null; // Added for join
+  fornitori?: { nome_fornitore: string } | null; // Added for join
+}
+
 
 export interface UserProfile {
   id: string;

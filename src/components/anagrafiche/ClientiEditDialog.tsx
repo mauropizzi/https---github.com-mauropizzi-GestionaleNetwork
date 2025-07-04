@@ -23,6 +23,14 @@ import { Separator } from "@/components/ui/separator";
 import { PlusCircle } from "lucide-react";
 import { ClientContactFormSection } from "./ClientContactFormSection"; // Import the new component
 
+// Define the missing interface
+interface ClienteEditDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  cliente: Cliente | null;
+  onSave: (updatedCliente: Cliente) => void;
+}
+
 interface ClientContact {
   id?: string; // Optional for new contacts, present for existing ones
   department: string;

@@ -21,16 +21,17 @@ import { Edit, Trash2, RefreshCcw, AddressBook } from "lucide-react"; // Import 
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
-import { ClientiEditDialog } from "./ClientiEditDialog"; // Import the new dialog
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { ClientiEditDialog } from "./ClientiEditDialog";
+import { ClientContactsDialog } from "./ClientContactsDialog"; // Import the new dialog
 
 export function ClientiTable() {
-  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClienteForEdit, setSelectedClienteForEdit] = useState<Cliente | null>(null);
+  const [isContactsDialogOpen, setIsContactsDialogOpen] = useState(false); // New state for contacts dialog
+  const [selectedClienteForContacts, setSelectedClienteForContacts] = useState<Cliente | null>(null); // New state for contacts dialog
 
   const fetchClientiData = useCallback(async () => {
     setLoading(true);
@@ -70,13 +71,24 @@ export function ClientiTable() {
     setSelectedClienteForEdit(null);
   }, [fetchClientiData]);
 
-  const handleCloseDialog = useCallback(() => {
+  const handleCloseEditDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedClienteForEdit(null);
   }, []);
 
+  const handleOpenContacts = useCallback((cliente: Cliente) => {
+    setSelectedClienteForContacts(cliente);
+    setIsContactsDialogOpen(true);
+  }, []);
+
+  const handleCloseContactsDialog = useCallback(() => {
+    setIsContactsDialogOpen(false);
+    setSelectedClienteForContacts(null);
+    fetchClientiData(); // Refresh client data in case contacts were modified
+  }, [fetchClientiData]);
+
   const handleDelete = async (clienteId: string, nomeCliente: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il cliente "${nomeCliente}"?`)) {
+    if (window.confirm(`Sei sicuro di voler eliminare il cliente "${nomeCliente}"? Questa azione eliminerà anche tutti i contatti associati.`)) {
       const { error } = await supabase
         .from('clienti')
         .delete()
@@ -93,10 +105,6 @@ export function ClientiTable() {
       showInfo(`Eliminazione del cliente "${nomeCliente}" annullata.`);
     }
   };
-
-  const handleViewContacts = useCallback((clienteId: string) => {
-    navigate(`/anagrafiche/clienti/${clienteId}/contacts`);
-  }, [navigate]);
 
   const filteredData = useMemo(() => {
     return data.filter(cliente => {
@@ -152,19 +160,19 @@ export function ClientiTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica Cliente">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleViewContacts(row.original.id)} title="Visualizza Contatti">
+          <Button variant="outline" size="sm" onClick={() => handleOpenContacts(row.original)} title="Rubrica Contatti">
             <AddressBook className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_cliente)} title="Elimina Cliente">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_cliente)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleEdit, handleDelete, handleViewContacts]);
+  ], [handleEdit, handleOpenContacts, handleDelete]);
 
   const table = useReactTable({
     data: filteredData,
@@ -238,9 +246,17 @@ export function ClientiTable() {
       {selectedClienteForEdit && (
         <ClientiEditDialog
           isOpen={isEditDialogOpen}
-          onClose={handleCloseDialog}
+          onClose={handleCloseEditDialog}
           cliente={selectedClienteForEdit}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {selectedClienteForContacts && (
+        <ClientContactsDialog
+          isOpen={isContactsDialogOpen}
+          onClose={handleCloseContactsDialog}
+          cliente={selectedClienteForContacts}
         />
       )}
     </div>
