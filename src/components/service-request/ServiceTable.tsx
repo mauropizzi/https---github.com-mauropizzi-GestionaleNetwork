@@ -49,23 +49,6 @@ interface ServiceRequest {
   punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
 }
 
-// Define a type for the data passed to ServiceDetailsDialog
-interface ServiceDetailsForDialog {
-  id: string;
-  type: string;
-  client: string; // Display name
-  location: string; // Display name
-  startDate: Date;
-  endDate: Date;
-  status: "Pending" | "Approved" | "Rejected" | "Completed";
-  startTime?: string;
-  endTime?: string;
-  numAgents?: number;
-  cadenceHours?: number;
-  inspectionType?: string;
-  dailyHoursConfig?: any;
-}
-
 export function ServiceTable() {
   const navigate = useNavigate(); // Initialize useNavigate
   const {
@@ -83,20 +66,20 @@ export function ServiceTable() {
   } = useServiceRequests();
 
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<ServiceDetailsForDialog | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
 
   const handleView = (service: ServiceRequest) => {
     const clientName = service.clienti?.nome_cliente || 'N/A';
     const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
 
     setSelectedService({
-      id: service.id,
-      type: service.type,
+      ...service,
       client: clientName,
       location: servicePointName,
       startDate: new Date(service.start_date),
       endDate: new Date(service.end_date),
-      status: service.status,
+      // The following fields are already part of ServiceRequest, but were explicitly added to the dialog's interface
+      // and might need to be mapped if the dialog's interface is not directly ServiceRequest
       startTime: service.start_time || undefined,
       endTime: service.end_time || undefined,
       numAgents: service.num_agents || undefined,
@@ -339,7 +322,21 @@ export function ServiceTable() {
       <ServiceDetailsDialog
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
-        service={selectedService}
+        service={selectedService ? {
+          id: selectedService.id,
+          type: selectedService.type,
+          client: selectedService.clienti?.nome_cliente || 'N/A',
+          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
+          startDate: new Date(selectedService.start_date),
+          endDate: new Date(selectedService.end_date),
+          status: selectedService.status,
+          startTime: selectedService.start_time || undefined,
+          endTime: selectedService.end_time || undefined,
+          numAgents: selectedService.num_agents || undefined,
+          cadenceHours: selectedService.cadence_hours || undefined,
+          inspectionType: selectedService.inspection_type || undefined,
+          dailyHoursConfig: selectedService.daily_hours_config || undefined,
+        } : null}
       />
 
       {/* ServiceEditDialog is no longer used here */}

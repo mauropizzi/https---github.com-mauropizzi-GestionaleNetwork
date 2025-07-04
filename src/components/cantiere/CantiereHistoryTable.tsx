@@ -38,8 +38,8 @@ interface CantiereReport {
   notes?: string;
   automezziCount: number;
   attrezziCount: number;
-  clienti?: { nome_cliente: string } | null; // Corrected type for joined data
-  addetto?: { nome: string; cognome: string } | null; // Corrected type for joined data
+  nome_cliente?: string;
+  nome_addetto?: string;
   status?: string;
   service_point_id?: string | null; // Add service_point_id
   addetto_riconsegna_security_service?: string | null;
@@ -158,8 +158,8 @@ export function CantiereHistoryTable() {
 
       return {
         ...report,
-        clienti: report.clienti || null, // Ensure clienti is an object or null
-        addetto: report.addetto || null, // Ensure addetto is an object or null
+        nome_cliente: report.clienti?.nome_cliente || 'N/A',
+        nome_addetto: report.addetto ? `${report.addetto.nome} ${report.addetto.cognome}` : 'N/A',
         automezziCount: automezziCount || 0,
         attrezziCount: attrezziCount || 0,
       };
@@ -182,7 +182,7 @@ export function CantiereHistoryTable() {
       reader.onloadend = () => {
         const base64data = reader.result?.toString().split(',')[1];
         if (base64data) {
-          const subject = `Rapporto di Cantiere - ${report.clienti?.nome_cliente || 'N/A'} - ${report.site_name} - ${format(parseISO(report.report_date), 'dd/MM/yyyy')}`;
+          const subject = `Rapporto di Cantiere - ${report.nome_cliente} - ${report.site_name} - ${format(parseISO(report.report_date), 'dd/MM/yyyy')}`;
           const textBody = "Si trasmettono in allegato i dettagli del rapporto di cantiere.\n\nCordiali saluti.";
           sendEmail(subject, textBody, false, {
             filename: `Rapporto_Cantiere_${report.id}.pdf`,
@@ -217,10 +217,9 @@ export function CantiereHistoryTable() {
   const filteredData = useMemo(() => {
     return data.filter(report => {
       const matchesSearch = searchTerm === "" ||
-        report.clienti?.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.addetto?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.addetto?.cognome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.nome_addetto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.service_provided.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.status?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -241,9 +240,9 @@ export function CantiereHistoryTable() {
       },
     },
     {
-      accessorKey: "clienti.nome_cliente", // Corrected accessorKey
+      accessorKey: "nome_cliente",
       header: "Cliente",
-      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente}</span>,
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
     },
     {
       accessorKey: "site_name",
@@ -251,9 +250,9 @@ export function CantiereHistoryTable() {
       cell: ({ row }) => <span>{row.original.site_name}</span>,
     },
     {
-      accessorKey: "addetto.nome", // Corrected accessorKey
+      accessorKey: "nome_addetto",
       header: "Addetto",
-      cell: ({ row }) => <span>{row.original.addetto ? `${row.original.addetto.nome} ${row.original.addetto.cognome}` : 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.nome_addetto}</span>,
     },
     {
       accessorKey: "service_provided",

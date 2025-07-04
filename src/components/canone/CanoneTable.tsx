@@ -24,9 +24,9 @@ import { ServiziCanone } from "@/lib/anagrafiche-data";
 import { CanoneEditDialog } from "./CanoneEditDialog";
 
 interface ServiziCanoneExtended extends ServiziCanone {
-  punti_servizio?: { nome_punto_servizio: string } | null;
-  fornitori?: { nome_fornitore: string } | null;
-  clienti?: { nome_cliente: string } | null;
+  nome_punto_servizio?: string;
+  nome_fornitore?: string;
+  nome_cliente?: string;
 }
 
 export function CanoneTable() {
@@ -108,9 +108,9 @@ export function CanoneTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         canone.tipo_canone.toLowerCase().includes(searchLower) ||
-        (canone.punti_servizio?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
-        (canone.fornitori?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
-        (canone.clienti?.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        (canone.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (canone.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (canone.nome_cliente?.toLowerCase().includes(searchLower)) ||
         canone.status.toLowerCase().includes(searchLower)
       );
     });
@@ -123,19 +123,19 @@ export function CanoneTable() {
       cell: ({ row }) => <span>{row.original.tipo_canone}</span>,
     },
     {
-      accessorKey: "clienti.nome_cliente", // Corrected accessorKey for nested property
+      accessorKey: "nome_cliente",
       header: "Cliente",
-      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente}</span>,
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
     },
     {
-      accessorKey: "punti_servizio.nome_punto_servizio", // Corrected accessorKey for nested property
+      accessorKey: "nome_punto_servizio",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.punti_servizio?.nome_punto_servizio}</span>,
+      cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
     },
     {
-      accessorKey: "fornitori.nome_fornitore", // Corrected accessorKey for nested property
+      accessorKey: "nome_fornitore",
       header: "Fornitore",
-      cell: ({ row }) => <span>{row.original.fornitori?.nome_fornitore || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.nome_fornitore || 'N/A'}</span>,
     },
     {
       accessorKey: "start_date",

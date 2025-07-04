@@ -88,7 +88,7 @@ export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSave }: Forn
         telefono: fornitore.telefono || null,
         email: fornitore.email || null,
         pec: fornitore.pec || null,
-        tipo_fornitura: fornitore.tipo_fornitura as "piantonamento" | "fiduciario" | "entrambi" | null || null, // Explicit cast
+        tipo_fornitura: fornitore.tipo_fornitura || null,
         attivo: fornitore.attivo ?? true,
         note: fornitore.note || null,
       });

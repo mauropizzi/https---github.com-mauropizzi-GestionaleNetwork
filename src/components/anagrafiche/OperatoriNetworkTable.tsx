@@ -22,7 +22,7 @@ import { OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { OperatoreNetworkEditDialog } from "./OperatoriNetworkEditDialog"; // Import the new dialog
 
 interface OperatoreNetworkExtended extends OperatoreNetwork {
-  clienti?: { nome_cliente: string } | null; // To display the client name
+  nome_cliente?: string; // To display the client name
 }
 
 export function OperatoriNetworkTable() {
@@ -104,7 +104,7 @@ export function OperatoriNetworkTable() {
       return (
         operatore.nome.toLowerCase().includes(searchLower) ||
         (operatore.cognome?.toLowerCase().includes(searchLower)) ||
-        (operatore.clienti?.nome_cliente?.toLowerCase().includes(searchLower)) || // Access via .clienti?.nome_cliente
+        (operatore.nome_cliente?.toLowerCase().includes(searchLower)) ||
         (operatore.telefono?.toLowerCase().includes(searchLower)) ||
         (operatore.email?.toLowerCase().includes(searchLower))
       );
@@ -123,9 +123,9 @@ export function OperatoriNetworkTable() {
       cell: ({ row }) => <span>{row.original.cognome || 'N/A'}</span>,
     },
     {
-      accessorKey: "clienti.nome_cliente", // Corrected accessorKey for nested property
+      accessorKey: "nome_cliente",
       header: "Cliente Associato",
-      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente || 'N/A'}</span>, // Access via .clienti?.nome_cliente
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
     },
     {
       accessorKey: "telefono",
