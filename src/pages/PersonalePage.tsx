@@ -59,14 +59,10 @@ const PersonalePage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per il Personale...`);
       const result = await importDataFromExcel(file, "personale");
 
-      setImportSummary(result.details);
+      setImportSummary(result);
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // The dialog will now handle showing success or error messages.
       event.target.value = '';
     }
   };

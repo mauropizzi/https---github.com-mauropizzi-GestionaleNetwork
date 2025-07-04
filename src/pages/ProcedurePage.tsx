@@ -70,14 +70,10 @@ const ProcedurePage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per le Procedure...`);
       const result = await importDataFromExcel(file, "procedure");
 
-      setImportSummary(result.details);
+      setImportSummary(result);
       setIsSummaryDialogOpen(true);
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // The dialog will now handle showing success or error messages.
       event.target.value = '';
     }
   };
