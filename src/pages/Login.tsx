@@ -42,7 +42,7 @@ export default function Login() {
               },
             },
           }}
-          providers={["google"]}
+          providers={[]}
           redirectTo={window.location.origin}
           localization={{
             variables: {
