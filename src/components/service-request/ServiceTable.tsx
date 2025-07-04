@@ -137,9 +137,15 @@ export function ServiceTable() {
       cell: ({ row }) => <span>{row.original.status}</span>,
     },
     {
-      accessorKey: "calculated_cost",
-      header: "Costo Stimato",
-      cell: ({ row }) => <span>{row.original.calculated_cost ? `€${row.original.calculated_cost.toFixed(2)}` : 'N/A'}</span>,
+      accessorKey: "total_units", // Changed accessorKey
+      header: "Quantità Totale (Ore/Unità)", // Changed header
+      cell: ({ row }) => (
+        <span>
+          {row.original.total_units !== null && row.original.total_units !== undefined
+            ? `${row.original.total_units.toFixed(2)} ${row.original.unit_of_measure || ''}`
+            : 'N/A'}
+        </span>
+      ),
     },
     {
       id: "actions",
