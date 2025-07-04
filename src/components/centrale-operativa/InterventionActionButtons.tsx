@@ -5,8 +5,8 @@ interface InterventionActionButtonsProps {
   eventId?: string;
   handleEmail: () => Promise<void>;
   handlePrintPdf: () => Promise<void>;
-  handleRegisterEvent: (e: React.FormEvent) => void;
-  handleCloseEvent: (e: React.FormEvent) => void;
+  handleRegisterEvent: () => void; // Changed to accept no arguments
+  handleCloseEvent: () => void; // Changed to accept no arguments
   onCancel?: () => void;
   isPublicMode?: boolean; // New prop to indicate public mode
 }
@@ -40,7 +40,7 @@ export const InterventionActionButtons: React.FC<InterventionActionButtonsProps>
             Salva Modifiche (In Corso)
           </Button>
           {!isPublicMode && ( // Nascondi "Chiudi Evento" in modalità pubblica
-            <Button type="submit" className="w-full md:w-auto flex-1">
+            <Button type="submit" className="w-full md:w-auto flex-1" onClick={handleCloseEvent}>
               Chiudi Evento (Completa)
             </Button>
           )}

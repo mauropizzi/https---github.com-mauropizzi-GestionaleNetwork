@@ -267,7 +267,7 @@ export const useInterventionForm = ({ eventId, onSaveSuccess, isPublicMode = fal
     handleCloseEvent,
     handleRegisterEvent,
   } = useInterventionActions({
-    getValues: getValues, // Pass the getValues function
+    getValues, // Pass current form values
     puntiServizioList,
     coOperatorsPersonnel,
     operatoriNetworkList,
