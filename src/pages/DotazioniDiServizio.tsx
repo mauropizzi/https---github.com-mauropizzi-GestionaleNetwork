@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ServiceReportForm from "@/components/dotazioni-di-servizio/ServiceReportForm";
+import { ServiceReportForm } from "@/components/dotazioni-di-servizio/ServiceReportForm";
 import { DotazioniHistoryTable } from "@/components/dotazioni-di-servizio/DotazioniHistoryTable";
 import { useSearchParams } from "react-router-dom";
 

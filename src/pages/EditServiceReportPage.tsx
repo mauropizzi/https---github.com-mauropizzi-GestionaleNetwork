@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
-import ServiceReportForm from "@/components/dotazioni-di-servizio/ServiceReportForm"; // Use the unified form
+import { ServiceReportForm } from "@/components/dotazioni-di-servizio/ServiceReportForm"; // Use the unified form
 
 const EditServiceReportPage = () => {
   const { id } = useParams<{ id: string }>();
