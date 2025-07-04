@@ -51,6 +51,7 @@ export default function Login() {
                 password_label: "Password",
                 button_label: "Accedi",
                 social_provider_text: "Accedi con {{provider}}",
+                sign_up_link_text: "Non hai un account? Registrati", // Added this line
               },
               sign_up: {
                 email_label: "Indirizzo Email",
