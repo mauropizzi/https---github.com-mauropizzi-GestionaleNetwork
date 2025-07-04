@@ -89,8 +89,8 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           eventId={eventId}
           handleEmail={handleEmail}
           handlePrintPdf={handlePrintPdf}
-          handleRegisterEvent={() => methods.handleSubmit(handleRegisterEvent)()} {/* Wrapped call */}
-          handleCloseEvent={() => methods.handleSubmit(handleCloseEvent)()} {/* Wrapped call */}
+          handleRegisterEvent={() => methods.handleSubmit(handleRegisterEvent)()}
+          handleCloseEvent={() => methods.handleSubmit(handleCloseEvent)()}
           onCancel={onCancel}
           isPublicMode={isPublicMode}
         />
