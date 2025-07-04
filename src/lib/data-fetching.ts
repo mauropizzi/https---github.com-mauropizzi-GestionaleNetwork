@@ -1,417 +1,50 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Cliente, Fornitore, PuntoServizio, Personale, OperatoreNetwork, Procedure } from "@/lib/anagrafiche-data";
-import { showError } from "@/utils/toast";
-import { format, parseISO, isValid, addDays, isWeekend, differenceInHours, differenceInMinutes, differenceInMonths, addMonths } from "date-fns";
-import { it } from 'date-fns/locale';
-import { isDateHoliday } from "@/lib/date-utils";
-
-let cachedTariffe: any[] | null = null;
-let lastTariffeFetchTime: number = 0;
-const TARIFEE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-export function invalidateTariffeCache() {
-  cachedTariffe = null;
-  lastTariffeFetchTime = 0;
-  console.log("Tariffs cache invalidated.");
-}
+import { Cliente, Fornitore, OperatoreNetwork, PuntoServizio, Procedure, ServiziCanone, ServiceRequest, CantiereReport } from "@/lib/anagrafiche-data";
 
 export async function fetchClienti(): Promise<Cliente[]> {
-  const { data, error } = await supabase
-    .from('clienti')
-    .select('id, nome_cliente');
-
-  if (error) {
-    showError(`Errore nel recupero dei clienti: ${error.message}`);
-    console.error("Error fetching clienti:", error);
-    return [];
-  }
-  return data || [];
+  const { data, error } = await supabase.from('clienti').select('*');
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchFornitori(): Promise<Fornitore[]> {
-  const { data, error } = await supabase
-    .from('fornitori')
-    .select('id, nome_fornitore');
-
-  if (error) {
-    showError(`Errore nel recupero dei fornitori: ${error.message}`);
-    console.error("Error fetching fornitori:", error);
-    return [];
-  }
-  return data || [];
-}
-
-export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
-  const { data, error } = await supabase
-    .from('punti_servizio')
-    .select('*, clienti(nome_cliente), procedure(*)'); // Include tutti i dettagli della procedura e del cliente
-
-  if (error) {
-    showError(`Errore nel recupero dei punti servizio: ${error.message}`);
-    console.error("Error fetching punti_servizio:", error);
-    return [];
-  }
-  return data || [];
-}
-
-export async function fetchPersonale(role?: string): Promise<Personale[]> {
-  let query = supabase
-    .from('personale')
-    .select('id, nome, cognome, ruolo, telefono'); // Added 'telefono' here
-
-  if (role) {
-    query = query.eq('ruolo', role);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    showError(`Errore nel recupero del personale: ${error.message}`);
-    console.error("Error fetching personale:", error);
-    return [];
-  }
-  return data || [];
+  const { data, error } = await supabase.from('fornitori').select('*');
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchOperatoriNetwork(): Promise<OperatoreNetwork[]> {
-  const { data, error } = await supabase
-    .from('operatori_network')
-    .select('id, nome, cognome, telefono, email, client_id');
-
-  if (error) {
-    showError(`Errore nel recupero degli operatori network: ${error.message}`);
-    console.error("Error fetching operatori_network:", error);
-    return [];
-  }
-  return data || [];
+  const { data, error } = await supabase.from('operatori_network').select('*, created_at'); // Ensure created_at is selected
+  if (error) throw error;
+  return data;
 }
 
-export async function fetchMonthlyTariffe(): Promise<{ id: string; service_type: string; }[]> {
-  const { data, error } = await supabase
-    .from('tariffe')
-    .select('id, service_type')
-    .eq('unita_misura', 'mese'); // Filter for monthly rates
-
-  if (error) {
-    showError(`Errore nel recupero delle tariffe mensili: ${error.message}`);
-    console.error("Error fetching monthly tariffe:", error);
-    return [];
-  }
-  return data || [];
+export async function fetchPuntiServizio(): Promise<PuntoServizio[]> {
+  const { data, error } = await supabase.from('punti_servizio').select('*');
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchProcedure(): Promise<Procedure[]> {
-  const { data, error } = await supabase
-    .from('procedure')
-    .select('id, nome_procedura, descrizione, versione, data_ultima_revisione, responsabile, documento_url, attivo, note'); // Select all fields
-
-  if (error) {
-    showError(`Errore nel recupero delle procedure: ${error.message}`);
-    console.error("Error fetching procedure:", error);
-    return [];
-  }
-  return data || [];
+  const { data, error } = await supabase.from('procedure').select('*');
+  if (error) throw error;
+  return data;
 }
 
-export async function fetchServiceRequestsForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
-  let query = supabase
-    .from('servizi_richiesti')
-    .select('id, type, client_id, service_point_id, fornitore_id, start_date, end_date, start_time, end_time, num_agents, cadence_hours, inspection_type, daily_hours_config'); // Fetch all relevant fields, including fornitore_id
-
-  if (clientId) {
-    query = query.eq('client_id', clientId);
-  }
-  if (startDate) {
-    query = query.gte('start_date', startDate);
-  }
-  if (endDate) {
-    query = query.lte('end_date', endDate);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    showError(`Errore nel recupero dei servizi per analisi: ${error.message}`);
-    console.error("Error fetching service requests for analysis:", error);
-    return [];
-  }
-  return data || [];
+export async function fetchServiziCanone(): Promise<ServiziCanone[]> {
+  const { data, error } = await supabase.from('servizi_canone').select('*');
+  if (error) throw error;
+  return data;
 }
 
-export async function fetchServiziCanoneForAnalysis(clientId?: string, startDate?: string, endDate?: string): Promise<any[]> {
-  console.log("fetchServiziCanoneForAnalysis: Function entered.");
-  console.log(`fetchServiziCanoneForAnalysis: Filters - Client ID: ${clientId}, Start Date: ${startDate}, End Date: ${endDate}`); // Nuovo log per i filtri
-  let query = supabase
-    .from('servizi_canone')
-    .select('id, tipo_canone, client_id, service_point_id, fornitore_id, start_date, end_date, unita_misura'); // Select relevant fields
-
-  if (clientId) {
-    query = query.eq('client_id', clientId);
-  }
-  if (startDate) {
-    query = query.gte('start_date', startDate);
-  }
-  if (endDate) {
-    // Modifica per includere servizi con end_date NULL o entro il periodo
-    query = query.or(`end_date.lte.${endDate},end_date.is.null`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    showError(`Errore nel recupero dei servizi a canone per analisi: ${error.message}`);
-    console.error("Error fetching servizi_canone for analysis:", error);
-    return [];
-  }
-  console.log("fetchServiziCanoneForAnalysis: Fetched data =", data);
-  return data || [];
+export async function fetchServiceRequests(): Promise<ServiceRequest[]> {
+  const { data, error } = await supabase.from('service_requests').select('*');
+  if (error) throw error;
+  return data;
 }
 
-export async function fetchAllTariffe(): Promise<any[]> {
-  const now = Date.now();
-  if (cachedTariffe && (now - lastTariffeFetchTime < TARIFEE_CACHE_DURATION)) {
-    console.log("Using cached tariffs.");
-    return cachedTariffe;
-  }
-
-  console.log("Fetching tariffs from Supabase...");
-  const { data, error } = await supabase
-    .from('tariffe')
-    .select('id, client_id, service_type, punto_servizio_id, fornitore_id, data_inizio_validita, data_fine_validita, client_rate, supplier_rate, unita_misura'); // Fetch client_rate and unita_misura
-
-  if (error) {
-    showError(`Errore nel recupero di tutte le tariffe: ${error.message}`);
-    console.error("Error fetching all tariffe:", error);
-    return [];
-  }
-  cachedTariffe = data || [];
-  lastTariffeFetchTime = now;
-  console.log("Fetched and cached tariffs.");
-  return cachedTariffe;
-}
-
-interface ServiceDetailsForCost {
-  type: string;
-  client_id: string;
-  service_point_id?: string | null;
-  fornitore_id?: string | null;
-  start_date: Date;
-  end_date: Date;
-  start_time?: string | null;
-  end_time?: string | null;
-  num_agents?: number | null;
-  cadence_hours?: number | null;
-  daily_hours_config?: any | null;
-  inspection_type?: string | null;
-}
-
-export async function calculateServiceMultiplier(details: ServiceDetailsForCost): Promise<number | null> {
-  console.log(`[Multiplier Calc] Calculating for type: ${details.type}, client: ${details.client_id}, SP: ${details.service_point_id}, Forn: ${details.fornitore_id}`);
-  console.log(`[Multiplier Calc] Dates: ${format(details.start_date, 'yyyy-MM-dd')} to ${format(details.end_date, 'yyyy-MM-dd')}`);
-  let multiplier: number | null = null;
-
-  // Use details.start_date and details.end_date directly as they are already Date objects
-  const startDate = details.start_date;
-  const endDate = details.end_date;
-
-  switch (details.type) {
-    case "Piantonamento":
-    case "Servizi Fiduciari": {
-      let totalHours = 0;
-      let currentDate = new Date(startDate); // Use the already parsed startDate
-      
-      while (currentDate <= endDate) { // Use the already parsed endDate
-        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-        const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-        let dayConfig;
-        if (isCurrentDayHoliday) {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-        } else if (dayOfWeek === "sabato") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-        } else if (dayOfWeek === "domenica") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-        } else {
-          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-        }
-        
-        if (dayConfig) {
-          if (dayConfig.is24h) {
-            totalHours += 24;
-          } else if (dayConfig.startTime && dayConfig.endTime) {
-            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
-            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
-            
-            if (isValid(startOfDay) && isValid(endOfDay)) {
-              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-              if (dailyDiffMs < 0) { // Handle overnight shifts
-                dailyDiffMs += 24 * 60 * 60 * 1000;
-              }
-              totalHours += dailyDiffMs / (1000 * 60 * 60);
-            }
-          }
-        }
-        currentDate = addDays(currentDate, 1);
-      }
-      multiplier = totalHours * (details.num_agents || 1);
-      console.log(`[Multiplier Calc] Hourly/Fiduciary - Total Hours: ${totalHours}, Num Agents: ${details.num_agents || 1}, Multiplier: ${multiplier}`);
-      break;
-    }
-    case "Ispezioni": {
-      let totalOperationalHours = 0;
-      let currentDate = new Date(startDate); // Use the already parsed startDate
-      
-      while (currentDate <= endDate) { // Use the already parsed endDate
-        const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
-        const isCurrentDayHoliday = isDateHoliday(currentDate);
-
-        let dayConfig;
-        if (isCurrentDayHoliday) {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Festivi");
-        } else if (dayOfWeek === "sabato") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Sabato");
-        } else if (dayOfWeek === "domenica") {
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === "Domenica");
-        } else {
-          const italianDayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-          dayConfig = details.daily_hours_config?.find((d: any) => d.day === italianDayName);
-        }
-        
-        if (dayConfig) {
-          if (dayConfig.is24h) {
-            totalOperationalHours += 24;
-          } else if (dayConfig.startTime && dayConfig.endTime) {
-            const startOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.startTime}:00`);
-            const endOfDay = parseISO(`${format(currentDate, 'yyyy-MM-dd')}T${dayConfig.endTime}:00`);
-            
-            if (isValid(startOfDay) && isValid(endOfDay)) {
-              let dailyDiffMs = endOfDay.getTime() - startOfDay.getTime();
-              if (dailyDiffMs < 0) {
-                dailyDiffMs += 24 * 60 * 60 * 1000;
-              }
-              totalOperationalHours += dailyDiffMs / (1000 * 60 * 60);
-            }
-          }
-        }
-        currentDate = addDays(currentDate, 1);
-      }
-
-      if (details.cadence_hours && details.cadence_hours > 0) {
-        multiplier = Math.floor(totalOperationalHours / details.cadence_hours) + 1;
-      } else {
-        multiplier = null;
-      }
-      console.log(`[Multiplier Calc] Inspections - Total Operational Hours: ${totalOperationalHours}, Cadence: ${details.cadence_hours}, Multiplier: ${multiplier}`);
-      break;
-    }
-    case "Bonifiche":
-    case "Gestione Chiavi":
-    case "Apertura/Chiusura":
-    case "Intervento": {
-      multiplier = 1;
-      console.log(`[Multiplier Calc] One-off service - Multiplier: ${multiplier}`);
-      break;
-    }
-    // New case for monthly subscription services
-    case "Disponibilità Pronto Intervento":
-    case "Videosorveglianza":
-    case "Impianto Allarme":
-    case "Bidirezionale":
-    case "Monodirezionale":
-    case "Tenuta Chiavi": {
-      const actualEndDate = endDate || addMonths(startDate, 1); // Use the already parsed startDate
-      // Calculate the number of distinct calendar months between start_date and end_date
-      const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-      const endMonth = new Date(actualEndDate.getFullYear(), actualEndDate.getMonth(), 1);
-      let totalMonths = 0;
-      let currentMonth = startMonth;
-      while (currentMonth <= endMonth) {
-          totalMonths++;
-          currentMonth = addMonths(currentMonth, 1);
-      }
-      multiplier = totalMonths;
-      console.log(`[Multiplier Calc] Monthly service - Start: ${format(startDate, 'yyyy-MM-dd')}, End: ${format(actualEndDate, 'yyyy-MM-dd')}, Multiplier: ${multiplier}`);
-      break;
-    }
-    default:
-      console.warn(`[Multiplier Calc] Tipo di servizio non riconosciuto: ${details.type}`);
-      multiplier = null;
-  }
-
-  return multiplier;
-}
-
-export async function calculateServiceCost(details: ServiceDetailsForCost): Promise<{ multiplier: number; clientRate: number; supplierRate: number } | null> {
-  console.log(`[Cost Calc] Starting calculation for service: ${details.type}`);
-  console.log(`[Cost Calc] Details: Client ID: ${details.client_id}, Service Point ID: ${details.service_point_id}, Fornitore ID: ${details.fornitore_id}, Start Date: ${format(details.start_date, 'yyyy-MM-dd')}`);
-  
-  const allTariffe = await fetchAllTariffe();
-  console.log(`[Cost Calc] Total tariffs fetched: ${allTariffe.length}`);
-  
-  const serviceStartDate = details.start_date;
-
-  const matchingTariffs = allTariffe.filter(tariff => {
-    const tariffStartDate = (typeof tariff.data_inizio_validita === 'string' && tariff.data_inizio_validita !== '')
-      ? parseISO(tariff.data_inizio_validita)
-      : new Date(0);
-    const tariffEndDate = (typeof tariff.data_fine_validita === 'string' && tariff.data_fine_validita !== '')
-      ? parseISO(tariff.data_fine_validita)
-      : new Date(9999, 11, 31);
-
-    const isTariffActive = serviceStartDate >= tariffStartDate && serviceStartDate <= tariffEndDate;
-    const clientMatch = tariff.client_id === details.client_id;
-    const typeMatch = tariff.service_type === details.type;
-    const servicePointMatch = (tariff.punto_servizio_id === details.service_point_id || tariff.punto_servizio_id === null);
-    const fornitoreMatch = (tariff.fornitore_id === details.fornitore_id || tariff.fornitore_id === null);
-
-    const matchResult = clientMatch && typeMatch && isTariffActive && servicePointMatch && fornitoreMatch;
-    
-    console.log(`  [Cost Calc] Checking tariff ID: ${tariff.id || 'N/A'}, Type: ${tariff.service_type}, Client: ${tariff.client_id}, SP: ${tariff.punto_servizio_id}, Forn: ${tariff.fornitore_id}, Dates: ${tariff.data_inizio_validita} - ${tariff.data_fine_validita}`);
-    console.log(`    Matches: Client=${clientMatch}, Type=${typeMatch}, Active=${isTariffActive}, SP=${servicePointMatch}, Forn=${fornitoreMatch} -> Overall: ${matchResult}`);
-    
-    return matchResult;
-  });
-
-  console.log(`[Cost Calc] Found ${matchingTariffs.length} matching tariffs.`);
-
-  if (matchingTariffs.length === 0) {
-    console.log("[Cost Calc] No matching tariffs found. Returning null.");
-    return null;
-  }
-
-  // Prefer the most specific tariff (i.e., with specific service_point_id and fornitore_id)
-  // If multiple specific tariffs, pick the first one.
-  const bestMatchTariff = matchingTariffs.sort((a, b) => {
-    const aSpecificity = (a.punto_servizio_id ? 1 : 0) + (a.fornitore_id ? 1 : 0);
-    const bSpecificity = (b.punto_servizio_id ? 1 : 0) + (b.fornitore_id ? 1 : 0);
-    return bSpecificity - aSpecificity; // Sort by most specific first
-  })[0];
-
-  if (!bestMatchTariff) {
-    console.log("[Cost Calc] No best matching tariff found after sorting. This should not happen if matchingTariffs is not empty. Returning null.");
-    return null;
-  }
-
-  // NEW CHECK: If the best matching tariff has a zero rate, treat it as missing for analysis
-  if (bestMatchTariff.client_rate === 0 || bestMatchTariff.supplier_rate === 0) {
-    console.log(`[Cost Calc] Matched tariff ID ${bestMatchTariff.id} has zero client_rate (${bestMatchTariff.client_rate}) or supplier_rate (${bestMatchTariff.supplier_rate}). Treating as missing. Returning null.`);
-    return null;
-  }
-
-  console.log(`[Cost Calc] Best matching tariff selected: ID ${bestMatchTariff.id}, Type: ${bestMatchTariff.service_type}, Client Rate: ${bestMatchTariff.client_rate}, Supplier Rate: ${bestMatchTariff.supplier_rate}`);
-
-  const multiplier = await calculateServiceMultiplier(details);
-  console.log(`[Cost Calc] Multiplier calculated: ${multiplier}`);
-
-  if (multiplier === null || multiplier === 0) {
-    console.log("[Cost Calc] Multiplier is null or zero. Returning null.");
-    return null;
-  }
-
-  const clientRate = bestMatchTariff.client_rate;
-  const supplierRate = bestMatchTariff.supplier_rate;
-
-  console.log(`[Cost Calc] Final calculation: Multiplier: ${multiplier}, Client Rate: ${clientRate}, Supplier Rate: ${supplierRate}`);
-  return { multiplier, clientRate, supplierRate };
+export async function fetchCantiereReports(): Promise<CantiereReport[]> {
+  const { data, error } = await supabase.from('cantiere_reports').select('*');
+  if (error) throw error;
+  return data;
 }

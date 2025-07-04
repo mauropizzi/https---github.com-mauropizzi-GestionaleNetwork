@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -15,18 +17,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, parseISO } from "date-fns";
-import { it } from 'date-fns/locale';
 import { Edit, Trash2, RefreshCcw } from "lucide-react";
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiziCanone } from "@/lib/anagrafiche-data";
-import { CanoneEditDialog } from "./CanoneEditDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CanoneForm } from "./CanoneForm";
 
+// Extend ServiziCanone to include joined data
 interface ServiziCanoneExtended extends ServiziCanone {
-  punti_servizio?: { nome_punto_servizio: string } | null;
-  fornitori?: { nome_fornitore: string } | null;
-  clienti?: { nome_cliente: string } | null;
+  punti_servizio: { nome_punto_servizio: string }[];
+  fornitori: { nome_fornitore: string }[];
+  clienti: { nome_cliente: string }[];
 }
 
 export function CanoneTable() {
@@ -34,58 +36,53 @@ export function CanoneTable() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedCanoneForEdit, setSelectedCanoneForEdit] = useState<ServiziCanoneExtended | null>(null);
+  const [selectedCanoneForEdit, setSelectedCanoneForEdit] = useState<ServiziCanone | null>(null);
 
-  const fetchServiziCanoneData = useCallback(async () => {
+  const fetchServiziCanone = useCallback(async () => {
     setLoading(true);
-    const { data: canoneData, error } = await supabase
+    const { data, error } = await supabase
       .from('servizi_canone')
-      .select('id, created_at, service_point_id, fornitore_id, tipo_canone, start_date, end_date, status, notes, client_id, unita_misura, punti_servizio(nome_punto_servizio), fornitori(nome_fornitore), clienti(nome_cliente)'); // Removed calculated_cost
+      .select('*, punti_servizio(nome_punto_servizio), fornitori(nome_fornitore), clienti(nome_cliente)')
+      .order('start_date', { ascending: false });
 
     if (error) {
       showError(`Errore nel recupero dei servizi a canone: ${error.message}`);
-      console.error("Error fetching servizi_canone:", error);
+      console.error("Error fetching servizi canone:", error);
       setData([]);
     } else {
-      const mappedData = canoneData.map(sc => ({
+      const mappedData: ServiziCanoneExtended[] = data.map(sc => ({
         ...sc,
-        nome_punto_servizio: sc.punti_servizio?.nome_punto_servizio || 'N/A',
-        nome_fornitore: sc.fornitori?.nome_fornitore || 'N/A',
-        nome_cliente: sc.clienti?.nome_cliente || 'N/A',
+        punti_servizio: sc.punti_servizio || [],
+        fornitori: sc.fornitori || [],
+        clienti: sc.clienti || [],
       }));
-      setData(mappedData || []);
+      setData(mappedData);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchServiziCanoneData();
-  }, [fetchServiziCanoneData]);
+    fetchServiziCanone();
+  }, [fetchServiziCanone]);
 
-  const handleEdit = useCallback((canone: ServiziCanoneExtended) => {
+  const handleEdit = useCallback((canone: ServiziCanone) => {
     setSelectedCanoneForEdit(canone);
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback((updatedCanone: ServiziCanone) => {
-    // Update local state to reflect changes immediately
-    setData(prevData =>
-      prevData.map(sc =>
-        sc.id === updatedCanone.id ? { ...sc, ...updatedCanone } : sc
-      )
-    );
-    fetchServiziCanoneData(); // Re-fetch to ensure data consistency (e.g., updated names)
+  const handleSaveEdit = useCallback(() => {
+    fetchServiziCanone(); // Refresh data after save
     setIsEditDialogOpen(false);
     setSelectedCanoneForEdit(null);
-  }, [fetchServiziCanoneData]);
+  }, [fetchServiziCanone]);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedCanoneForEdit(null);
   }, []);
 
-  const handleDelete = async (canoneId: string, tipoCanone: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il servizio a canone "${tipoCanone}"?`)) {
+  const handleDelete = async (canoneId: string, canoneDescription: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il servizio a canone "${canoneDescription}"?`)) {
       const { error } = await supabase
         .from('servizi_canone')
         .delete()
@@ -93,13 +90,13 @@ export function CanoneTable() {
 
       if (error) {
         showError(`Errore durante l'eliminazione del servizio a canone: ${error.message}`);
-        console.error("Error deleting servizi_canone:", error);
+        console.error("Error deleting servizio canone:", error);
       } else {
-        showSuccess(`Servizio a canone "${tipoCanone}" eliminato con successo!`);
-        fetchServiziCanoneData(); // Refresh data after deletion
+        showSuccess(`Servizio a canone "${canoneDescription}" eliminato con successo!`);
+        fetchServiziCanone(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione del servizio a canone "${tipoCanone}" annullata.`);
+      showInfo(`Eliminazione del servizio a canone "${canoneDescription}" annullata.`);
     }
   };
 
@@ -108,9 +105,9 @@ export function CanoneTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         canone.tipo_canone.toLowerCase().includes(searchLower) ||
-        (canone.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
-        (canone.nome_fornitore?.toLowerCase().includes(searchLower)) ||
-        (canone.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        (canone.punti_servizio && canone.punti_servizio[0]?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (canone.fornitori && canone.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (canone.clienti && canone.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) ||
         canone.status.toLowerCase().includes(searchLower)
       );
     });
@@ -123,29 +120,29 @@ export function CanoneTable() {
       cell: ({ row }) => <span>{row.original.tipo_canone}</span>,
     },
     {
-      accessorKey: "nome_cliente",
-      header: "Cliente",
-      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
-    },
-    {
-      accessorKey: "nome_punto_servizio",
+      accessorKey: "service_point_id",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
+      cell: ({ row }) => <span>{row.original.punti_servizio[0]?.nome_punto_servizio || 'N/A'}</span>,
     },
     {
-      accessorKey: "nome_fornitore",
+      accessorKey: "fornitore_id",
       header: "Fornitore",
-      cell: ({ row }) => <span>{row.original.nome_fornitore || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.fornitori[0]?.nome_fornitore || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "client_id",
+      header: "Cliente",
+      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>,
     },
     {
       accessorKey: "start_date",
       header: "Data Inizio",
-      cell: ({ row }) => <span>{format(parseISO(row.original.start_date), "PPP", { locale: it })}</span>,
+      cell: ({ row }) => <span>{new Date(row.original.start_date).toLocaleDateString()}</span>,
     },
     {
       accessorKey: "end_date",
       header: "Data Fine",
-      cell: ({ row }) => <span>{row.original.end_date ? format(parseISO(row.original.end_date), "PPP", { locale: it }) : "N/A"}</span>,
+      cell: ({ row }) => <span>{row.original.end_date ? new Date(row.original.end_date).toLocaleDateString() : 'N/A'}</span>,
     },
     {
       accessorKey: "status",
@@ -160,7 +157,7 @@ export function CanoneTable() {
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.tipo_canone)} title="Elimina">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id!, row.original.tipo_canone)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -178,12 +175,12 @@ export function CanoneTable() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <Input
-          placeholder="Cerca per tipo canone, punto servizio, cliente..."
+          placeholder="Cerca per tipo canone, punto servizio, fornitore, cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Button variant="outline" onClick={fetchServiziCanoneData} disabled={loading}>
+        <Button variant="outline" onClick={fetchServiziCanone} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
       </div>
@@ -191,24 +188,20 @@ export function CanoneTable() {
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => { // Explicit return here
-              return (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => { // Explicit return here
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              );
-            })}
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {loading ? (
@@ -242,12 +235,21 @@ export function CanoneTable() {
       </div>
 
       {selectedCanoneForEdit && (
-        <CanoneEditDialog
-          isOpen={isEditDialogOpen}
-          onClose={handleCloseDialog}
-          canone={selectedCanoneForEdit}
-          onSave={handleSaveEdit}
-        />
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Modifica Servizio a Canone</DialogTitle>
+              <DialogDescription>
+                Apporta modifiche ai dettagli del servizio a canone.
+              </DialogDescription>
+            </DialogHeader>
+            <CanoneForm
+              canone={selectedCanoneForEdit}
+              onSaveSuccess={handleSaveEdit}
+              onCancel={handleCloseDialog}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

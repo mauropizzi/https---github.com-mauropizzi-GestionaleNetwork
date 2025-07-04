@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+"use client";
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
 import {
   Table,
   TableBody,
@@ -15,239 +16,178 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { showInfo, showSuccess, showError } from "@/utils/toast";
-import { format, parseISO } from "date-fns";
-import { it } from 'date-fns/locale';
-import { Eye, Edit, Trash2 } from "lucide-react";
-import { ServiceDetailsDialog } from "./ServiceDetailsDialog";
-// import { ServiceEditDialog } from "./ServiceEditDialog"; // REMOVE THIS IMPORT
+import { Input } from "@/components/ui/input";
+import { Edit, Trash2, RefreshCcw, Eye } from "lucide-react";
+import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateServiceMultiplier } from "@/lib/data-fetching";
-import { useServiceRequests } from "@/hooks/use-service-requests";
-import { ServiceTableFilters } from "./ServiceTableFilters";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { ServiceRequest as ServiceRequestBase } from "@/lib/anagrafiche-data";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ServiceRequestForm } from "./ServiceRequestForm";
+import { ServiceRequestDetailsDialog } from "./ServiceRequestDetailsDialog";
 
-interface ServiceRequest {
-  id: string;
-  type: string;
-  client_id?: string | null;
-  service_point_id?: string | null;
-  start_date: string;
-  start_time?: string | null;
-  end_date: string;
-  end_time?: string | null;
-  status: "Pending" | "Approved" | "Rejected" | "Completed";
-  calculated_cost?: number | null;
-  multiplier?: number | null;
-  num_agents?: number | null;
-  cadence_hours?: number | null;
-  inspection_type?: string | null;
-  daily_hours_config?: any | null;
-  fornitore_id?: string | null;
-
-  clienti?: { nome_cliente: string } | null;
-  punti_servizio?: { nome_punto_servizio: string; id_cliente: string | null } | null;
+// Extend ServiceRequestBase to include joined data
+interface ServiceRequest extends ServiceRequestBase {
+  clienti: { nome_cliente: string }[];
+  punti_servizio: { nome_punto_servizio: string }[];
+  fornitori: { nome_fornitore: string }[];
+  client?: { nome_cliente: string }; // Added optional client property
 }
 
 export function ServiceTable() {
-  const navigate = useNavigate(); // Initialize useNavigate
-  const {
-    data,
-    loading,
-    searchTerm,
-    setSearchTerm,
-    startDateFilter,
-    setStartDateFilter,
-    endDateFilter,
-    setEndDateFilter,
-    fetchServices,
-    handleResetFilters,
-    puntiServizioMap,
-  } = useServiceRequests();
-
+  const [data, setData] = useState<ServiceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<ServiceRequest | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<ServiceRequest | null>(null);
+  const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<ServiceRequest | null>(null);
 
-  const handleView = (service: ServiceRequest) => {
-    const clientName = service.clienti?.nome_cliente || 'N/A';
-    const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
+  const fetchServiceRequests = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
+      .order('created_at', { ascending: false });
 
-    setSelectedService({
-      ...service,
-      client: clientName,
-      location: servicePointName,
-      startDate: new Date(service.start_date),
-      endDate: new Date(service.end_date),
-      // The following fields are already part of ServiceRequest, but were explicitly added to the dialog's interface
-      // and might need to be mapped if the dialog's interface is not directly ServiceRequest
-      startTime: service.start_time || undefined,
-      endTime: service.end_time || undefined,
-      numAgents: service.num_agents || undefined,
-      cadenceHours: service.cadence_hours || undefined,
-      inspectionType: service.inspection_type || undefined,
-      dailyHoursConfig: service.daily_hours_config || undefined,
-    });
+    if (error) {
+      showError(`Errore nel recupero delle richieste di servizio: ${error.message}`);
+      console.error("Error fetching service requests:", error);
+      setData([]);
+    } else {
+      const mappedData: ServiceRequest[] = data.map(req => ({
+        ...req,
+        clienti: req.clienti || [],
+        punti_servizio: req.punti_servizio || [],
+        fornitori: req.fornitori || [],
+        // Map the first client object directly if it exists
+        client: req.clienti && req.clienti.length > 0 ? req.clienti[0] : undefined,
+      }));
+      setData(mappedData);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchServiceRequests();
+  }, [fetchServiceRequests]);
+
+  const handleEdit = useCallback((request: ServiceRequest) => {
+    setSelectedRequestForEdit(request);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleViewDetails = useCallback((request: ServiceRequest) => {
+    setSelectedRequestForDetails(request);
     setIsDetailsDialogOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (service: ServiceRequest) => {
-    // Navigate to the dedicated edit page for this service
-    navigate(`/service-list/edit/${service.id}`);
-  };
+  const handleSaveEdit = useCallback(() => {
+    fetchServiceRequests(); // Refresh data after save
+    setIsEditDialogOpen(false);
+    setSelectedRequestForEdit(null);
+  }, [fetchServiceRequests]);
 
-  // REMOVE handleSaveEdit as it's now handled by the dedicated edit page
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedRequestForEdit(null);
+  }, []);
 
-  const handleDelete = async (serviceId: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il servizio ${serviceId}?`)) {
+  const handleCloseDetailsDialog = useCallback(() => {
+    setIsDetailsDialogOpen(false);
+    setSelectedRequestForDetails(null);
+  }, []);
+
+  const handleDelete = async (requestId: string, requestType: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare la richiesta di servizio "${requestType}"?`)) {
       const { error } = await supabase
-        .from('servizi_richiesti')
+        .from('service_requests')
         .delete()
-        .eq('id', serviceId);
+        .eq('id', requestId);
 
       if (error) {
-        showError(`Errore durante l'eliminazione del servizio: ${error.message}`);
-        console.error("Error deleting service:", error);
+        showError(`Errore durante l'eliminazione della richiesta: ${error.message}`);
+        console.error("Error deleting service request:", error);
       } else {
-        showSuccess(`Servizio ${serviceId} eliminato con successo!`);
-        fetchServices();
+        showSuccess(`Richiesta "${requestType}" eliminata con successo!`);
+        fetchServiceRequests(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione del servizio ${serviceId} annullata.`);
+      showInfo(`Eliminazione della richiesta "${requestType}" annullata.`);
     }
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(service => {
-      const clientName = service.clienti?.nome_cliente || 'N/A';
-      const servicePointName = service.punti_servizio?.nome_punto_servizio || 'N/A';
-
-      const matchesSearch = searchTerm.toLowerCase() === '' ||
-        service.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        servicePointName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.status.toLowerCase().includes(searchTerm.toLowerCase());
-
-      return matchesSearch;
+    return data.filter(request => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        request.type.toLowerCase().includes(searchLower) ||
+        (request.clienti && request.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        (request.punti_servizio && request.punti_servizio[0]?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (request.fornitori && request.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        request.status.toLowerCase().includes(searchLower)
+      );
     });
   }, [data, searchTerm]);
 
   const columns: ColumnDef<ServiceRequest>[] = useMemo(() => [
     {
       accessorKey: "type",
-      header: "Tipo Servizio",
+      header: "Tipo",
+      cell: ({ row }) => <span>{row.original.type}</span>,
     },
     {
       accessorKey: "client_id",
       header: "Cliente",
-      cell: ({ row }) => row.original.clienti?.nome_cliente || 'N/A',
+      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>,
     },
     {
       accessorKey: "service_point_id",
       header: "Punto Servizio",
-      cell: ({ row }) => row.original.punti_servizio?.nome_punto_servizio || 'N/A',
+      cell: ({ row }) => <span>{row.original.punti_servizio[0]?.nome_punto_servizio || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "fornitore_id",
+      header: "Fornitore",
+      cell: ({ row }) => <span>{row.original.fornitori[0]?.nome_fornitore || 'N/A'}</span>,
     },
     {
       accessorKey: "start_date",
       header: "Data Inizio",
-      cell: ({ row }) => format(new Date(row.original.start_date), "PPP", { locale: it }),
+      cell: ({ row }) => <span>{new Date(row.original.start_date).toLocaleDateString()}</span>,
     },
     {
-      accessorKey: "end_date",
-      header: "Data Fine",
-      cell: ({ row }) => format(new Date(row.original.end_date), "PPP", { locale: it }),
+      accessorKey: "start_time",
+      header: "Ora Inizio",
+      cell: ({ row }) => <span>{row.original.start_time}</span>,
     },
     {
       accessorKey: "status",
       header: "Stato",
-      cell: ({ row }) => {
-        const status = row.original.status;
-        let statusClass = "";
-        switch (status) {
-          case "Approved":
-            statusClass = "bg-green-100 text-green-800";
-            break;
-          case "Pending":
-            statusClass = "bg-yellow-100 text-yellow-800";
-            break;
-          case "Rejected":
-            statusClass = "bg-red-100 text-red-800";
-            break;
-          case "Completed":
-            statusClass = "bg-blue-100 text-blue-800";
-            break;
-          default:
-            statusClass = "bg-gray-100 text-gray-800";
-        }
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>
-            {status}
-          </span>
-        );
-      },
+      cell: ({ row }) => <span>{row.original.status}</span>,
     },
     {
-      accessorKey: "multiplier",
-      header: "Numero Ore/Servizi",
-      cell: ({ row }) => {
-        const multiplier = row.original.multiplier;
-        let unit = "";
-        switch (row.original.type) {
-          case "Piantonamento":
-          case "Servizi Fiduciari":
-            unit = "ore";
-            break;
-          case "Ispezioni":
-          case "Bonifiche":
-          case "Gestione Chiavi":
-          case "Apertura/Chiusura":
-          case "Intervento":
-            unit = "interventi";
-            break;
-          default:
-            unit = "";
-        }
-        return (
-          <span>
-            {multiplier !== undefined && multiplier !== null
-              ? `${multiplier.toFixed(2)} ${unit}`
-              : "N/A"}
-          </span>
-        );
-      },
+      accessorKey: "calculated_cost",
+      header: "Costo Stimato",
+      cell: ({ row }) => <span>{row.original.calculated_cost ? `€${row.original.calculated_cost.toFixed(2)}` : 'N/A'}</span>,
     },
     {
       id: "actions",
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleView(row.original)}
-            title="Visualizza"
-          >
+          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row.original)} title="Visualizza Dettagli">
             <Eye className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-            title="Modifica"
-          >
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleDelete(row.original.id)}
-            title="Elimina"
-          >
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id!, row.original.type)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleView, handleEdit, handleDelete]);
+  ], [handleEdit, handleDelete, handleViewDetails]);
 
   const table = useReactTable({
     data: filteredData,
@@ -257,34 +197,33 @@ export function ServiceTable() {
 
   return (
     <div className="space-y-4">
-      <ServiceTableFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        startDateFilter={startDateFilter}
-        setStartDateFilter={setStartDateFilter}
-        endDateFilter={endDateFilter}
-        setEndDateFilter={setEndDateFilter}
-        handleResetFilters={handleResetFilters}
-        onRefresh={fetchServices}
-        loading={loading}
-      />
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <Input
+          placeholder="Cerca per tipo, cliente, punto servizio, fornitore..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Button variant="outline" onClick={fetchServiceRequests} disabled={loading}>
+          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        </Button>
+      </div>
+
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -292,7 +231,7 @@ export function ServiceTable() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento servizi...
+                  Caricamento richieste di servizio...
                 </TableCell>
               </TableRow>
             ) : (table && table.getRowModel().rows?.length) ? (
@@ -311,7 +250,7 @@ export function ServiceTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun servizio trovato.
+                  Nessuna richiesta di servizio trovata.
                 </TableCell>
               </TableRow>
             )}
@@ -319,27 +258,31 @@ export function ServiceTable() {
         </Table>
       </div>
 
-      <ServiceDetailsDialog
-        isOpen={isDetailsDialogOpen}
-        onClose={() => setIsDetailsDialogOpen(false)}
-        service={selectedService ? {
-          id: selectedService.id,
-          type: selectedService.type,
-          client: selectedService.clienti?.nome_cliente || 'N/A',
-          location: selectedService.punti_servizio?.nome_punto_servizio || 'N/A',
-          startDate: new Date(selectedService.start_date),
-          endDate: new Date(selectedService.end_date),
-          status: selectedService.status,
-          startTime: selectedService.start_time || undefined,
-          endTime: selectedService.end_time || undefined,
-          numAgents: selectedService.num_agents || undefined,
-          cadenceHours: selectedService.cadence_hours || undefined,
-          inspectionType: selectedService.inspection_type || undefined,
-          dailyHoursConfig: selectedService.daily_hours_config || undefined,
-        } : null}
-      />
+      {selectedRequestForEdit && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Modifica Richiesta di Servizio</DialogTitle>
+              <DialogDescription>
+                Apporta modifiche ai dettagli della richiesta.
+              </DialogDescription>
+            </DialogHeader>
+            <ServiceRequestForm
+              request={selectedRequestForEdit}
+              onSaveSuccess={handleSaveEdit}
+              onCancel={handleCloseEditDialog}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* ServiceEditDialog is no longer used here */}
+      {selectedRequestForDetails && (
+        <ServiceRequestDetailsDialog
+          isOpen={isDetailsDialogOpen}
+          onClose={handleCloseDetailsDialog}
+          request={selectedRequestForDetails}
+        />
+      )}
     </div>
   );
 }

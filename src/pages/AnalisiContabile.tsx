@@ -1,105 +1,166 @@
-import React, { useState, useEffect } from "react"; // Import React and useEffect
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAnalisiContabileData } from "@/hooks/use-analisi-contabile-data";
-import { AnalysisFilters } from "@/components/analisi-contabile/AnalysisFilters";
-import { ServiceSummaryTable } from "@/components/analisi-contabile/ServiceSummaryTable";
-import { MissingTariffsTable } from "@/components/analisi-contabile/MissingTariffsTable";
-// Removed import for supabase client as it's no longer needed here
+"use client";
 
-const AnalisiContabile = () => {
-  console.log("AnalisiContabile: Component rendering.");
-  const [currentTab, setCurrentTab] = useState("sintesi-contabile");
-  
-  // Removed temporary test for direct query to servizi_canone
+import React, { useState } from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
-  const hookResult = useAnalisiContabileData();
-  console.log("AnalisiContabile: Result of useAnalisiContabileData:", hookResult);
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-  // Controllo per prevenire il crash se l'hook restituisce undefined
-  if (!hookResult) {
-    console.error("AnalisiContabile: useAnalisiContabileData ha restituito undefined!");
-    return (
-      <div className="container mx-auto p-4 text-center">
-        <Card className="w-full max-w-6xl mx-auto">
-          <CardHeader><CardTitle className="text-3xl font-bold text-center">Errore di Caricamento Dati</CardTitle></CardHeader>
-          <CardContent><p className="text-xl text-gray-600 dark:text-gray-400">Impossibile caricare i dati di analisi. Riprova o contatta il supporto.</p></CardContent>
-        </Card>
-      </div>
-    );
-  }
+export default function AnalisiContabile() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
 
-  const {
-    clientsList,
-    selectedClientId,
-    setSelectedClientId,
-    summaryData,
-    missingTariffs,
-    loadingSummary,
-    loadingMissingTariffs,
-    startDateFilter,
-    setStartDateFilter,
-    endDateFilter,
-    setEndDateFilter,
-    fetchAndProcessServiceData,
-    fetchAndIdentifyMissingTariffs,
-    handleResetFilters,
-  } = hookResult; // Destruttura da hookResult
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   return (
-    <div className="container mx-auto p-4">
-      <Card className="w-full max-w-6xl mx-auto">
+    <div className="space-y-6 p-8">
+      <h1 className="text-3xl font-bold">Analisi Contabile</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtra per Data Range</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !dateRange?.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Seleziona un intervallo di date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtra per Data Inizio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] pl-3 text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  {startDate ? (
+                    format(startDate, "PPP")
+                  ) : (
+                    <span>Seleziona una data</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate} {/* Corrected: pass setter function */}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtra per Data Fine</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] pl-3 text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  {endDate ? (
+                    format(endDate, "PPP")
+                  ) : (
+                    <span>Seleziona una data</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate} {/* Corrected: pass setter function */}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Placeholder for financial data display */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">Analisi Contabile</CardTitle>
-          <CardDescription className="text-center">
-            Strumenti per l'analisi dei costi e la verifica delle tariffe.
-          </CardDescription>
+          <CardTitle>Riepilogo Finanziario</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sintesi-contabile">Sintesi Contabile</TabsTrigger>
-              <TabsTrigger value="tariffe-mancanti">Verifica Tariffe Mancanti</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="sintesi-contabile" className="mt-4">
-              <AnalysisFilters
-                clientsList={clientsList}
-                selectedClientId={selectedClientId}
-                setSelectedClientId={setSelectedClientId}
-                startDateFilter={startDateFilter}
-                setStartDateFilter={setStartDateFilter}
-                endDateFilter={endDateFilter}
-                setEndDateFilter={endDateFilter}
-                handleResetFilters={handleResetFilters}
-                onRefresh={fetchAndProcessServiceData}
-                loading={loadingSummary}
-                showClientFilter={true}
-              />
-              <ServiceSummaryTable data={summaryData} loading={loadingSummary} />
-            </TabsContent>
-
-            <TabsContent value="tariffe-mancanti" className="mt-4">
-              <AnalysisFilters
-                clientsList={clientsList}
-                selectedClientId={selectedClientId}
-                setSelectedClientId={setSelectedClientId}
-                startDateFilter={startDateFilter}
-                setStartDateFilter={setStartDateFilter}
-                endDateFilter={endDateFilter}
-                setEndDateFilter={endDateFilter}
-                handleResetFilters={handleResetFilters}
-                onRefresh={fetchAndIdentifyMissingTariffs}
-                loading={loadingMissingTariffs}
-                showClientFilter={false}
-              />
-              <MissingTariffsTable data={missingTariffs} loading={loadingMissingTariffs} />
-            </TabsContent>
-          </Tabs>
+          <p>Dati finanziari verranno visualizzati qui in base ai filtri selezionati.</p>
+          {/* Example: Display selected dates */}
+          {dateRange?.from && dateRange.to && (
+            <p>Intervallo selezionato: {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}</p>
+          )}
+          {startDate && (
+            <p>Data inizio selezionata: {format(startDate, "PPP")}</p>
+          )}
+          {endDate && (
+            <p>Data fine selezionata: {format(endDate, "PPP")}</p>
+          )}
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default AnalisiContabile;
+}

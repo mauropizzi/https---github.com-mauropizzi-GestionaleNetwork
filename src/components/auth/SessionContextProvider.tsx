@@ -1,72 +1,62 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+"use client";
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { showInfo, showError } from '@/utils/toast';
+
+// Extend AuthChangeEvent to include 'USER_DELETED' if it's a custom event or needed for specific logic
+type ExtendedAuthChangeEvent = AuthChangeEvent | 'USER_DELETED';
 
 interface SessionContextType {
   session: Session | null;
+  user: User | null;
   loading: boolean;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function SessionContextProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('SessionContextProvider: Auth state changed!', { event, currentSession });
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        setSession(currentSession);
-        console.log('SessionContextProvider: User SIGNED_IN or UPDATED. Session:', currentSession);
-      } else if (event === 'SIGNED_OUT') {
-        setSession(null);
-        console.log('SessionContextProvider: User SIGNED_OUT. Session is null.');
-        showInfo("Sei stato disconnesso. Effettua nuovamente l'accesso.");
-      } else if (event === 'INITIAL_SESSION') {
-        setSession(currentSession);
-        console.log('SessionContextProvider: Initial session loaded. Session:', currentSession);
-      } else if (event === 'TOKEN_REFRESHED') {
-        setSession(currentSession);
-        console.log('SessionContextProvider: Token refreshed. New session:', currentSession);
-      } else if (event === 'USER_DELETED') {
-        setSession(null);
-        console.log('SessionContextProvider: User deleted. Session is null.');
-        showError("Il tuo account è stato eliminato.");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: ExtendedAuthChangeEvent, session: Session | null) => {
+        console.log("Auth event:", event, "Session:", session);
+        setSession(session);
+        setUser(session?.user || null);
+        setLoading(false);
+
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          // Clear any user-specific data or redirect
+          console.log("User signed out or deleted.");
+        }
       }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user || null);
       setLoading(false);
     });
 
-    // Fetch initial session
-    const getInitialSession = async () => {
-      console.log('SessionContextProvider: Fetching initial session...');
-      const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("SessionContextProvider: Error fetching initial session:", error);
-        showError(`Errore nel recupero della sessione: ${error.message}`);
-      }
-      setSession(initialSession);
-      setLoading(false);
-      console.log('SessionContextProvider: Initial session fetch complete. Session:', initialSession);
+    return () => {
+      subscription.unsubscribe();
     };
-
-    getInitialSession();
-
-    return () => subscription.unsubscribe();
   }, []);
 
   return (
-    <SessionContext.Provider value={{ session, loading }}>
+    <SessionContext.Provider value={{ session, user, loading }}>
       {children}
     </SessionContext.Provider>
   );
-};
+}
 
-export const useSession = () => {
+export function useSession() {
   const context = useContext(SessionContext);
   if (context === undefined) {
     throw new Error('useSession must be used within a SessionContextProvider');
   }
   return context;
-};
+}

@@ -1,88 +1,329 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PuntiServizioTable } from "@/components/anagrafiche/PuntiServizioTable";
+"use client";
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Download, Upload } from "lucide-react";
-import { showSuccess, showError, showInfo } from "@/utils/toast";
-import { exportTableToExcel } from "@/utils/export";
-import { importDataFromExcel } from "@/utils/import";
+import { Edit, Trash2, RefreshCcw, PlusCircle, Upload, Eye } from "lucide-react";
+import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PuntoServizio } from "@/lib/anagrafiche-data";
+import { PuntoServizioEditDialog } from "@/components/anagrafiche/PuntiServizioEditDialog";
+import { PuntoServizioDetailsDialog } from "@/components/anagrafiche/PuntiServizioDetailsDialog";
+import { importDataFromExcel } from "@/utils/import"; // Assuming this utility exists
 
-const PuntiServizioList = () => {
-  const handleExport = async () => {
-    const tableName = "punti_servizio";
-    const columnsToSelect = ["id", "created_at", "nome_punto_servizio", "id_cliente", "indirizzo", "citta", "cap", "provincia", "referente", "telefono_referente", "telefono", "email", "note", "tempo_intervento", "fornitore_id", "codice_cliente", "codice_sicep", "codice_fatturazione", "latitude", "longitude"];
+// Define a type for the import result that includes duplicateRecords
+interface ImportResult {
+  newRecordsCount: number;
+  updatedRecordsCount: number;
+  invalidRecords: any[];
+  duplicateRecords?: any[]; // Added duplicateRecords
+  errors?: string[];
+}
 
+// Extend PuntoServizio to include joined data for display
+interface PuntoServizioExtended extends PuntoServizio {
+  fornitori?: { nome_fornitore: string }[];
+  clienti?: { nome_cliente: string }[];
+  procedure?: { nome_procedura: string }[];
+}
+
+export default function PuntiServizioList() {
+  const [data, setData] = useState<PuntoServizioExtended[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPuntoServizioForEdit, setSelectedPuntoServizioForEdit] = useState<PuntoServizio | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedPuntoServizioForDetails, setSelectedPuntoServizioForDetails] = useState<PuntoServizioExtended | null>(null);
+
+  const fetchPuntiServizio = useCallback(async () => {
+    setLoading(true);
     const { data, error } = await supabase
-      .from(tableName)
-      .select(columnsToSelect.join(','));
+      .from('punti_servizio')
+      .select('*, fornitori(nome_fornitore), clienti(nome_cliente), procedure(nome_procedura)')
+      .order('nome_punto_servizio', { ascending: true });
 
     if (error) {
-      showError(`Errore nel recupero dei dati per l'esportazione: ${error.message}`);
-      console.error("Error fetching data for export:", error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      exportTableToExcel(data, `Anagrafiche_PuntiServizio`, `PuntiServizio`);
+      showError(`Errore nel recupero dei punti di servizio: ${error.message}`);
+      console.error("Error fetching punti servizio:", error);
+      setData([]);
     } else {
-      showInfo("Nessun dato da esportare per i Punti Servizio.");
+      const mappedData: PuntoServizioExtended[] = data.map(ps => ({
+        ...ps,
+        fornitori: ps.fornitori || [],
+        clienti: ps.clienti || [],
+        procedure: ps.procedure || [],
+      }));
+      setData(mappedData);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchPuntiServizio();
+  }, [fetchPuntiServizio]);
+
+  const handleAddPuntoServizio = useCallback(() => {
+    setSelectedPuntoServizioForEdit(null);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleEdit = useCallback((puntoServizio: PuntoServizio) => {
+    setSelectedPuntoServizioForEdit(puntoServizio);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  const handleViewDetails = useCallback((puntoServizio: PuntoServizioExtended) => {
+    setSelectedPuntoServizioForDetails(puntoServizio);
+    setIsDetailsDialogOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback(() => {
+    fetchPuntiServizio(); // Refresh data after save
+    setIsEditDialogOpen(false);
+    setSelectedPuntoServizioForEdit(null);
+  }, [fetchPuntiServizio]);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setSelectedPuntoServizioForEdit(null);
+  }, []);
+
+  const handleCloseDetailsDialog = useCallback(() => {
+    setIsDetailsDialogOpen(false);
+    setSelectedPuntoServizioForDetails(null);
+  }, []);
+
+  const handleDelete = async (puntoServizioId: string, puntoServizioName: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare il punto di servizio "${puntoServizioName}"?`)) {
+      const { error } = await supabase
+        .from('punti_servizio')
+        .delete()
+        .eq('id', puntoServizioId);
+
+      if (error) {
+        showError(`Errore durante l'eliminazione del punto di servizio: ${error.message}`);
+        console.error("Error deleting punto servizio:", error);
+      } else {
+        showSuccess(`Punto di servizio "${puntoServizioName}" eliminato con successo!`);
+        fetchPuntiServizio(); // Refresh data after deletion
+      }
+    } else {
+      showInfo(`Eliminazione del punto di servizio "${puntoServizioName}" annullata.`);
     }
   };
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      showInfo(`Inizio importazione del file "${file.name}" per i Punti Servizio...`);
-      const result = await importDataFromExcel(file, "punti-servizio"); // Use base tab name for import utility
+    if (!file) {
+      showInfo("Nessun file selezionato.");
+      return;
+    }
 
-      if (result.success) {
-        showSuccess(result.message);
-        // You might want to trigger a refresh of the table here if it's not handled by the table component itself
-      } else {
-        showError(result.message);
-        if (result.details) {
-          if (result.details.duplicateRecords.length > 0) {
-            console.warn("Record duplicati ignorati:", result.details.duplicateRecords);
-          }
-          if (result.details.invalidRecords.length > 0) {
-            console.error("Record non validi ignorati:", result.details.invalidRecords);
-          }
-          if (result.details.errors && result.details.errors.length > 0) {
-            console.error("Errori di importazione:", result.details.errors);
-          }
-        }
+    setLoading(true);
+    try {
+      const result: ImportResult = await importDataFromExcel(file, 'punti_servizio');
+      showSuccess(`Importazione completata: ${result.newRecordsCount} nuovi, ${result.updatedRecordsCount} aggiornati.`);
+      if (result.invalidRecords.length > 0) {
+        showError(`Record non validi: ${result.invalidRecords.length}. Controlla la console per i dettagli.`);
+        console.error("Record non validi:", result.invalidRecords);
       }
-      event.target.value = ''; // Clear the input field
+      if (result.duplicateRecords && result.duplicateRecords.length > 0) {
+        showInfo(`Record duplicati ignorati: ${result.duplicateRecords.length}. Controlla la console per i dettagli.`);
+        console.info("Record duplicati:", result.duplicateRecords);
+      }
+      if (result.errors && result.errors.length > 0) {
+        result.errors.forEach(err => showError(err));
+        console.error("Errori durante l'importazione:", result.errors);
+      }
+      fetchPuntiServizio();
+    } catch (error: any) {
+      showError(`Errore durante l'importazione: ${error.message}`);
+      console.error("Import error:", error);
+    } finally {
+      setLoading(false);
+      event.target.value = ''; // Clear the input so the same file can be selected again
     }
   };
 
+  const filteredData = useMemo(() => {
+    return data.filter(puntoServizio => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        puntoServizio.nome_punto_servizio.toLowerCase().includes(searchLower) ||
+        (puntoServizio.address?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.city?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.fornitori && puntoServizio.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.clienti && puntoServizio.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower))
+      );
+    });
+  }, [data, searchTerm]);
+
+  const columns: ColumnDef<PuntoServizioExtended>[] = useMemo(() => [
+    {
+      accessorKey: "nome_punto_servizio",
+      header: "Nome Punto Servizio",
+      cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
+    },
+    {
+      accessorKey: "address",
+      header: "Indirizzo",
+      cell: ({ row }) => <span>{row.original.address || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "city",
+      header: "Città",
+      cell: ({ row }) => <span>{row.original.city || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "fornitore_id",
+      header: "Fornitore",
+      cell: ({ row }) => <span>{row.original.fornitori?.[0]?.nome_fornitore || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "client_id",
+      header: "Cliente",
+      cell: ({ row }) => <span>{row.original.clienti?.[0]?.nome_cliente || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "service_type",
+      header: "Tipo Servizio",
+      cell: ({ row }) => <span>{row.original.service_type || 'N/A'}</span>,
+    },
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row.original)} title="Visualizza Dettagli">
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id!, row.original.nome_punto_servizio)} title="Elimina">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [handleEdit, handleDelete, handleViewDetails]);
+
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
-    <div className="container mx-auto p-4">
-      <Card className="w-full max-w-6xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">Elenco Punti Servizio</CardTitle>
-          <CardDescription className="text-center">Visualizza e gestisci tutti i punti servizio registrati.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-end space-x-2 mb-4">
-            <Button onClick={handleExport} variant="outline">
-              <Download className="mr-2 h-4 w-4" /> Esporta Excel
-            </Button>
-            <Label htmlFor="import-punti-servizio-excel" className="flex items-center cursor-pointer">
-              <Input id="import-punti-servizio-excel" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleImport} className="hidden" />
-              <Button asChild variant="outline">
-                <span><Upload className="mr-2 h-4 w-4" /> Importa Excel</span>
-              </Button>
-            </Label>
-          </div>
-          <PuntiServizioTable />
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <Input
+          placeholder="Cerca per nome, indirizzo, città, fornitore, cliente..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Button variant="outline" onClick={fetchPuntiServizio} disabled={loading}>
+          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        </Button>
+        <Button onClick={handleAddPuntoServizio}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Punto Servizio
+        </Button>
+        <label htmlFor="import-excel" className="cursor-pointer">
+          <Button asChild variant="outline">
+            <div>
+              <Upload className="mr-2 h-4 w-4" /> Importa Excel
+              <Input
+                id="import-excel"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleImport}
+                className="sr-only"
+                disabled={loading}
+              />
+            </div>
+          </Button>
+        </label>
+      </div>
+
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Caricamento punti di servizio...
+                </TableCell>
+              </TableRow>
+            ) : (table && table.getRowModel().rows?.length) ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Nessun punto di servizio trovato.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <PuntoServizioEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        puntoServizio={selectedPuntoServizioForEdit}
+        onSaveSuccess={handleSaveEdit}
+      />
+
+      {selectedPuntoServizioForDetails && (
+        <PuntoServizioDetailsDialog
+          isOpen={isDetailsDialogOpen}
+          onClose={handleCloseDetailsDialog}
+          puntoServizio={selectedPuntoServizioForDetails}
+        />
+      )}
     </div>
   );
-};
-
-export default PuntiServizioList;
+}
