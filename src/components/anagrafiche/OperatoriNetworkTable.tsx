@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -22,7 +24,7 @@ import { OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { OperatoreNetworkEditDialog } from "./OperatoriNetworkEditDialog"; // Import the new dialog
 
 interface OperatoreNetworkExtended extends OperatoreNetwork {
-  clienti?: { nome_cliente: string } | null; // To display the client name
+  nome_cliente?: string; // To display the client name directly
 }
 
 export function OperatoriNetworkTable() {
