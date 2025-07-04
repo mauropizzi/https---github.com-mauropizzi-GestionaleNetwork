@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -182,7 +184,9 @@ export function ClientContactTable({ clientId }: ClientContactTableProps) {
                         )}
                   </TableHead>
                 ))}
-              </TableHeader>
+              </TableRow>
+            ))}
+          </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
