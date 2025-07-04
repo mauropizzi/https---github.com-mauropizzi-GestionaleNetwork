@@ -48,14 +48,18 @@ export default function Login() {
             variables: {
               sign_in: {
                 email_label: "Indirizzo Email",
+                email_input_placeholder: "La tua email",
                 password_label: "Password",
+                password_input_placeholder: "La tua password",
                 button_label: "Accedi",
                 social_provider_text: "Accedi con {{provider}}",
-                sign_up_link_text: "Non hai un account? Registrati", // Added this line
+                sign_up_link_text: "Non hai un account? Registrati",
               },
               sign_up: {
                 email_label: "Indirizzo Email",
+                email_input_placeholder: "La tua email",
                 password_label: "Crea una Password",
+                password_input_placeholder: "La tua password",
                 button_label: "Registrati",
                 social_provider_text: "Registrati con {{provider}}",
               },
