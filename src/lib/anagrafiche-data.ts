@@ -148,6 +148,14 @@ export interface RapportoServizio {
   high_visibility_vest: boolean;
 }
 
+// New interface for daily hours configuration
+export interface DailyHoursConfigItem {
+  day: string;
+  startTime: string;
+  endTime: string;
+  is24h: boolean;
+}
+
 export interface ServiziRichiesti { // Renamed from ServiceRequest
   id: string;
   created_at?: string;
@@ -164,7 +172,7 @@ export interface ServiziRichiesti { // Renamed from ServiceRequest
   num_agents?: number | null;
   cadence_hours?: number | null;
   inspection_type?: string | null;
-  daily_hours_config?: any | null; // JSONB type
+  daily_hours_config?: DailyHoursConfigItem[] | null; // Use the new interface
   // Joined fields (Supabase returns these as direct objects if single, or null)
   clienti?: { nome_cliente: string } | null;
   punti_servizio?: { nome_punto_servizio: string } | null;
