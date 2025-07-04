@@ -210,14 +210,17 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
   console.log(`[Multiplier Calc] Dates: ${format(details.start_date, 'yyyy-MM-dd')} to ${format(details.end_date, 'yyyy-MM-dd')}`);
   let multiplier: number | null = null;
 
+  // Use details.start_date and details.end_date directly as they are already Date objects
+  const startDate = details.start_date;
+  const endDate = details.end_date;
+
   switch (details.type) {
     case "Piantonamento":
     case "Servizi Fiduciari": {
       let totalHours = 0;
-      let currentDate = new Date(details.start_date);
-      const endDate = details.end_date;
-
-      while (currentDate <= endDate) {
+      let currentDate = new Date(startDate); // Use the already parsed startDate
+      
+      while (currentDate <= endDate) { // Use the already parsed endDate
         const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
         const isCurrentDayHoliday = isDateHoliday(currentDate);
 
@@ -257,10 +260,9 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     }
     case "Ispezioni": {
       let totalOperationalHours = 0;
-      let currentDate = new Date(details.start_date);
-      const endDate = details.end_date;
-
-      while (currentDate <= endDate) {
+      let currentDate = new Date(startDate); // Use the already parsed startDate
+      
+      while (currentDate <= endDate) { // Use the already parsed endDate
         const dayOfWeek = format(currentDate, 'EEEE', { locale: it });
         const isCurrentDayHoliday = isDateHoliday(currentDate);
 
@@ -318,9 +320,9 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
     case "Bidirezionale":
     case "Monodirezionale":
     case "Tenuta Chiavi": {
-      const actualEndDate = details.end_date || addMonths(details.start_date, 1); // Default to 1 month if no end date
+      const actualEndDate = endDate || addMonths(startDate, 1); // Use the already parsed startDate
       // Calculate the number of distinct calendar months between start_date and end_date
-      const startMonth = new Date(details.start_date.getFullYear(), details.start_date.getMonth(), 1);
+      const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
       const endMonth = new Date(actualEndDate.getFullYear(), actualEndDate.getMonth(), 1);
       let totalMonths = 0;
       let currentMonth = startMonth;
@@ -329,7 +331,7 @@ export async function calculateServiceMultiplier(details: ServiceDetailsForCost)
           currentMonth = addMonths(currentMonth, 1);
       }
       multiplier = totalMonths;
-      console.log(`[Multiplier Calc] Monthly service - Start: ${format(details.start_date, 'yyyy-MM-dd')}, End: ${format(actualEndDate, 'yyyy-MM-dd')}, Multiplier: ${multiplier}`);
+      console.log(`[Multiplier Calc] Monthly service - Start: ${format(startDate, 'yyyy-MM-dd')}, End: ${format(actualEndDate, 'yyyy-MM-dd')}, Multiplier: ${multiplier}`);
       break;
     }
     default:

@@ -36,7 +36,7 @@ const formSchema = z.object({
   startKm: z.coerce.number().min(0, "KM iniziali non validi."),
   endKm: z.coerce.number().min(0, "KM finali non validi."),
   vehicleInitialState: z.string().min(1, "Stato iniziale veicolo è richiesto."),
-  danniVeicolo: z.string().min(1, "Danni veicolo è richiesto."),
+  danniVeicolo: z.string().optional().nullable(), // Changed to optional().nullable()
   vehicleAnomalies: z.string().optional().nullable(),
   gps: z.enum(['si', 'no'], { required_error: 'Il campo GPS è obbligatorio.' }),
   radioVehicle: z.enum(['si', 'no'], { required_error: 'Il campo Radio Veicolare è obbligatorio.' }),
@@ -79,7 +79,7 @@ export function ServiceReportEditForm({ reportId, onSaveSuccess, onCancel }: Ser
       startKm: 0,
       endKm: 0,
       vehicleInitialState: "",
-      danniVeicolo: null,
+      danniVeicolo: null, // Changed default to null
       vehicleAnomalies: null,
       gps: undefined,
       radioVehicle: undefined,

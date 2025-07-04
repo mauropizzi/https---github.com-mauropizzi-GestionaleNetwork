@@ -5,28 +5,13 @@ import { useAnalisiContabileData } from "@/hooks/use-analisi-contabile-data";
 import { AnalysisFilters } from "@/components/analisi-contabile/AnalysisFilters";
 import { ServiceSummaryTable } from "@/components/analisi-contabile/ServiceSummaryTable";
 import { MissingTariffsTable } from "@/components/analisi-contabile/MissingTariffsTable";
-import { supabase } from "@/integrations/supabase/client"; // Import supabase client
+// Removed import for supabase client as it's no longer needed here
 
 const AnalisiContabile = () => {
   console.log("AnalisiContabile: Component rendering.");
   const [currentTab, setCurrentTab] = useState("sintesi-contabile");
   
-  // Temporary test for direct query to servizi_canone
-  useEffect(() => {
-    const testServiziCanoneFetch = async () => {
-      console.log("AnalisiContabile: Running temporary direct fetch for 'servizi_canone'...");
-      const { data, error } = await supabase
-        .from('servizi_canone')
-        .select('*'); // Select all to see if any data is returned
-
-      if (error) {
-        console.error("AnalisiContabile: Direct fetch error for 'servizi_canone':", error);
-      } else {
-        console.log("AnalisiContabile: Direct fetch data for 'servizi_canone':", data);
-      }
-    };
-    testServiziCanoneFetch();
-  }, []); // Run once on component mount
+  // Removed temporary test for direct query to servizi_canone
 
   const hookResult = useAnalisiContabileData();
   console.log("AnalisiContabile: Result of useAnalisiContabileData:", hookResult);

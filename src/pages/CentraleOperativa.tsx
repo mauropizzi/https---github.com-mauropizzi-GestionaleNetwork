@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InterventionForm } from "@/components/centrale-operativa/InterventionForm";
-import { InterventionListTable } from "@/components/centrale-operativa/InterventionListTable";
-import { AlarmEventsInProgressTable } from "@/components/centrale-operativa/AlarmEventsInProgressTable";
+import { AlarmEventsTable } from "@/components/centrale-operativa/AlarmEventsTable"; // Import the new unified table
 import { useSearchParams } from "react-router-dom";
 
 const CentraleOperativa = () => {
@@ -44,10 +43,10 @@ const CentraleOperativa = () => {
               <InterventionForm onSaveSuccess={handleNewEventSaveSuccess} />
             </TabsContent>
             <TabsContent value="eventi-in-gestione" className="mt-4">
-              <AlarmEventsInProgressTable />
+              <AlarmEventsTable type="in-progress" />
             </TabsContent>
             <TabsContent value="storico-interventi" className="mt-4">
-              <InterventionListTable />
+              <AlarmEventsTable type="history" />
             </TabsContent>
           </Tabs>
         </CardContent>
