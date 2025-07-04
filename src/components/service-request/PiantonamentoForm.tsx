@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid, addDays, isWeekend } from "date-fns";
@@ -13,7 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -257,7 +256,7 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
@@ -510,6 +509,6 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
           </Button>
         </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }

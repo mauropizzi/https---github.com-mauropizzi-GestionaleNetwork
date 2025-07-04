@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid } from "date-fns";
@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -179,7 +178,7 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
@@ -294,6 +293,6 @@ export function BonificheForm({ serviceId, onSaveSuccess, onCancel }: BonificheF
           </Button>
         </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }

@@ -1,11 +1,10 @@
 import React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -110,7 +109,7 @@ export function PersonaleForm() {
   };
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <h3 className="text-lg font-semibold">Dettagli Personale</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -438,6 +437,6 @@ export function PersonaleForm() {
 
         <Button type="submit" className="w-full">Salva Personale</Button>
       </form>
-    </Form>
+    </FormProvider>
   );
 }

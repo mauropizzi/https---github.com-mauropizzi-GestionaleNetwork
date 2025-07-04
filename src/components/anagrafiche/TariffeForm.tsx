@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
 import { showSuccess, showError } from "@/utils/toast";
 import { useAnagraficheData } from "@/hooks/use-anagrafiche-data";
 import { invalidateTariffeCache } from "@/lib/data-fetching";
@@ -125,7 +124,6 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
 
   return (
     <FormProvider {...methods}>
-      <Form {...methods}>
         <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
           <h3 className="text-lg font-semibold">Dettagli Tariffa</h3>
           
@@ -137,7 +135,6 @@ export function TariffeForm({ prefillData }: TariffeFormProps) {
 
           <Button type="submit" className="w-full">Salva Tariffa</Button>
         </form>
-      </Form>
     </FormProvider>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
@@ -9,7 +9,6 @@ import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -149,7 +148,7 @@ export function CanoneForm() {
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <h3 className="text-lg font-semibold">Dettagli Nuovo Servizio a Canone</h3>
         <FormField
@@ -345,6 +344,6 @@ export function CanoneForm() {
         />
         <Button type="submit" className="w-full">Salva Servizio a Canone</Button>
       </form>
-    </Form>
+    </FormProvider>
   );
 }
