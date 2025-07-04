@@ -1,6 +1,6 @@
 import React from 'react';
 import { useInterventionForm } from '@/hooks/use-intervention-form';
-import { it } from 'date-fns/locale'; // Import it locale
+import { FormProvider } from 'react-hook-form'; // Import FormProvider
 
 // Import modular components
 import { EventDetailsSection } from '../centrale-operativa/EventDetailsSection';
@@ -20,7 +20,7 @@ interface InterventionFormProps {
 
 export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMode = false }: InterventionFormProps) {
   const {
-    formData,
+    methods, // Get all methods from useForm
     operatoriNetworkList,
     pattugliaPersonale,
     puntiServizioList,
@@ -34,9 +34,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
     setIsServicePointOpen,
     isCoOperatorOpen,
     setIsCoOperatorOpen,
-    handleInputChange,
-    handleSelectChange,
-    handleRadioChange,
     handleSetCurrentTime,
     handleStartGpsTracking,
     handleEndGpsTracking,
@@ -55,37 +52,27 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
   }
 
   return (
-    <React.Fragment>
-      <form onSubmit={handleCloseEvent} className="space-y-6">
+    <FormProvider {...methods}> {/* Wrap with FormProvider */}
+      <form onSubmit={methods.handleSubmit(handleCloseEvent)} className="space-y-6">
         <EventDetailsSection
-          formData={formData}
-          handleInputChange={handleInputChange}
-          handleSelectChange={handleSelectChange}
-          handleSetCurrentTime={handleSetCurrentTime}
-          handleStartGpsTracking={handleStartGpsTracking}
           puntiServizioList={puntiServizioList}
           coOperatorsPersonnel={coOperatorsPersonnel}
           isServicePointOpen={isServicePointOpen}
           setIsServicePointOpen={setIsServicePointOpen}
           isCoOperatorOpen={isCoOperatorOpen}
           setIsCoOperatorOpen={setIsCoOperatorOpen}
+          handleSetCurrentTime={handleSetCurrentTime} // Still needed for specific time setting
+          handleStartGpsTracking={handleStartGpsTracking} // Still needed for GPS
         />
 
         <InterventionTimesSection
-          formData={formData}
-          handleInputChange={handleInputChange}
           handleSetCurrentTime={handleSetCurrentTime}
           handleEndGpsTracking={handleEndGpsTracking}
         />
 
-        <AccessDetailsSection
-          formData={formData}
-          handleRadioChange={handleRadioChange}
-        />
+        <AccessDetailsSection /> {/* No props needed, uses formContext */}
 
         <PersonnelSection
-          formData={formData}
-          handleSelectChange={handleSelectChange}
           operatoriNetworkList={operatoriNetworkList}
           pattugliaPersonale={pattugliaPersonale}
           isOperatorNetworkOpen={isOperatorNetworkOpen}
@@ -94,17 +81,9 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           setIsGpgInterventionOpen={setIsGpgInterventionOpen}
         />
 
-        <AnomaliesDelaySection
-          formData={formData}
-          handleRadioChange={handleRadioChange}
-          handleInputChange={handleInputChange}
-        />
+        <AnomaliesDelaySection /> {/* No props needed, uses formContext */}
 
-        <OutcomeBarcodeSection
-          formData={formData}
-          handleSelectChange={handleSelectChange}
-          handleInputChange={handleInputChange}
-        />
+        <OutcomeBarcodeSection /> {/* No props needed, uses formContext */}
 
         <InterventionActionButtons
           eventId={eventId}
@@ -116,6 +95,6 @@ export function InterventionForm({ eventId, onSaveSuccess, onCancel, isPublicMod
           isPublicMode={isPublicMode}
         />
       </form>
-    </React.Fragment>
+    </FormProvider>
   );
 }

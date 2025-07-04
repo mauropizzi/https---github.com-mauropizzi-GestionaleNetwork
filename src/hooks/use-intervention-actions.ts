@@ -4,38 +4,43 @@ import { it } from 'date-fns/locale';
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { UseFormTrigger, UseFormSetError, UseFormClearErrors } from 'react-hook-form'; // Import types
 
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import { supabase } from '@/integrations/supabase/client';
 import { calculateServiceCost } from '@/lib/data-fetching';
 import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
+import { z } from 'zod'; // Import z for schema validation
 
-interface InterventionFormState {
-  servicePoint: string;
-  requestType: string;
-  coOperator: string;
-  requestTime: string;
-  startTime: string;
-  endTime: string;
-  fullAccess: 'si' | 'no' | undefined;
-  vaultAccess: 'si' | 'no' | undefined;
-  operatorNetworkId: string;
-  gpgIntervention: string;
-  anomalies: 'si' | 'no' | undefined;
-  anomalyDescription: string;
-  delay: 'si' | 'no' | undefined;
-  delayNotes: string;
-  serviceOutcome: string;
-  barcode: string;
-  startLatitude: number | undefined;
-  startLongitude: number | undefined;
-  endLatitude: number | undefined;
-  endLongitude: number | undefined;
-}
+// Re-define the schema here or import it if it's shared
+const interventionFormSchema = z.object({
+  servicePoint: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
+  requestType: z.string().min(1, "La tipologia di servizio è richiesta."),
+  coOperator: z.string().uuid("Seleziona un operatore C.O. valido.").nonempty("L'operatore C.O. è richiesto."),
+  requestTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").optional().nullable(),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").optional().nullable(),
+  fullAccess: z.enum(['si', 'no'], { required_error: "L'accesso completo è richiesto." }).optional().nullable(),
+  vaultAccess: z.enum(['si', 'no'], { required_error: "L'accesso caveau è richiesto." }).optional().nullable(),
+  operatorNetworkId: z.string().uuid("Seleziona un operatore network valido.").optional().nullable(),
+  gpgIntervention: z.string().uuid("Seleziona un G.P.G. valido.").nonempty("Il G.P.G. intervento è richiesto."),
+  anomalies: z.enum(['si', 'no'], { required_error: "Indica se ci sono anomalie." }).optional().nullable(),
+  anomalyDescription: z.string().optional().nullable(),
+  delay: z.enum(['si', 'no'], { required_error: "Indica se c'è stato un ritardo." }).optional().nullable(),
+  delayNotes: z.string().optional().nullable(),
+  serviceOutcome: z.string().min(1, "L'esito dell'evento è richiesto.").optional().nullable(),
+  barcode: z.string().min(1, "Il barcode è richiesto."),
+  startLatitude: z.coerce.number().optional().nullable(),
+  startLongitude: z.coerce.number().optional().nullable(),
+  endLatitude: z.coerce.number().optional().nullable(),
+  endLongitude: z.coerce.number().optional().nullable(),
+});
+
+type InterventionFormState = z.infer<typeof interventionFormSchema>;
 
 interface UseInterventionActionsProps {
-  formData: InterventionFormState;
+  formData: InterventionFormState; // This will be passed from getValues()
   puntiServizioList: PuntoServizio[];
   coOperatorsPersonnel: Personale[];
   operatoriNetworkList: OperatoreNetwork[];
@@ -44,6 +49,9 @@ interface UseInterventionActionsProps {
   isPublicMode?: boolean;
   onSaveSuccess?: () => void;
   resetForm: () => void;
+  triggerValidation: UseFormTrigger<InterventionFormState>; // Add triggerValidation
+  setError: UseFormSetError<InterventionFormState>; // Add setError
+  clearErrors: UseFormClearErrors<InterventionFormState>; // Add clearErrors
 }
 
 export const useInterventionActions = ({
@@ -56,6 +64,9 @@ export const useInterventionActions = ({
   isPublicMode = false,
   onSaveSuccess,
   resetForm,
+  triggerValidation,
+  setError,
+  clearErrors,
 }: UseInterventionActionsProps) => {
 
   const generateBarcodeImage = useCallback((text: string): string | null => {
@@ -117,7 +128,7 @@ export const useInterventionActions = ({
       y += 7;
       doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(formData.requestTime)}`, 14, y);
       y += 7;
-      if (formData.startLatitude !== undefined && formData.startLongitude !== undefined) {
+      if (formData.startLatitude !== undefined && formData.startLongitude !== undefined && formData.startLatitude !== null && formData.startLongitude !== null) {
         doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
@@ -227,133 +238,12 @@ export const useInterventionActions = ({
     }
   }, [formData, puntiServizioList, generatePdfBlob]);
 
-  const validateForm = useCallback((dataToValidate: InterventionFormState, isFinal: boolean): boolean => {
-    const {
-      servicePoint,
-      requestType,
-      coOperator,
-      requestTime,
-      startTime,
-      endTime,
-      fullAccess,
-      vaultAccess,
-      operatorNetworkId,
-      gpgIntervention,
-      anomalies,
-      anomalyDescription,
-      delay,
-      delayNotes,
-      serviceOutcome,
-      barcode,
-      startLatitude,
-      startLongitude,
-      endLatitude,
-      endLongitude,
-    } = dataToValidate; // Use dataToValidate here
-
-    if (!servicePoint || servicePoint.trim() === '') {
-      showError("Il campo 'Punto Servizio' è obbligatorio.");
-      return false;
-    }
-    if (!requestType || requestType.trim() === '') {
-      showError("Il campo 'Tipologia Servizio Richiesto' è obbligatorio.");
-      return false;
-    }
-    if (!coOperator || coOperator.trim() === '') {
-      showError("Il campo 'Operatore C.O. Security Service' è obbligatorio.");
-      return false;
-    }
-    if (!requestTime || requestTime.trim() === '') {
-      showError("Il campo 'Orario Richiesta C.O. Security Service' è obbligatorio.");
-      return false;
-    }
-    if (!gpgIntervention || gpgIntervention.trim() === '') {
-      showError("Il campo 'G.P.G. Intervento' è obbligatorio.");
-      return false;
-    }
-    // Barcode is now mandatory for any save
-    if (!barcode || barcode.trim() === '') {
-      showError("Il campo 'Barcode' è obbligatorio.");
-      return false;
-    }
-
-    const parsedRequestDateTime = requestTime ? parseISO(requestTime) : null;
-    if (!parsedRequestDateTime || !isValid(parsedRequestDateTime)) {
-      showError("Formato Orario Richiesta non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return false;
-    }
-
-    const parsedStartTime = startTime ? parseISO(startTime) : null;
-    if (startTime && (!parsedStartTime || !isValid(parsedStartTime))) {
-      showError("Formato Orario Inizio Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return false;
-    }
-
-    const parsedEndTime = endTime ? parseISO(endTime) : null;
-    if (endTime && (!parsedEndTime || !isValid(parsedEndTime))) {
-      showError("Formato Orario Fine Intervento non valido. Assicurarsi di aver inserito una data e un'ora complete.");
-      return false;
-    }
-
-    if (isFinal || isPublicMode) { 
-      if (!parsedStartTime) {
-        showError("Il campo 'Orario Inizio Intervento' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (!parsedEndTime) {
-        showError("Il campo 'Orario Fine Intervento' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (fullAccess === undefined) {
-        showError("Il campo 'Accesso Completo' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (vaultAccess === undefined) {
-        showError("Il campo 'Accesso Caveau' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (!operatorNetworkId || operatorNetworkId.trim() === '') {
-        showError("Il campo 'Operatore Network' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (anomalies === undefined) {
-        showError("Il campo 'Anomalie Riscontrate' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (anomalies === 'si' && (!anomalyDescription || anomalyDescription.trim() === '')) {
-        showError("La 'Descrizione Anomalie' è obbligatoria se sono state riscontrate anomalie.");
-        return false;
-      }
-      if (delay === undefined) {
-        showError("Il campo 'Ritardo' è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (delay === 'si' && (!delayNotes || delayNotes.trim() === '')) {
-        showError("Il 'Motivo del Ritardo' è obbligatorio se c'è stato un ritardo.");
-        return false;
-      }
-      if (!serviceOutcome || serviceOutcome.trim() === '') {
-        showError("L'Esito Evento è obbligatorio per la chiusura.");
-        return false;
-      }
-      if (startLatitude === undefined || startLongitude === undefined) {
-        showError("La 'Posizione GPS presa in carico Richiesta' è obbligatoria per la chiusura.");
-        return false;
-      }
-      if (endLatitude === undefined || endLongitude === undefined) {
-        showError("La 'Posizione GPS Fine Intervento' è obbligatoria per la chiusura.");
-        return false;
-      }
-    }
-    return true;
-  }, [isPublicMode]);
-
   const buildNotesString = useCallback((dataToUse: InterventionFormState) => {
     const notesCombined = [];
-    if (dataToUse.fullAccess !== undefined) {
+    if (dataToUse.fullAccess !== null && dataToUse.fullAccess !== undefined) {
       notesCombined.push(`Accesso Completo: ${dataToUse.fullAccess.toUpperCase()}`);
     }
-    if (dataToUse.vaultAccess !== undefined) {
+    if (dataToUse.vaultAccess !== null && dataToUse.vaultAccess !== undefined) {
       notesCombined.push(`Accesso Caveau: ${dataToUse.vaultAccess.toUpperCase()}`);
     }
     if (dataToUse.anomalies === 'si' && dataToUse.anomalyDescription) {
@@ -366,16 +256,69 @@ export const useInterventionActions = ({
   }, []);
 
   const saveIntervention = useCallback(async (isFinal: boolean) => {
+    clearErrors(); // Clear previous errors
+
+    // Trigger validation for all fields
+    const isValid = await triggerValidation();
+    if (!isValid) {
+      showError("Compila tutti i campi obbligatori e correggi gli errori.");
+      return;
+    }
+
+    // If it's a final submission, trigger specific validation rules
+    if (isFinal || isPublicMode) {
+      const finalValidationResult = interventionFormSchema.superRefine((data, ctx) => {
+        // Re-run the superRefine logic here for final submission
+        if (!data.startTime) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'Orario Inizio Intervento è obbligatorio per la chiusura.", path: ['startTime'] });
+        }
+        if (!data.endTime) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'Orario Fine Intervento è obbligatorio per la chiusura.", path: ['endTime'] });
+        }
+        if (data.fullAccess === null || data.fullAccess === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Accesso Completo' è obbligatorio per la chiusura.", path: ['fullAccess'] });
+        }
+        if (data.vaultAccess === null || data.vaultAccess === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'accesso caveau è obbligatorio per la chiusura.", path: ['vaultAccess'] });
+        }
+        if (!data.operatorNetworkId) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Operatore Network' è obbligatorio per la chiusura.", path: ['operatorNetworkId'] });
+        }
+        if (data.anomalies === null || data.anomalies === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Anomalie Riscontrate' è obbligatorio per la chiusura.", path: ['anomalies'] });
+        }
+        if (data.anomalies === 'si' && (!data.anomalyDescription || data.anomalyDescription.trim() === '')) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Descrizione Anomalie' è obbligatoria se sono state riscontrate anomalie.", path: ['anomalyDescription'] });
+        }
+        if (data.delay === null || data.delay === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Ritardo' è obbligatorio per la chiusura.", path: ['delay'] });
+        }
+        if (data.delay === 'si' && (!data.delayNotes || data.delayNotes.trim() === '')) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il 'Motivo del Ritardo' è obbligatorio se c'è stato un ritardo.", path: ['delayNotes'] });
+        }
+        if (data.startLatitude === null || data.startLatitude === undefined || data.startLongitude === null || data.startLongitude === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Posizione GPS presa in carico Richiesta' è obbligatoria per la chiusura.", path: ['startLatitude'] });
+        }
+        if (data.endLatitude === null || data.endLatitude === undefined || data.endLongitude === null || data.endLongitude === undefined) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Posizione GPS Fine Intervento' è obbligatoria per la chiusura.", path: ['endLatitude'] });
+        }
+      }).safeParse(formData);
+
+      if (!finalValidationResult.success) {
+        finalValidationResult.error.errors.forEach(err => {
+          setError(err.path[0] as keyof InterventionFormState, { type: 'manual', message: err.message });
+        });
+        showError("Compila tutti i campi obbligatori per la chiusura dell'evento.");
+        return;
+      }
+    }
+
     let currentRequestTime = formData.requestTime;
     if (!eventId) {
       currentRequestTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
     }
 
     const formDataToUse = { ...formData, requestTime: currentRequestTime };
-
-    if (!validateForm(formDataToUse, isFinal)) { // Pass formDataToUse to validateForm
-      return;
-    }
 
     const {
       servicePoint,
@@ -391,13 +334,13 @@ export const useInterventionActions = ({
       startLongitude,
       endLatitude,
       endLongitude,
-    } = formDataToUse; // Use formDataToUse for payload
+    } = formDataToUse;
 
-    const parsedRequestDateTime = parseISO(currentRequestTime); // Use the currentRequestTime for parsing
+    const parsedRequestDateTime = parseISO(currentRequestTime);
     const parsedStartTime = startTime ? parseISO(startTime) : null;
     const parsedEndTime = endTime ? parseISO(endTime) : null;
 
-    const notes = buildNotesString(formDataToUse); // Pass formDataToUse to buildNotesString
+    const notes = buildNotesString(formDataToUse);
 
     const allarmeInterventoPayload = {
       report_date: format(parsedRequestDateTime, 'yyyy-MM-dd'),
@@ -488,7 +431,7 @@ export const useInterventionActions = ({
           break;
       }
     } else {
-      serviceStatus = "Pending"; // Explicitly keep pending if not a final submission
+      serviceStatus = "Pending";
     }
 
     const serviziRichiestiPayload = {
@@ -520,11 +463,11 @@ export const useInterventionActions = ({
     }
 
     showSuccess(`Evento ${eventId ? 'modificato' : 'registrato'} e servizio per analisi contabile aggiornato con successo!`);
-    resetForm(); // Reset form after successful save
+    resetForm();
     if (onSaveSuccess) {
       onSaveSuccess();
     }
-  }, [formData, eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, validateForm, resetForm]);
+  }, [formData, eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, resetForm, triggerValidation, setError, clearErrors]);
 
   const handleCloseEvent = useCallback((e: React.FormEvent) => {
     e.preventDefault();
