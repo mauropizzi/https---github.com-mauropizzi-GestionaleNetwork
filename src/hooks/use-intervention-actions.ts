@@ -4,40 +4,16 @@ import { it } from 'date-fns/locale';
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { UseFormTrigger, UseFormSetError, UseFormClearErrors } from 'react-hook-form'; // Import types
+import { UseFormTrigger, UseFormSetError, UseFormClearErrors } from 'react-hook-form';
 
 import { showSuccess, showError, showInfo } from "@/utils/toast";
 import { sendEmail } from "@/utils/email";
 import { supabase } from '@/integrations/supabase/client';
 import { calculateServiceCost } from '@/lib/data-fetching';
 import { Personale, OperatoreNetwork, PuntoServizio } from '@/lib/anagrafiche-data';
-import { z } from 'zod'; // Import z for schema validation
+import { interventionFormSchema } from '@/lib/schemas/intervention-schema'; // Import the shared schema
 
-// Re-define the schema here or import it if it's shared
-const interventionFormSchema = z.object({
-  servicePoint: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
-  requestType: z.string().min(1, "La tipologia di servizio è richiesta."),
-  coOperator: z.string().uuid("Seleziona un operatore C.O. valido.").nonempty("L'operatore C.O. è richiesto."),
-  requestTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").optional().nullable(),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM).").optional().nullable(),
-  fullAccess: z.enum(['si', 'no'], { required_error: "L'accesso completo è richiesto." }).optional().nullable(),
-  vaultAccess: z.enum(['si', 'no'], { required_error: "L'accesso caveau è richiesto." }).optional().nullable(),
-  operatorNetworkId: z.string().uuid("Seleziona un operatore network valido.").optional().nullable(),
-  gpgIntervention: z.string().uuid("Seleziona un G.P.G. valido.").nonempty("Il G.P.G. intervento è richiesto."),
-  anomalies: z.enum(['si', 'no'], { required_error: "Indica se ci sono anomalie." }).optional().nullable(),
-  anomalyDescription: z.string().optional().nullable(),
-  delay: z.enum(['si', 'no'], { required_error: "Indica se c'è stato un ritardo." }).optional().nullable(),
-  delayNotes: z.string().optional().nullable(),
-  serviceOutcome: z.string().min(1, "L'esito dell'evento è richiesto.").optional().nullable(),
-  barcode: z.string().min(1, "Il barcode è richiesto."),
-  startLatitude: z.coerce.number().optional().nullable(),
-  startLongitude: z.coerce.number().optional().nullable(),
-  endLatitude: z.coerce.number().optional().nullable(),
-  endLongitude: z.coerce.number().optional().nullable(),
-});
-
-type InterventionFormState = z.infer<typeof interventionFormSchema>;
+type InterventionFormState = z.infer<typeof interventionFormSchema>; // Define type from imported schema
 
 interface UseInterventionActionsProps {
   puntiServizioList: PuntoServizio[];
@@ -48,10 +24,10 @@ interface UseInterventionActionsProps {
   isPublicMode?: boolean;
   onSaveSuccess?: () => void;
   resetForm: () => void;
-  triggerValidation: UseFormTrigger<InterventionFormState>; // Add triggerValidation
-  setError: UseFormSetError<InterventionFormState>; // Add setError
-  clearErrors: UseFormClearErrors<InterventionFormState>; // Add clearErrors
-  getValues: () => InterventionFormState; // Add getValues to access current form state
+  triggerValidation: UseFormTrigger<InterventionFormState>;
+  setError: UseFormSetError<InterventionFormState>;
+  clearErrors: UseFormClearErrors<InterventionFormState>;
+  formData: InterventionFormState; // Pass formData directly
 }
 
 export const useInterventionActions = ({
@@ -63,10 +39,10 @@ export const useInterventionActions = ({
   isPublicMode = false,
   onSaveSuccess,
   resetForm,
-  triggerValidation,
-  setError,
-  clearErrors,
-  getValues, // Destructure getValues
+  triggerValidation, // Keep for manual trigger if needed outside handleSubmit
+  setError, // Keep for manual error setting if needed outside handleSubmit
+  clearErrors, // Keep for manual error clearing if needed outside handleSubmit
+  formData, // Use formData directly
 }: UseInterventionActionsProps) => {
 
   const generateBarcodeImage = useCallback((text: string): string | null => {
@@ -107,7 +83,8 @@ export const useInterventionActions = ({
       const doc = new jsPDF();
       let y = 20;
 
-      const currentFormData = getValues(); // Call the function to get latest values
+      // Use the formData passed to the hook
+      const currentFormData = formData; 
 
       doc.setFontSize(18);
       doc.text("Rapporto Intervento Centrale Operativa", 14, y);
@@ -194,7 +171,7 @@ export const useInterventionActions = ({
       const pdfBlob = doc.output('blob');
       resolve(pdfBlob);
     });
-  }, [getValues, puntiServizioList, coOperatorsPersonnel, operatoriNetworkList, pattugliaPersonale, generateBarcodeImage, formatDateTimeForPdf]);
+  }, [formData, puntiServizioList, coOperatorsPersonnel, operatoriNetworkList, pattugliaPersonale, generateBarcodeImage, formatDateTimeForPdf]);
 
   const handlePrintPdf = useCallback(async () => {
     showInfo("Generazione PDF per la stampa...");
@@ -209,7 +186,7 @@ export const useInterventionActions = ({
   }, [generatePdfBlob]);
 
   const handleEmail = useCallback(async () => {
-    const currentFormData = getValues(); // Call the function to get latest form data
+    const currentFormData = formData; // Use formData directly
     const selectedServicePoint = puntiServizioList.find(p => p.id === currentFormData.servicePoint);
     const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
@@ -239,7 +216,7 @@ export const useInterventionActions = ({
     } else {
       showError("Impossibile generare il PDF per l'allegato.");
     }
-  }, [getValues, puntiServizioList, generatePdfBlob]);
+  }, [formData, puntiServizioList, generatePdfBlob]);
 
   const buildNotesString = useCallback((dataToUse: InterventionFormState) => {
     const notesCombined = [];
@@ -259,62 +236,10 @@ export const useInterventionActions = ({
   }, []);
 
   const saveIntervention = useCallback(async (values: InterventionFormState, isFinal: boolean) => {
-    clearErrors(); // Clear previous errors
-
-    // Trigger validation for all fields
-    const isValid = await triggerValidation();
-    if (!isValid) {
-      showError("Compila tutti i campi obbligatori e correggi gli errori.");
-      return;
-    }
-
-    // If it's a final submission, trigger specific validation rules
-    if (isFinal || isPublicMode) {
-      const finalValidationResult = interventionFormSchema.superRefine((data, ctx) => {
-        // Re-run the superRefine logic here for final submission
-        if (!data.startTime) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'Orario Inizio Intervento è obbligatorio per la chiusura.", path: ['startTime'] });
-        }
-        if (!data.endTime) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'Orario Fine Intervento è obbligatorio per la chiusura.", path: ['endTime'] });
-        }
-        if (data.fullAccess === null || data.fullAccess === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Accesso Completo' è obbligatorio per la chiusura.", path: ['fullAccess'] });
-        }
-        if (data.vaultAccess === null || data.vaultAccess === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L'accesso caveau è obbligatorio per la chiusura.", path: ['vaultAccess'] });
-        }
-        if (!data.operatorNetworkId) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Operatore Network' è obbligatorio per la chiusura.", path: ['operatorNetworkId'] });
-        }
-        if (data.anomalies === null || data.anomalies === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Anomalie Riscontrate' è obbligatorio per la chiusura.", path: ['anomalies'] });
-        }
-        if (data.anomalies === 'si' && (!data.anomalyDescription || data.anomalyDescription.trim() === '')) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Descrizione Anomalie' è obbligatoria se sono state riscontrate anomalie.", path: ['anomalyDescription'] });
-        }
-        if (data.delay === null || data.delay === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il campo 'Ritardo' è obbligatorio per la chiusura.", path: ['delay'] });
-        }
-        if (data.delay === 'si' && (!data.delayNotes || data.delayNotes.trim() === '')) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Il 'Motivo del Ritardo' è obbligatorio se c'è stato un ritardo.", path: ['delayNotes'] });
-        }
-        if (data.startLatitude === null || data.startLatitude === undefined || data.startLongitude === null || data.startLongitude === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Posizione GPS presa in carico Richiesta' è obbligatoria per la chiusura.", path: ['startLatitude'] });
-        }
-        if (data.endLatitude === null || data.endLatitude === undefined || data.endLongitude === null || data.endLongitude === undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Posizione GPS Fine Intervento' è obbligatoria per la chiusura.", path: ['endLatitude'] });
-        }
-      }).safeParse(values);
-
-      if (!finalValidationResult.success) {
-        finalValidationResult.error.errors.forEach(err => {
-          setError(err.path[0] as keyof InterventionFormState, { type: 'manual', message: err.message });
-        });
-        showError("Compila tutti i campi obbligatori per la chiusura dell'evento.");
-        return;
-      }
-    }
+    // `values` are already validated by react-hook-form's handleSubmit before this function is called.
+    // The `superRefine` logic in the schema handles conditional validation for final submission.
+    // If `superRefine` fails, handleSubmit will prevent this function from being called.
+    // Therefore, no manual validation or error setting is needed here.
 
     let currentRequestTime = values.requestTime;
     if (!eventId) {
@@ -469,14 +394,14 @@ export const useInterventionActions = ({
     if (onSaveSuccess) {
       onSaveSuccess();
     }
-  }, [eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, resetForm, triggerValidation, setError, clearErrors, getValues]);
+  }, [eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, resetForm]);
 
-  const handleCloseEvent = useCallback((values: InterventionFormState) => {
-    saveIntervention(values, true);
+  const handleCloseEvent = useCallback(async (values: InterventionFormState) => {
+    await saveIntervention(values, true);
   }, [saveIntervention]);
 
-  const handleRegisterEvent = useCallback((values: InterventionFormState) => {
-    saveIntervention(values, false);
+  const handleRegisterEvent = useCallback(async (values: InterventionFormState) => {
+    await saveIntervention(values, false);
   }, [saveIntervention]);
 
   return {
