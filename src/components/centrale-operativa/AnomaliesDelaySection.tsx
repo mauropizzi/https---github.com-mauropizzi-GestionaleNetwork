@@ -3,69 +3,108 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useFormContext } from 'react-hook-form'; // Import useFormContext
+import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form'; // Import FormField components
 
 export const AnomaliesDelaySection: React.FC = () => {
-  const { watch, setValue } = useFormContext(); // Get form methods from context
+  const { control, watch } = useFormContext(); // Get form methods from context
 
   const formData = watch(); // Watch all form data
 
   return (
     <section className="space-y-4">
-      <div className="space-y-2">
-        <Label>Anomalie Riscontrate</Label>
-        <RadioGroup
-          value={formData.anomalies}
-          onValueChange={(value: 'si' | 'no') => setValue('anomalies', value)} // Use setValue
-          className="flex space-x-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="si" id="anomaliesSi" />
-            <Label htmlFor="anomaliesSi">SI</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="no" id="anomaliesNo" />
-            <Label htmlFor="anomaliesNo">NO</Label>
-          </div>
-        </RadioGroup>
-        {formData.anomalies === 'si' && (
-          <Textarea
-            id="anomalyDescription"
-            name="anomalyDescription"
-            placeholder="Descrivi le anomalie riscontrate..."
-            value={formData.anomalyDescription || ''} // Ensure controlled component
-            onChange={(e) => setValue('anomalyDescription', e.target.value)} // Use setValue
-            className="mt-2"
-          />
+      <FormField
+        control={control}
+        name="anomalies"
+        render={({ field }) => (
+          <FormItem className="space-y-2">
+            <Label>Anomalie Riscontrate</Label>
+            <FormControl>
+              <RadioGroup
+                onValueChange={field.onChange}
+                value={field.value || ''}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="si" id="anomaliesSi" />
+                  <Label htmlFor="anomaliesSi">SI</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="anomaliesNo" />
+                  <Label htmlFor="anomaliesNo">NO</Label>
+                </div>
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
-      </div>
+      />
+      {formData.anomalies === 'si' && (
+        <FormField
+          control={control}
+          name="anomalyDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea
+                  id="anomalyDescription"
+                  placeholder="Descrivi le anomalie riscontrate..."
+                  {...field}
+                  value={field.value || ''}
+                  className="mt-2"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
-      <div className="space-y-2">
-        <Label>Ritardo</Label>
-        <RadioGroup
-          value={formData.delay}
-          onValueChange={(value: 'si' | 'no') => setValue('delay', value)} // Use setValue
-          className="flex space-x-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="si" id="delaySi" />
-            <Label htmlFor="delaySi">SI</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="no" id="delayNo" />
-            <Label htmlFor="delayNo">NO</Label>
-          </div>
-        </RadioGroup>
-        {formData.delay === 'si' && (
-          <Textarea
-            id="delayNotes"
-            name="delayNotes"
-            placeholder="Motivo del ritardo..."
-            value={formData.delayNotes || ''} // Ensure controlled component
-            onChange={(e) => setValue('delayNotes', e.target.value)} // Use setValue
-            className="mt-2"
-          />
+      <FormField
+        control={control}
+        name="delay"
+        render={({ field }) => (
+          <FormItem className="space-y-2">
+            <Label>Ritardo</Label>
+            <FormControl>
+              <RadioGroup
+                onValueChange={field.onChange}
+                value={field.value || ''}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="si" id="delaySi" />
+                  <Label htmlFor="delaySi">SI</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="delayNo" />
+                  <Label htmlFor="delayNo">NO</Label>
+                </div>
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
-      </div>
+      />
+      {formData.delay === 'si' && (
+        <FormField
+          control={control}
+          name="delayNotes"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea
+                  id="delayNotes"
+                  placeholder="Motivo del ritardo..."
+                  {...field}
+                  value={field.value || ''}
+                  className="mt-2"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </section>
   );
 };
