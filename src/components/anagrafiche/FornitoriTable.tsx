@@ -53,18 +53,13 @@ export function FornitoriTable() {
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback((updatedFornitore: Fornitore) => {
+  const handleSaveEdit = useCallback(() => { // Removed updatedFornitore parameter as it's not used
     // Update local state to reflect changes immediately
-    setData(prevData =>
-      prevData.map(f =>
-        f.id === updatedFornitore.id ? updatedFornitore : f
-      )
-    );
-    // Optionally, refetch all data to ensure consistency with backend
-    // fetchFornitoriData(); // Uncomment if you prefer a full re-fetch
+    // This part is handled by the form's own submission and then a re-fetch
+    fetchFornitoriData(); // Refresh data after successful save/update
     setIsEditDialogOpen(false);
     setSelectedFornitoreForEdit(null);
-  }, []);
+  }, [fetchFornitoriData]);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
@@ -235,7 +230,7 @@ export function FornitoriTable() {
           isOpen={isEditDialogOpen}
           onClose={handleCloseDialog}
           fornitore={selectedFornitoreForEdit}
-          onSave={handleSaveEdit}
+          onSaveSuccess={handleSaveEdit}
         />
       )}
     </div>

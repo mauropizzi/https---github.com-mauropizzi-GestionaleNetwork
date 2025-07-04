@@ -22,13 +22,13 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiziCanone } from "@/lib/anagrafiche-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CanoneForm } from "./CanoneForm";
+import { CanoneEditDialog } from "./CanoneEditDialog"; // Correctly import CanoneEditDialog
 
 // Extend ServiziCanone to include joined data
 interface ServiziCanoneExtended extends ServiziCanone {
-  punti_servizio: { nome_punto_servizio: string }[];
-  fornitori: { nome_fornitore: string }[];
-  clienti: { nome_cliente: string }[];
+  punti_servizio: { nome_punto_servizio: string } | null;
+  fornitori: { nome_fornitore: string } | null;
+  clienti: { nome_cliente: string } | null;
 }
 
 export function CanoneTable() {
@@ -52,9 +52,9 @@ export function CanoneTable() {
     } else {
       const mappedData: ServiziCanoneExtended[] = data.map(sc => ({
         ...sc,
-        punti_servizio: sc.punti_servizio || [],
-        fornitori: sc.fornitori || [],
-        clienti: sc.clienti || [],
+        punti_servizio: sc.punti_servizio || null,
+        fornitori: sc.fornitori || null,
+        clienti: sc.clienti || null,
       }));
       setData(mappedData);
     }
@@ -105,9 +105,9 @@ export function CanoneTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         canone.tipo_canone.toLowerCase().includes(searchLower) ||
-        (canone.punti_servizio && canone.punti_servizio[0]?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
-        (canone.fornitori && canone.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
-        (canone.clienti && canone.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) ||
+        (canone.punti_servizio?.nome_punto_servizio?.toLowerCase().includes(searchLower)) ||
+        (canone.fornitori?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (canone.clienti?.nome_cliente?.toLowerCase().includes(searchLower)) ||
         canone.status.toLowerCase().includes(searchLower)
       );
     });
@@ -122,17 +122,17 @@ export function CanoneTable() {
     {
       accessorKey: "service_point_id",
       header: "Punto Servizio",
-      cell: ({ row }) => <span>{row.original.punti_servizio[0]?.nome_punto_servizio || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.punti_servizio?.nome_punto_servizio || 'N/A'}</span>,
     },
     {
       accessorKey: "fornitore_id",
       header: "Fornitore",
-      cell: ({ row }) => <span>{row.original.fornitori[0]?.nome_fornitore || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.fornitori?.nome_fornitore || 'N/A'}</span>,
     },
     {
       accessorKey: "client_id",
       header: "Cliente",
-      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.clienti?.nome_cliente || 'N/A'}</span>,
     },
     {
       accessorKey: "start_date",
@@ -243,10 +243,10 @@ export function CanoneTable() {
                 Apporta modifiche ai dettagli del servizio a canone.
               </DialogDescription>
             </DialogHeader>
-            <CanoneForm
+            <CanoneEditDialog // Use CanoneEditDialog here
               canone={selectedCanoneForEdit}
-              onSaveSuccess={handleSaveEdit}
-              onCancel={handleCloseDialog}
+              onSave={handleSaveEdit} // Pass onSave prop
+              onClose={handleCloseDialog} // Pass onClose prop
             />
           </DialogContent>
         </Dialog>

@@ -1,6 +1,6 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ClienteForm } from "./ClienteForm";
+import { ClientiForm } from "./ClientiForm"; // Corrected import
 import { Cliente } from "@/lib/anagrafiche-data";
 
 interface ClienteEditDialogProps {
@@ -20,7 +20,7 @@ export function ClienteEditDialog({ isOpen, onClose, cliente, onSaveSuccess }: C
             {cliente ? "Apporta modifiche ai dettagli del cliente." : "Compila i campi per aggiungere un nuovo cliente."}
           </DialogDescription>
         </DialogHeader>
-        <ClienteForm cliente={cliente} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
+        <ClientiForm cliente={cliente} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
       </DialogContent>
     </Dialog>
   );

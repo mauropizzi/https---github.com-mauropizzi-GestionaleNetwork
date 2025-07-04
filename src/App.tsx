@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route, Outlet, useNavigate, Navigate } from "rea
 import DashboardLayout from "./components/layout/DashboardLayout";
 import PublicFormLayout from "./components/layout/PublicFormLayout";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
-import { Toaster } from "@/components/ui/toaster"; // Ensure Toaster is imported if needed globally
 import { Toaster as Sonner } from "@/components/ui/sonner"; // Ensure Sonner is imported if needed globally
 
 // Lazily load all page components

@@ -22,11 +22,11 @@ import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { OperatoreNetworkForm } from "./OperatoreNetworkForm";
+import { OperatoreNetworkForm } from "./OperatoriNetworkForm"; // Correctly import OperatoreNetworkForm
 
 // Extend OperatoreNetwork to include joined client data
 interface OperatoreNetworkExtended extends OperatoreNetwork {
-  clienti: { nome_cliente: string }[];
+  nome_cliente?: string; // To display the client name directly
 }
 
 export function OperatoriNetworkTable() {
@@ -34,66 +34,66 @@ export function OperatoriNetworkTable() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedOperatoreForEdit, setSelectedOperatoreForEdit] = useState<OperatoreNetwork | null>(null);
+  const [selectedOperatoreForEdit, setSelectedOperatoreForEdit] = useState<OperatoreNetworkExtended | null>(null);
 
-  const fetchOperatoriNetwork = useCallback(async () => {
+  const fetchOperatoriNetworkData = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: operatoriData, error } = await supabase
       .from('operatori_network')
-      .select('*, clienti(nome_cliente)') // Select all from operatori_network and nome_cliente from related clienti
-      .order('nome', { ascending: true });
+      .select('id, created_at, nome, cognome, telefono, email, clienti(nome_cliente)'); // Select new fields and join clients
 
     if (error) {
-      showError(`Errore nel recupero degli operatori: ${error.message}`);
-      console.error("Error fetching operatori network:", error);
+      showError(`Errore nel recupero degli operatori network: ${error.message}`);
+      console.error("Error fetching operatori_network:", error);
       setData([]);
     } else {
-      // Map the data to ensure 'clienti' is always an array, even if empty or single
-      const mappedData: OperatoreNetworkExtended[] = data.map(op => ({
+      const mappedData = operatoriData.map(op => ({
         ...op,
-        clienti: op.clienti || [], // Ensure it's an array
+        nome_cliente: op.clienti?.nome_cliente || 'N/A',
       }));
-      setData(mappedData);
+      setData(mappedData || []);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchOperatoriNetwork();
-  }, [fetchOperatoriNetwork]);
+    fetchOperatoriNetworkData();
+  }, [fetchOperatoriNetworkData]);
 
-  const handleEdit = useCallback((operatore: OperatoreNetwork) => {
+  const handleEdit = useCallback((operatore: OperatoreNetworkExtended) => {
     setSelectedOperatoreForEdit(operatore);
     setIsEditDialogOpen(true);
   }, []);
 
-  const handleSaveEdit = useCallback(() => {
-    fetchOperatoriNetwork(); // Refresh data after save
+  const handleSaveEdit = useCallback(() => { // Removed updatedOperatore parameter as it's not used
+    // Update local state to reflect changes immediately
+    // This part is handled by the form's own submission and then a re-fetch
+    fetchOperatoriNetworkData(); // Refresh data after successful save/update
     setIsEditDialogOpen(false);
     setSelectedOperatoreForEdit(null);
-  }, [fetchOperatoriNetwork]);
+  }, [fetchOperatoriNetworkData]);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedOperatoreForEdit(null);
   }, []);
 
-  const handleDelete = async (operatoreId: string, operatoreName: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare l'operatore "${operatoreName}"?`)) {
+  const handleDelete = async (operatoreId: string, nomeOperatore: string) => {
+    if (window.confirm(`Sei sicuro di voler eliminare l'operatore network "${nomeOperatore}"?`)) {
       const { error } = await supabase
         .from('operatori_network')
         .delete()
         .eq('id', operatoreId);
 
       if (error) {
-        showError(`Errore durante l'eliminazione dell'operatore: ${error.message}`);
-        console.error("Error deleting operatore network:", error);
+        showError(`Errore durante l'eliminazione dell'operatore network: ${error.message}`);
+        console.error("Error deleting operatore_network:", error);
       } else {
-        showSuccess(`Operatore "${operatoreName}" eliminato con successo!`);
-        fetchOperatoriNetwork(); // Refresh data after deletion
+        showSuccess(`Operatore network "${nomeOperatore}" eliminato con successo!`);
+        fetchOperatoriNetworkData(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione dell'operatore "${operatoreName}" annullata.`);
+      showInfo(`Eliminazione dell'operatore network "${nomeOperatore}" annullata.`);
     }
   };
 
@@ -102,10 +102,10 @@ export function OperatoriNetworkTable() {
       const searchLower = searchTerm.toLowerCase();
       return (
         operatore.nome.toLowerCase().includes(searchLower) ||
-        operatore.cognome.toLowerCase().includes(searchLower) ||
-        (operatore.email?.toLowerCase().includes(searchLower)) ||
+        (operatore.cognome?.toLowerCase().includes(searchLower)) ||
+        (operatore.nome_cliente?.toLowerCase().includes(searchLower)) ||
         (operatore.telefono?.toLowerCase().includes(searchLower)) ||
-        (operatore.clienti && operatore.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower)) // Access nome_cliente from the first element of the array
+        (operatore.email?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
@@ -119,7 +119,12 @@ export function OperatoriNetworkTable() {
     {
       accessorKey: "cognome",
       header: "Cognome",
-      cell: ({ row }) => <span>{row.original.cognome}</span>,
+      cell: ({ row }) => <span>{row.original.cognome || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "nome_cliente",
+      header: "Cliente Associato",
+      cell: ({ row }) => <span>{row.original.nome_cliente}</span>,
     },
     {
       accessorKey: "telefono",
@@ -132,11 +137,6 @@ export function OperatoriNetworkTable() {
       cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
     },
     {
-      accessorKey: "client_id",
-      header: "Cliente Associato",
-      cell: ({ row }) => <span>{row.original.clienti[0]?.nome_cliente || 'N/A'}</span>, // Access nome_cliente from the first element of the array
-    },
-    {
       id: "actions",
       header: "Azioni",
       cell: ({ row }) => (
@@ -144,7 +144,7 @@ export function OperatoriNetworkTable() {
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id!, `${row.original.nome} ${row.original.cognome}`)} title="Elimina">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, `${row.original.nome} ${row.original.cognome || ''}`)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -162,12 +162,12 @@ export function OperatoriNetworkTable() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <Input
-          placeholder="Cerca per nome, cognome, email, cliente..."
+          placeholder="Cerca per nome, cognome, cliente, email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Button variant="outline" onClick={fetchOperatoriNetwork} disabled={loading}>
+        <Button variant="outline" onClick={fetchOperatoriNetworkData} disabled={loading}>
           <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
         </Button>
       </div>
@@ -194,7 +194,7 @@ export function OperatoriNetworkTable() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento operatori...
+                  Caricamento operatori network...
                 </TableCell>
               </TableRow>
             ) : (table && table.getRowModel().rows?.length) ? (
@@ -213,7 +213,7 @@ export function OperatoriNetworkTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun operatore trovato.
+                  Nessun operatore network trovato.
                 </TableCell>
               </TableRow>
             )}

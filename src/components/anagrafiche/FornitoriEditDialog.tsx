@@ -1,13 +1,13 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FornitoreForm } from "./FornitoreForm";
+import { FornitoriForm } from "./FornitoriForm"; // Corrected import
 import { Fornitore } from "@/lib/anagrafiche-data";
 
 interface FornitoreEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fornitore: Fornitore | null;
-  onSaveSuccess: () => void;
+  onSaveSuccess: () => void; // Added onSaveSuccess prop
 }
 
 export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSaveSuccess }: FornitoreEditDialogProps) {
@@ -20,7 +20,7 @@ export function FornitoreEditDialog({ isOpen, onClose, fornitore, onSaveSuccess 
             {fornitore ? "Apporta modifiche ai dettagli del fornitore." : "Compila i campi per aggiungere un nuovo fornitore."}
           </DialogDescription>
         </DialogHeader>
-        <FornitoreForm fornitore={fornitore} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
+        <FornitoriForm fornitore={fornitore} onSaveSuccess={onSaveSuccess} onCancel={onClose} />
       </DialogContent>
     </Dialog>
   );

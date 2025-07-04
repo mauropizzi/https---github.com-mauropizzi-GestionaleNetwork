@@ -22,6 +22,13 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAnagraficheData } from "@/hooks/use-anagrafiche-data"; // Import the new hook
+import { OperatoreNetwork } from "@/lib/anagrafiche-data"; // Import OperatoreNetwork
+
+interface OperatoriNetworkFormProps {
+  operatore?: OperatoreNetwork; // Optional prop for editing
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
+}
 
 const formSchema = z.object({
   nome: z.string().min(2, "Il nome è richiesto."),
@@ -31,18 +38,26 @@ const formSchema = z.object({
   email: z.string().email("Formato email non valido.").optional().or(z.literal("")),
 });
 
-export function OperatoriNetworkForm() {
+export function OperatoriNetworkForm({ operatore, onSaveSuccess, onCancel }: OperatoriNetworkFormProps) {
   const { clienti, loading } = useAnagraficheData(); // Use the hook
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      nome: "",
-      cognome: "",
-      clienteId: "",
-      telefono: "",
-      email: "",
-    },
+    defaultValues: operatore
+      ? {
+          nome: operatore.nome,
+          cognome: operatore.cognome || "",
+          clienteId: operatore.client_id || "",
+          telefono: operatore.telefono || "",
+          email: operatore.email || "",
+        }
+      : {
+          nome: "",
+          cognome: "",
+          clienteId: "",
+          telefono: "",
+          email: "",
+        },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -54,18 +69,28 @@ export function OperatoriNetworkForm() {
       email: values.email || null,
     };
 
-    const { data, error } = await supabase
-      .from('operatori_network')
-      .insert([payload])
-      .select();
-
-    if (error) {
-      showError(`Errore durante la registrazione dell'operatore network: ${error.message}`);
-      console.error("Error inserting operatore network:", error);
+    let result;
+    if (operatore) {
+      result = await supabase
+        .from('operatori_network')
+        .update(payload)
+        .eq('id', operatore.id)
+        .select();
     } else {
-      showSuccess("Operatore Network salvato con successo!");
-      console.log("Operatore Network Data:", data);
+      result = await supabase
+        .from('operatori_network')
+        .insert([payload])
+        .select();
+    }
+
+    if (result.error) {
+      showError(`Errore durante la ${operatore ? 'modifica' : 'registrazione'} dell'operatore network: ${result.error.message}`);
+      console.error(`Error ${operatore ? 'updating' : 'inserting'} operatore network:`, result.error);
+    } else {
+      showSuccess(`Operatore Network ${operatore ? 'modificato' : 'salvato'} con successo!`);
+      console.log("Operatore Network Data:", result.data);
       form.reset(); // Reset form after submission
+      onSaveSuccess?.();
     }
   };
 
@@ -76,7 +101,7 @@ export function OperatoriNetworkForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <h3 className="text-lg font-semibold">Dettagli Operatore Network</h3>
+        <h3 className="text-lg font-semibold">{operatore ? "Modifica Dettagli Operatore Network" : "Dettagli Operatore Network"}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -161,7 +186,16 @@ export function OperatoriNetworkForm() {
             )}
           />
         </div>
-        <Button type="submit" className="w-full">Salva Operatore Network</Button>
+        <div className="flex justify-end gap-2">
+          {operatore && onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annulla
+            </Button>
+          )}
+          <Button type="submit" className="w-full">
+            {operatore ? "Salva Modifiche" : "Salva Operatore Network"}
+          </Button>
+        </div>
       </form>
     </Form>
   );
