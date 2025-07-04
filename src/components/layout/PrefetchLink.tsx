@@ -17,24 +17,31 @@ const routePrefetchMap: { [key: string]: () => Promise<any> } = {
   '/anagrafiche/fornitori': () => import('@/pages/FornitoriPage'),
   '/anagrafiche/tariffe': () => import('@/pages/TariffePage'),
   '/anagrafiche/procedure': () => import('@/pages/ProcedurePage'),
+  '/anagrafiche/clienti/:clientId/contacts': () => import('@/pages/ClientContactsPage'), // New route
   '/dotazioni-di-servizio': () => import('@/pages/DotazioniDiServizio'),
   '/service-list': () => import('@/pages/ServiceList'),
   '/registro-di-cantiere': () => import('@/pages/RegistroDiCantiere'),
   '/servizi-a-canone': () => import('@/pages/ServiziCanone'),
   '/incoming-emails': () => import('@/pages/IncomingEmails'),
   '/analisi-contabile': () => import('@/pages/AnalisiContabile'),
-  '/richiesta-manutenzione': () => import('@/pages/RichiestaManutenzione'), // New route
-  '/access-management': () => import('@/pages/AccessManagementPage'), // New route
+  '/richiesta-manutenzione': () => import('@/pages/RichiestaManutenzione'),
+  '/access-management': () => import('@/pages/AccessManagementPage'),
 };
 
 export const PrefetchLink: React.FC<LinkProps> = ({ to, onMouseOver, ...props }) => {
   const handleMouseOver = (event: React.MouseEvent<HTMLAnchorElement>) => {
     const path = typeof to === 'string' ? to.split('?')[0] : to.pathname;
 
-    if (path && routePrefetchMap[path] && !prefetchCache.has(path)) {
-      console.log(`Prefetching route: ${path}`);
-      routePrefetchMap[path]();
-      prefetchCache.add(path);
+    // Handle dynamic segments for prefetching
+    let prefetchPath = path;
+    if (path.startsWith('/anagrafiche/clienti/') && path.includes('/contacts')) {
+      prefetchPath = '/anagrafiche/clienti/:clientId/contacts';
+    }
+
+    if (prefetchPath && routePrefetchMap[prefetchPath] && !prefetchCache.has(prefetchPath)) {
+      console.log(`Prefetching route: ${prefetchPath}`);
+      routePrefetchMap[prefetchPath]();
+      prefetchCache.add(prefetchPath);
     }
 
     // Call original onMouseOver if it exists

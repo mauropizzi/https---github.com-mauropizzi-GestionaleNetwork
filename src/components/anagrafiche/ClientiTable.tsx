@@ -17,13 +17,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
-import { Edit, Trash2, RefreshCcw } from "lucide-react";
+import { Edit, Trash2, RefreshCcw, AddressBook } from "lucide-react"; // Import AddressBook icon
 import { showInfo, showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/lib/anagrafiche-data";
 import { ClientiEditDialog } from "./ClientiEditDialog"; // Import the new dialog
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export function ClientiTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -92,6 +94,10 @@ export function ClientiTable() {
     }
   };
 
+  const handleViewContacts = useCallback((clienteId: string) => {
+    navigate(`/anagrafiche/clienti/${clienteId}/contacts`);
+  }, [navigate]);
+
   const filteredData = useMemo(() => {
     return data.filter(cliente => {
       const searchLower = searchTerm.toLowerCase();
@@ -146,16 +152,19 @@ export function ClientiTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica Cliente">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_cliente)} title="Elimina">
+          <Button variant="outline" size="sm" onClick={() => handleViewContacts(row.original.id)} title="Visualizza Contatti">
+            <AddressBook className="h-4 w-4" />
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_cliente)} title="Elimina Cliente">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
     },
-  ], [handleEdit, handleDelete]);
+  ], [handleEdit, handleDelete, handleViewContacts]);
 
   const table = useReactTable({
     data: filteredData,

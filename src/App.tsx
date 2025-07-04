@@ -35,6 +35,7 @@ const RichiestaManutenzione = React.lazy(() => import("./pages/RichiestaManutenz
 const EditServiceReportPage = React.lazy(() => import("./pages/EditServiceReportPage"));
 const EditMaintenanceRequestPage = React.lazy(() => import("./pages/EditMaintenanceRequestPage"));
 const AccessManagementPage = React.lazy(() => import("./pages/AccessManagementPage"));
+const ClientContactsPage = React.lazy(() => import("./pages/ClientContactsPage")); // New import
 
 const queryClient = new QueryClient();
 
@@ -131,6 +132,11 @@ const App = () => (
                   <Route path="anagrafiche/clienti" element={
                     <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
                       <ClientiPage />
+                    </React.Suspense>
+                  } />
+                  <Route path="anagrafiche/clienti/:clientId/contacts" element={ // New route for client contacts
+                    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><p className="text-xl text-gray-600 dark:text-gray-400">Caricamento...</p></div>}>
+                      <ClientContactsPage />
                     </React.Suspense>
                   } />
                   <Route path="anagrafiche/punti-servizio" element={
