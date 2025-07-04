@@ -140,9 +140,9 @@ export default function ClientiList() {
       return (
         cliente.nome_cliente.toLowerCase().includes(searchLower) ||
         (cliente.email?.toLowerCase().includes(searchLower)) ||
-        (cliente.phone?.toLowerCase().includes(searchLower)) ||
-        (cliente.address?.toLowerCase().includes(searchLower)) ||
-        (cliente.city?.toLowerCase().includes(searchLower))
+        (cliente.telefono?.toLowerCase().includes(searchLower)) ||
+        (cliente.indirizzo?.toLowerCase().includes(searchLower)) ||
+        (cliente.citta?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
@@ -159,19 +159,19 @@ export default function ClientiList() {
       cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
     },
     {
-      accessorKey: "phone",
+      accessorKey: "telefono",
       header: "Telefono",
-      cell: ({ row }) => <span>{row.original.phone || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.telefono || 'N/A'}</span>,
     },
     {
-      accessorKey: "address",
+      accessorKey: "indirizzo",
       header: "Indirizzo",
-      cell: ({ row }) => <span>{row.original.address || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.indirizzo || 'N/A'}</span>,
     },
     {
-      accessorKey: "city",
+      accessorKey: "citta",
       header: "Città",
-      cell: ({ row }) => <span>{row.original.city || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.citta || 'N/A'}</span>,
     },
     {
       id: "actions",
