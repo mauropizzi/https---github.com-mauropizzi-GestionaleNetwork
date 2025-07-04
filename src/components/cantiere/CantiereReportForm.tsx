@@ -313,7 +313,7 @@ export function CantiereReportForm({ reportId, report, onSaveSuccess, onCancel }
     }
     if (values.endDateTime < values.startDateTime) {
       form.setError("endDateTime", { type: "manual", message: "La data/ora di fine non può essere precedente a quella di inizio." });
-      showError("La data/ora di fine non può essere precedente a quella di inizio.");
+      showError("La data/ora di fine non può essere precedente alla data/ora di inizio.");
       return;
     }
 
@@ -431,7 +431,7 @@ export function CantiereReportForm({ reportId, report, onSaveSuccess, onCancel }
     const values = form.getValues();
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const servicePointName = selectedServicePoint ? selectedServicePoint.nome_punto_servizio : "N/A";
-    const clientName = selectedServicePoint?.clienti?.nome_cliente || "N/A";
+    const clientName = selectedServicePoint?.clienti?.[0]?.nome_cliente || "N/A";
     const selectedAddetto = personaleList.find(p => p.id === values.addetto);
     const addettoName = selectedAddetto ? `${selectedAddetto.nome} ${selectedAddetto.cognome}` : "N/A";
     const selectedAddettoRiconsegna = personaleRiconsegnaList.find(p => p.id === values.addettoRiconsegnaSecurityService);
