@@ -37,7 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
+// Removed Checkbox import as it's no longer needed
 
 const automezzoSchema = z.object({
   tipologia: z.string().min(1, "Tipologia richiesta."),
@@ -65,48 +65,16 @@ const formSchema = z.object({
   automezzi: z.array(automezzoSchema).optional(),
   attrezzi: z.array(attrezzoSchema).optional(),
   latitude: z.coerce.number().optional().nullable(),
-  longitude: z.coerce.number().optional().nullable(),
+    longitude: z.coerce.number().optional().nullable(),
   // New fields for Riconsegna Cantiere
-  addettoRiconsegnaSecurityService: z.string().uuid("Seleziona un addetto valido.").optional().nullable(), // Changed to UUID and nullable
+  addettoRiconsegnaSecurityService: z.string().uuid("Seleziona un addetto valido.").optional().nullable(),
   responsabileCommittenteRiconsegna: z.string().optional().nullable(),
   esitoServizio: z.string().optional().nullable(),
   consegneServizio: z.string().optional().nullable(),
   status: z.enum(["attivo", "terminato"]).default("attivo"),
-  isCompleted: z.boolean().default(false), // New field for UI control
 }).refine(data => data.endDateTime >= data.startDateTime, {
   message: "La data/ora di fine non può essere precedente a quella di inizio.",
   path: ["endDateTime"],
-}).superRefine((data, ctx) => {
-  if (data.isCompleted) {
-    if (!data.addettoRiconsegnaSecurityService || data.addettoRiconsegnaSecurityService === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "L'addetto Security Service Riconsegna è richiesto per completare il rapporto.",
-        path: ["addettoRiconsegnaSecurityService"],
-      });
-    }
-    if (!data.responsabileCommittenteRiconsegna || data.responsabileCommittenteRiconsegna.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Il responsabile Committente Riconsegna è richiesto per completare il rapporto.",
-        path: ["responsabileCommittenteRiconsegna"],
-      });
-    }
-    if (!data.esitoServizio || data.esitoServizio === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "L'esito del servizio è richiesto per completare il rapporto.",
-        path: ["esitoServizio"],
-      });
-    }
-    if (!data.consegneServizio || data.consegneServizio.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Le consegne di servizio sono richieste per completare il rapporto.",
-        path: ["consegneServizio"],
-      });
-    }
-  }
 });
 
 interface CantiereFormProps {
@@ -144,7 +112,6 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       esitoServizio: null,
       consegneServizio: null,
       status: "attivo",
-      isCompleted: false, // Default to false
     },
   });
 
@@ -211,7 +178,6 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
             esitoServizio: report.esito_servizio || null,
             consegneServizio: report.consegne_servizio || null,
             status: report.status || "attivo",
-            isCompleted: report.status === "terminato", // Set isCompleted based on fetched status
           });
         }
         setLoadingInitialReport(false);
@@ -223,7 +189,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     loadReportData();
   }, [reportId, loadingDropdowns, form]); // Add loadingDropdowns as a dependency
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSaveDraft = async (values: z.infer<typeof formSchema>) => {
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     if (!selectedServicePoint || !selectedServicePoint.id_cliente) {
       showError("Punto servizio selezionato non valido o senza cliente associato.");
@@ -239,15 +205,15 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
       site_name: siteName,
       employee_id: values.addetto,
       service_provided: values.servizio,
-      start_datetime: values.startDateTime.toISOString(),
-      end_datetime: values.endDateTime.toISOString(),
+      start_datetime: values.startDateTime?.toISOString() || null,
+      end_datetime: values.endDateTime?.toISOString() || null,
       notes: values.noteVarie || null,
-      service_point_id: values.servicePointId, // Save the service_point_id
+      service_point_id: values.servicePointId,
       addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
       responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
       esito_servizio: values.esitoServizio || null,
       consegne_servizio: values.consegneServizio || null,
-      status: values.isCompleted ? "terminato" : "attivo", // Set status based on isCompleted
+      status: "attivo", // Always set to "attivo" for this handler
     };
 
     let registroId: string | null = null;
@@ -308,6 +274,127 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     }
   };
 
+  const handleCloseReport = async (values: z.infer<typeof formSchema>) => {
+    // Manual validation for completion fields
+    if (!values.addettoRiconsegnaSecurityService || values.addettoRiconsegnaSecurityService === "") {
+      form.setError("addettoRiconsegnaSecurityService", { type: "manual", message: "L'addetto Security Service Riconsegna è richiesto per completare il rapporto." });
+      showError("L'addetto Security Service Riconsegna è richiesto per completare il rapporto.");
+      return;
+    }
+    if (!values.responsabileCommittenteRiconsegna || values.responsabileCommittenteRiconsegna.trim() === "") {
+      form.setError("responsabileCommittenteRiconsegna", { type: "manual", message: "Il responsabile Committente Riconsegna è richiesto per completare il rapporto." });
+      showError("Il responsabile Committente Riconsegna è richiesto per completare il rapporto.");
+      return;
+    }
+    if (!values.esitoServizio || values.esitoServizio === "") {
+      form.setError("esitoServizio", { type: "manual", message: "L'esito del servizio è richiesto per completare il rapporto." });
+      showError("L'esito del servizio è richiesto per completare il rapporto.");
+      return;
+    }
+    if (!values.consegneServizio || values.consegneServizio.trim() === "") {
+      form.setError("consegneServizio", { type: "manual", message: "Le consegne di servizio sono richieste per completare il rapporto." });
+      showError("Le consegne di servizio sono richieste per completare il rapporto.");
+      return;
+    }
+
+    // Also validate start/end date/time for completion
+    if (!values.startDateTime) {
+      form.setError("startDateTime", { type: "manual", message: "La data e ora di inizio sono richieste per completare il rapporto." });
+      showError("La data e ora di inizio sono richieste per completare il rapporto.");
+      return;
+    }
+    if (!values.endDateTime) {
+      form.setError("endDateTime", { type: "manual", message: "La data e ora di fine sono richieste per completare il rapporto." });
+      showError("La data e ora di fine sono richieste per completare il rapporto.");
+      return;
+    }
+    if (values.endDateTime < values.startDateTime) {
+      form.setError("endDateTime", { type: "manual", message: "La data/ora di fine non può essere precedente a quella di inizio." });
+      showError("La data/ora di fine non può essere precedente a quella di inizio.");
+      return;
+    }
+
+    const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
+    if (!selectedServicePoint || !selectedServicePoint.id_cliente) {
+      showError("Punto servizio selezionato non valido o senza cliente associato.");
+      return;
+    }
+    const clientId = selectedServicePoint.id_cliente;
+    const siteName = selectedServicePoint.nome_punto_servizio;
+
+    const basePayload = {
+      report_date: format(values.reportDate, 'yyyy-MM-dd'),
+      report_time: values.reportTime,
+      client_id: clientId,
+      site_name: siteName,
+      employee_id: values.addetto,
+      service_provided: values.servizio,
+      start_datetime: values.startDateTime.toISOString(),
+      end_datetime: values.endDateTime.toISOString(),
+      notes: values.noteVarie || null,
+      service_point_id: values.servicePointId,
+      addetto_riconsegna_security_service: values.addettoRiconsegnaSecurityService || null,
+      responsabile_committente_riconsegna: values.responsabileCommittenteRiconsegna || null,
+      esitoServizio: values.esitoServizio || null,
+      consegneServizio: values.consegneServizio || null,
+      status: "terminato", // Set to "terminato" for this handler
+    };
+
+    let registroId: string | null = null;
+    let registroError: any = null;
+
+    if (reportId) {
+      const { data, error } = await supabase
+        .from('registri_cantiere')
+        .update(basePayload)
+        .eq('id', reportId)
+        .select('id')
+        .single();
+      registroId = data?.id || null;
+      registroError = error;
+    } else {
+      const { data, error } = await supabase
+        .from('registri_cantiere')
+        .insert([basePayload])
+        .select('id')
+        .single();
+      registroId = data?.id || null;
+      registroError = error;
+    }
+
+    if (registroError || !registroId) {
+      showError(`Errore durante la registrazione del rapporto: ${registroError?.message}`);
+      console.error("Error upserting registro_cantiere:", registroError);
+      return;
+    }
+
+    await supabase.from('automezzi_utilizzati').delete().eq('registro_cantiere_id', registroId);
+    if (values.automezzi && values.automezzi.length > 0) {
+      const automezziPayload = values.automezzi.map(auto => ({ ...auto, registro_cantiere_id: registroId }));
+      const { error: automezziInsertError } = await supabase.from('automezzi_utilizzati').insert(automezziPayload);
+      if (automezziInsertError) {
+        showError(`Errore durante la registrazione degli automezzi: ${automezziInsertError.message}`);
+        return;
+      }
+    }
+
+    await supabase.from('attrezzi_utilizzati').delete().eq('registro_cantiere_id', registroId);
+    if (values.attrezzi && values.attrezzi.length > 0) {
+      const attrezziPayload = values.attrezzi.map(attrezzo => ({ ...attrezzo, registro_cantiere_id: registroId }));
+      const { error: attrezziInsertError } = await supabase.from('attrezzi_utilizzati').insert(attrezziPayload);
+      if (attrezziInsertError) {
+        showError(`Errore durante la registrazione degli attrezzi: ${attrezziInsertError.message}`);
+        return;
+      }
+    }
+
+    showSuccess(`Rapporto di cantiere ${reportId ? 'modificato' : 'registrato'} e completato con successo!`);
+    form.reset();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   const handleSetCurrentDate = () => {
     form.setValue("reportDate", new Date());
   };
@@ -353,7 +440,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
     let body = `Dettagli Rapporto di Cantiere:\n\n`;
     body += `Data Rapporto: ${format(values.reportDate, 'dd/MM/yyyy')}\n`;
     body += `Ora Rapporto: ${values.reportTime}\n`;
-    if (values.latitude !== undefined && values.longitude !== undefined) {
+    if (values.latitude !== undefined && values.longitude !== undefined && values.latitude !== null && values.longitude !== null) {
       body += `Posizione GPS: Lat ${values.latitude.toFixed(6)}, Lon ${values.longitude.toFixed(6)}\n`;
     }
     body += `Cliente: ${clientName}\n`;
@@ -411,7 +498,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4">
+      <form onSubmit={form.handleSubmit(handleSaveDraft)} className="space-y-6 p-4">
         <section className="p-4 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-4">Dati Generali</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -772,25 +859,6 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="isCompleted"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>
-                    Segna come completato (richiede tutti i campi di riconsegna)
-                  </FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -804,8 +872,11 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
           )}
           {reportId ? (
             <>
-              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button type="button" className="w-full bg-purple-600 hover:bg-purple-700" onClick={form.handleSubmit(handleSaveDraft)}>
                 SALVA MODIFICHE
+              </Button>
+              <Button type="button" className="w-full bg-red-600 hover:bg-red-700" onClick={form.handleSubmit(handleCloseReport)}>
+                CHIUDI RAPPORTO
               </Button>
               {onCancel && (
                 <Button type="button" variant="outline" className="w-full" onClick={onCancel}>
@@ -814,7 +885,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
               )}
             </>
           ) : (
-            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+            <Button type="button" className="w-full bg-purple-600 hover:bg-purple-700" onClick={form.handleSubmit(handleSaveDraft)}>
               REGISTRA RAPPORTO
             </Button>
           )}
