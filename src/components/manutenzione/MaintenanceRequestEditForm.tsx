@@ -190,7 +190,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
                             value={point.nome_punto_servizio}
                             onSelect={() => {
                               form.setValue("service_point_id", point.id);
-                              setIsServicePointSelectOpen(false);
+                              setIsServicePointOpen(false);
                             }}
                           >
                             <Check

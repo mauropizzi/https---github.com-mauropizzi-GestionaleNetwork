@@ -495,5 +495,17 @@ export const generateMaintenanceReportPdfBlob = async (request: RichiestaManuten
     y += (splitDescription.length * 4);
   }
 
+  // Nuovo campo: Attività di Riparazione
+  if (request.repair_activities) {
+    y += 5;
+    doc.setFontSize(12);
+    doc.text("Attività di Riparazione:", 14, y);
+    y += 5;
+    doc.setFontSize(10);
+    const splitRepairActivities = doc.splitTextToSize(request.repair_activities, 180);
+    doc.text(splitRepairActivities, 14, y);
+    y += (splitRepairActivities.length * 4);
+  }
+
   return doc.output('blob');
 };

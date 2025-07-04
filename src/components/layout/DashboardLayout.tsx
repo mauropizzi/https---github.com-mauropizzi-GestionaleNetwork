@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { MenuIcon } from "lucide-react";
+import { InProgressEventsCounter } from "@/components/centrale-operativa/InProgressEventsCounter"; // Import the new component
 
 const DashboardLayout = () => {
   const isMobile = useIsMobile();
@@ -34,10 +35,33 @@ const DashboardLayout = () => {
         return "Registro di Cantiere";
       case "/centrale-operativa":
         return "Centrale Operativa";
+      case "/servizi-a-canone":
+        return "Servizi a Canone";
+      case "/incoming-emails":
+        return "Email in Arrivo";
+      case "/analisi-contabile":
+        return "Analisi Contabile";
+      case "/richiesta-manutenzione":
+        return "Richieste di Manutenzione";
       default:
+        // Handle dynamic routes like /centrale-operativa/edit/:id
+        if (location.pathname.startsWith("/centrale-operativa/edit/")) {
+          return "Modifica Evento Allarme";
+        }
+        if (location.pathname.startsWith("/service-list/edit/")) {
+          return "Modifica Servizio Richiesto";
+        }
+        if (location.pathname.startsWith("/dotazioni-di-servizio/edit/")) {
+          return "Modifica Rapporto Dotazioni";
+        }
+        if (location.pathname.startsWith("/richiesta-manutenzione/edit/")) {
+          return "Modifica Richiesta Manutenzione";
+        }
         return "Dashboard";
     }
   };
+
+  const isCentraleOperativaPage = location.pathname === "/" || location.pathname.startsWith("/centrale-operativa");
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -70,7 +94,11 @@ const DashboardLayout = () => {
             </Sheet>
           )}
           <h1 className="text-2xl font-semibold ml-4">{getPageTitle()}</h1>
-          {/* Potresti aggiungere qui altri elementi dell'header, come un menu utente */}
+          {isCentraleOperativaPage && (
+            <div className="ml-auto mr-4">
+              <InProgressEventsCounter />
+            </div>
+          )}
         </header>
         <div className="flex-1 overflow-auto p-4">
           <Outlet /> {/* This is where nested routes will render */}
