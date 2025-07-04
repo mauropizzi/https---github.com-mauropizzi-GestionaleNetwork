@@ -53,7 +53,6 @@ export default function Login() {
                 password_input_placeholder: "La tua password",
                 button_label: "Accedi",
                 social_provider_text: "Accedi con {{provider}}",
-                sign_up_link_text: "Non hai un account? Registrati",
               },
               sign_up: {
                 email_label: "Indirizzo Email",
@@ -62,6 +61,7 @@ export default function Login() {
                 password_input_placeholder: "La tua password",
                 button_label: "Registrati",
                 social_provider_text: "Registrati con {{provider}}",
+                link_text: "Non hai un account? Registrati", // Moved here
               },
               forgotten_password: {
                 email_label: "Indirizzo Email",
