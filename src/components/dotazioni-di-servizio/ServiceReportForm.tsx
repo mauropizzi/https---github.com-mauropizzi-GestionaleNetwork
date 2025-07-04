@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { showError, showSuccess } from "@/utils/toast";
+import { showError, showSuccess, showInfo } from "@/utils/toast";
 import { RapportoServizio, Personale, PuntoServizio } from "@/lib/anagrafiche-data";
 import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching";
 import { sendEmail } from "@/utils/email";
@@ -203,6 +203,10 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
     const values = methods.getValues();
     if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
       showInfo("Nessuna richiesta di manutenzione da inviare.");
+      return;
+    }
+    if (!values.serviceDate) {
+      showError("Data del servizio non specificata. Impossibile inviare l'email.");
       return;
     }
     const subject = `Richiesta Manutenzione Veicolo - Targa: ${values.vehiclePlate}`;

@@ -39,7 +39,7 @@ interface ServizioRichiesto {
 // Define the structure of a dotazioni report from Supabase
 interface RapportoServizio {
   id: string;
-  created_at: string;
+  created_at?: string;
   service_date: string;
   employee_id: string;
   service_location: string;
@@ -67,7 +67,7 @@ interface RapportoServizio {
 
 // Define a type for the form values for dotazioni report
 interface DotazioniFormValues {
-  serviceDate: Date;
+  serviceDate?: Date;
   employeeId: string;
   servicePointId: string;
   serviceType: string;
@@ -353,6 +353,10 @@ export const generateDotazioniReportPdfBlob = async (
     servicePointName = report?.service_location || 'N/A'; // Use service_location from DB
   } else if (formData && personaleList && puntiServizioList) {
     // Use provided form data for new report
+    if (!formData.serviceDate) {
+      showError("Data del servizio non specificata. Impossibile generare il PDF.");
+      return null;
+    }
     report = {
       id: 'NEW_REPORT', // Placeholder ID
       created_at: new Date().toISOString(),
