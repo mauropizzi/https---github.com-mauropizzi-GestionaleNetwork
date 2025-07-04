@@ -267,8 +267,8 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
               if (hoursDiff < 0) hoursDiff += 24; // Handle overnight shifts
               hoursForDay = hoursDiff;
             }
-            totalInspections += (hoursForDay / cadence_hours);
-            console.log(`  Day: ${dayOfWeek}, Hours for day: ${hoursForDay}, Cadence: ${cadence_hours}, Inspections for day: ${hoursForDay / cadence_hours}, Current total inspections: ${totalInspections}`); // Detailed log for inspections
+            totalInspections += Math.floor(hoursForDay / cadence_hours);
+            console.log(`  Day: ${dayOfWeek}, Hours for day: ${hoursForDay}, Cadence: ${cadence_hours}, Inspections for day: ${Math.floor(hoursForDay / cadence_hours)}, Current total inspections: ${totalInspections}`); // Detailed log for inspections
           }
           currentDateIterator = addDays(currentDateIterator, 1); // Use addDays to create a new date
         }
