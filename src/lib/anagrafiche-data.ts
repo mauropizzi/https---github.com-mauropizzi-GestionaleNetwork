@@ -159,15 +159,6 @@ export interface RichiestaManutenzione {
   requested_by_employee?: { nome: string; cognome: string } | null;
 }
 
-// New interface for User Profiles
-export interface UserProfile {
-  id: string;
-  email: string; // From auth.users
-  first_name?: string | null;
-  last_name?: string | null;
-  role?: string | null; // New field from public.profiles
-}
-
 export const serviceTypeRateOptions: string[] = [
   "Piantonamento",
   "Servizi Fiduciari",

@@ -69,7 +69,7 @@ export function useServiceRequests(): UseServiceRequestsResult {
       console.error("Error fetching services:", error);
       setData([]);
     } else {
-      const servicesWithMultiplier = await Promise.all(servicesData.map(async (service: any) => { // Cast service to any temporarily
+      const servicesWithMultiplier = await Promise.all(servicesData.map(async (service) => {
         // Ensure dates are valid strings before parsing
         const serviceStartDate = service.start_date ? parseISO(service.start_date) : new Date();
         const serviceEndDate = service.end_date ? parseISO(service.end_date) : new Date();
@@ -89,16 +89,11 @@ export function useServiceRequests(): UseServiceRequestsResult {
           inspection_type: service.inspection_type,
         };
         const calculatedMultiplier = await calculateServiceMultiplier(detailsForMultiplier);
-        
-        // Explicitly map the joined data to the expected single object structure
-        const mappedService: ServiceRequest = {
-          ...service,
-          clienti: Array.isArray(service.clienti) ? service.clienti[0] : service.clienti,
-          punti_servizio: Array.isArray(service.punti_servizio) ? service.punti_servizio[0] : service.punti_servizio,
+        return { 
+          ...service, 
           calculated_cost: null, // Set cost to null
           multiplier: calculatedMultiplier,
         };
-        return mappedService;
       }));
       setData(servicesWithMultiplier || []);
     }

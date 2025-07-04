@@ -43,8 +43,6 @@ const DashboardLayout = () => {
         return "Analisi Contabile";
       case "/richiesta-manutenzione":
         return "Richieste di Manutenzione";
-      case "/access-levels": // New case for Access Levels
-        return "Livelli di Accesso";
       default:
         // Handle dynamic routes like /centrale-operativa/edit/:id
         if (location.pathname.startsWith("/centrale-operativa/edit/")) {
