@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  ColumnFiltersState,
+  getFilteredRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -15,198 +20,192 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, RefreshCcw } from "lucide-react";
-import { showInfo, showError, showSuccess } from "@/utils/toast";
-import { supabase } from "@/integrations/supabase/client";
+import { PlusCircle, ArrowUpDown, Edit, Trash2 } from "lucide-react";
 import { Fornitore } from "@/lib/anagrafiche-data";
-import { FornitoreEditDialog } from "./FornitoriEditDialog"; // Import the new dialog
+import { FornitoriEditDialog } from "./FornitoriEditDialog"; // Corrected import name
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { showError, showSuccess } from "@/utils/toast";
+import { fetchFornitori } from "@/lib/data-fetching";
 
-export function FornitoriTable() {
-  const [data, setData] = useState<Fornitore[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+interface FornitoriTableProps {
+  data: Fornitore[];
+  isLoading: boolean;
+  onRefresh: () => void;
+}
+
+export function FornitoriTable({
+  data,
+  isLoading,
+  onRefresh,
+}: FornitoriTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedFornitoreForEdit, setSelectedFornitoreForEdit] = useState<Fornitore | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [selectedFornitore, setSelectedFornitore] =
+    useState<Fornitore | null>(null);
 
-  const fetchFornitoriData = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('fornitori')
-      .select('id, created_at, nome_fornitore, partita_iva, codice_fiscale, referente, telefono, email, tipo_fornitura, indirizzo, cap, citta, provincia, pec, attivo, note');
+  const columns: ColumnDef<Fornitore>[] = useMemo(
+    () => [
+      {
+        accessorKey: "nome",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Nome
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => <div className="capitalize">{row.getValue("nome")}</div>,
+      },
+      {
+        accessorKey: "partita_iva",
+        header: "Partita IVA",
+      },
+      {
+        accessorKey: "codice_fiscale",
+        header: "Codice Fiscale",
+      },
+      {
+        accessorKey: "citta",
+        header: "Città",
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+      },
+      {
+        accessorKey: "attivo",
+        header: "Attivo",
+        cell: ({ row }) => (
+          <div className="text-center">
+            {row.getValue("attivo") ? "Sì" : "No"}
+          </div>
+        ),
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        cell: ({ row }) => {
+          const fornitore = row.original;
+          return (
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEdit(fornitore)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(fornitore)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
 
-    if (error) {
-      showError(`Errore nel recupero dei fornitori: ${error.message}`);
-      console.error("Error fetching fornitori:", error);
-      setData([]);
-    } else {
-      setData(data || []);
-    }
-    setLoading(false);
-  }, []);
+  const table = useReactTable({
+    data,
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
 
-  useEffect(() => {
-    fetchFornitoriData();
-  }, [fetchFornitoriData]);
-
-  const handleEdit = useCallback((fornitore: Fornitore) => {
-    setSelectedFornitoreForEdit(fornitore);
+  const handleAdd = () => {
+    setSelectedFornitore(null);
     setIsEditDialogOpen(true);
-  }, []);
+  };
 
-  const handleSaveEdit = useCallback((updatedFornitore: Fornitore) => {
-    // Update local state to reflect changes immediately
-    setData(prevData =>
-      prevData.map(f =>
-        f.id === updatedFornitore.id ? updatedFornitore : f
-      )
-    );
-    // Optionally, refetch all data to ensure consistency with backend
-    // fetchFornitoriData(); // Uncomment if you prefer a full re-fetch
-    setIsEditDialogOpen(false);
-    setSelectedFornitoreForEdit(null);
-  }, []);
+  const handleEdit = (fornitore: Fornitore) => {
+    setSelectedFornitore(fornitore);
+    setIsEditDialogOpen(true);
+  };
 
-  const handleCloseDialog = useCallback(() => {
-    setIsEditDialogOpen(false);
-    setSelectedFornitoreForEdit(null);
-  }, []);
+  const handleDelete = (fornitore: Fornitore) => {
+    setSelectedFornitore(fornitore);
+    setIsConfirmDialogOpen(true);
+  };
 
-  const handleDelete = async (fornitoreId: string, nomeFornitore: string) => {
-    if (window.confirm(`Sei sicuro di voler eliminare il fornitore "${nomeFornitore}"?`)) {
+  const confirmDelete = async () => {
+    if (selectedFornitore) {
       const { error } = await supabase
-        .from('fornitori')
+        .from("fornitori")
         .delete()
-        .eq('id', fornitoreId);
+        .eq("id", selectedFornitore.id);
 
       if (error) {
-        showError(`Errore durante l'eliminazione del fornitore: ${error.message}`);
-        console.error("Error deleting fornitore:", error);
+        showError(`Errore durante l'eliminazione: ${error.message}`);
       } else {
-        showSuccess(`Fornitore "${nomeFornitore}" eliminato con successo!`);
-        fetchFornitoriData(); // Refresh data after deletion
+        showSuccess("Fornitore eliminato con successo!");
+        onRefresh();
       }
-    } else {
-      showInfo(`Eliminazione del fornitore "${nomeFornitore}" annullata.`);
+      setIsConfirmDialogOpen(false);
+      setSelectedFornitore(null);
     }
   };
 
-  const filteredData = useMemo(() => {
-    return data.filter(fornitore => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        fornitore.nome_fornitore.toLowerCase().includes(searchLower) ||
-        (fornitore.partita_iva?.toLowerCase().includes(searchLower)) ||
-        (fornitore.codice_fiscale?.toLowerCase().includes(searchLower)) ||
-        (fornitore.citta?.toLowerCase().includes(searchLower)) ||
-        (fornitore.email?.toLowerCase().includes(searchLower)) ||
-        (fornitore.tipo_fornitura?.toLowerCase().includes(searchLower))
-      );
-    });
-  }, [data, searchTerm]);
-
-  const columns: ColumnDef<Fornitore>[] = useMemo(() => [
-    {
-      accessorKey: "nome_fornitore",
-      header: "Nome Fornitore",
-      cell: ({ row }) => <span>{row.original.nome_fornitore}</span>,
-    },
-    {
-      accessorKey: "partita_iva",
-      header: "Partita IVA",
-      cell: ({ row }) => <span>{row.original.partita_iva || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "codice_fiscale",
-      header: "Codice Fiscale",
-      cell: ({ row }) => <span>{row.original.codice_fiscale || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "citta",
-      header: "Città",
-      cell: ({ row }) => <span>{row.original.citta || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "telefono",
-      header: "Telefono",
-      cell: ({ row }) => <span>{row.original.telefono || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => <span>{row.original.email || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "tipo_fornitura",
-      header: "Tipo Fornitura",
-      cell: ({ row }) => <span>{row.original.tipo_fornitura || 'N/A'}</span>,
-    },
-    {
-      accessorKey: "attivo",
-      header: "Attivo",
-      cell: ({ row }) => <span>{row.original.attivo ? "Sì" : "No"}</span>,
-    },
-    {
-      id: "actions",
-      header: "Azioni",
-      cell: ({ row }) => (
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_fornitore)} title="Elimina">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ], [handleEdit, handleDelete]);
-
-  const table = useReactTable({
-    data: filteredData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row gap-4 items-center">
+    <div className="w-full">
+      <div className="flex items-center py-4">
         <Input
-          placeholder="Cerca per nome, P.IVA, città..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Cerca per nome..."
+          value={(table.getColumn("nome")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("nome")?.setFilterValue(event.target.value)
+          }
           className="max-w-sm"
         />
-        <Button variant="outline" onClick={fetchFornitoriData} disabled={loading}>
-          <RefreshCcw className="mr-2 h-4 w-4" /> {loading ? 'Caricamento...' : 'Aggiorna Dati'}
+        <Button onClick={handleAdd} className="ml-auto">
+          <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Fornitore
         </Button>
       </div>
-
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   Caricamento fornitori...
                 </TableCell>
               </TableRow>
-            ) : (table && table.getRowModel().rows?.length) ? (
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -229,15 +228,39 @@ export function FornitoriTable() {
           </TableBody>
         </Table>
       </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Precedente
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Successiva
+        </Button>
+      </div>
 
-      {selectedFornitoreForEdit && (
-        <FornitoreEditDialog
-          isOpen={isEditDialogOpen}
-          onClose={handleCloseDialog}
-          fornitore={selectedFornitoreForEdit}
-          onSave={handleSaveEdit}
-        />
-      )}
+      <FornitoriEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        fornitore={selectedFornitore}
+        onSaveSuccess={onRefresh}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={confirmDelete}
+        title="Conferma Eliminazione"
+        description={`Sei sicuro di voler eliminare il fornitore ${selectedFornitore?.nome}? Questa azione non può essere annullata.`}
+      />
     </div>
   );
 }

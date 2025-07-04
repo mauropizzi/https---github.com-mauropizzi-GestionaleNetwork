@@ -1,151 +1,57 @@
-export const addettiList: string[] = [
-  "639 ABBATE EMANUELE",
-  "2 GRASSO DAVIDE",
-  "14 BALISTRERI GIOVANNI",
-  "25 CARUSO GIUSEPPE",
-  "30 DI GAETANO MARIO",
-  "45 FANARA ANTONIO",
-  "50 GAMBINO LUCA",
-  "60 GUASTELLA MARCO",
-  "75 MESSINA ANDREA",
-  "80 MINARDI PAOLO",
-  "90 PALMERI FRANCESCO",
-  "100 RAFFAELE GIUSEPPE",
+// src/lib/cantiere-data.ts
+
+export interface CantiereReport {
+  id: string;
+  report_date: string;
+  report_time: string;
+  client_id: string;
+  site_name: string;
+  employee_id: string;
+  service_provided: string;
+  start_datetime: string;
+  end_datetime: string;
+  notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  service_point_id?: string | null;
+  addetto_riconsegna_security_service?: string | null;
+  responsabile_committente_riconsegna?: string | null;
+  esito_servizio?: string | null;
+  consegne_servizio?: string | null;
+  status: "attivo" | "terminato";
+  created_at?: string;
+  updated_at?: string;
+  // Relations (fetched via join)
+  clienti?: { nome_cliente: string } | null;
+  punti_servizio?: { nome_punto_servizio: string } | null;
+  personale?: { nome: string; cognome: string } | null;
+  automezzi_utilizzati?: Array<{ tipologia: string; marca: string; targa: string }> | null;
+  attrezzi_utilizzati?: Array<{ tipologia: string; marca: string; quantita: number }> | null;
+}
+
+export const servizioOptions = [
+  "Piantonamento",
+  "Ronda",
+  "Ispezione",
+  "Intervento",
+  "Trasporto Valori",
+  "Scorta",
+  "Antincendio",
+  "Primo Soccorso",
+  "Manutenzione",
+  "Installazione",
+  "Disinstallazione",
+  "Sopralluogo",
+  "Consegna",
+  "Ritiro",
+  "Formazione",
+  "Altro",
 ];
 
-export const servizioOptions: string[] = [
-  "Guardia Particolare Giurata",
-  "Addetto Servizi Fiduciari",
-  "Addetto Servizi Fiduciari con Auto",
-  "Servizio di Piantonamento",
-  "Servizio di Ronda",
-  "Servizio di Scorta Valori",
-  "Servizio di Vigilanza Armata",
-  "Servizio di Portierato",
-];
-
-export const tipologiaAutomezzoOptions: string[] = [
-  "Autocarro",
-  "Autogru",
-  "Betoniera",
-  "Betonpompa",
-  "Bulldozer",
-  "Camion",
-  "Carrello elevatore",
-  "Dumper",
-  "Escavatore",
-  "Fresatrice stradale",
-  "Furgone",
-  "Gru a torre",
-  "Gru cingolata",
-  "Pala caricatrice",
-  "Perforatrice",
-  "Piastre vibranti",
-  "Piattaforma aerea",
-  "Rullo compressore",
-  "Spazzatrice",
-  "Trattore",
-  "Vibrofinitrice",
-];
-
-export const marcaAutomezzoOptions: string[] = [
-  "Bell",
-  "Bobcat",
-  "Caterpillar (CAT)",
-  "CIFA",
-  "DAF",
-  "Doosan",
-  "Hitachi",
-  "Iveco",
-  "JCB",
-  "Komatsu",
-  "Kubota",
-  "Liebherr",
-  "MAN",
-  "Manitowoc",
-  "Mercedes-Benz",
-  "Palfinger",
-  "Putzmeister",
-  "SANY",
-  "Scania",
-  "Schwing",
-  "Terex",
-  "Terex Trucks",
-  "Volvo Construction Equipment",
-  "Volvo Trucks",
-  "Wacker Neuson",
-];
-
-export const tipologiaAttrezzoOptions: string[] = [
-  "Avvitatore",
-  "Cavalletto",
-  "Cinghie di sollevamento",
-  "Distanzaometro laser",
-  "Leve di sollevamento",
-  "Levigatrice",
-  "Livella laser",
-  "Martello demolitore",
-  "Pistola termica",
-  "Ponteggio (attrezzatura modulare)",
-  "Saldatrice",
-  "Scala",
-  "Sega circolare",
-  "Seghetto alternativo",
-  "Smerigliatrice angolare (flessibile)",
-  "Tracciatore a gesso",
-  "Trapano",
-];
-
-export const marcaAttrezzoOptions: string[] = [
-  "Altrad",
-  "Bahco",
-  "Black+Decker",
-  "Bosch",
-  "Crosby",
-  "DeWalt",
-  "Doka",
-  "ESAB",
-  "Facom",
-  "Faraone",
-  "Fervi",
-  "Festool",
-  "Fronius",
-  "Gedore",
-  "Gunnebo",
-  "Hailo",
-  "Hilti",
-  "Hitachi",
-  "Irwin",
-  "Keson",
-  "Krause",
-  "Layher",
-  "Leica",
-  "Lincoln Electric",
-  "Makita",
-  "Metabo",
-  "Miller",
-  "Milwaukee",
-  "Peri",
-  "Proto",
-  "RUD",
-  "Ryobi",
-  "Scafom-rux",
-  "SpanSet",
-  "Stanley",
-  "Steinel",
-  "Svelt",
-  "Tajima",
-  "Telwin",
-  "Topcon",
-  "Wagner",
-  "Wolfcraft",
-  "Yale",
-  "Zarges",
-];
-
-export const esitoServizioOptions: string[] = [
-  "TUTTO REGOLARE",
-  "RISCONTRATE ANOMALIE",
-  "FURTO",
-  "TENTATO",
+export const esitoServizioOptions = [
+  "Completato",
+  "Incompleto",
+  "Annullato",
+  "Sospeso",
+  "Rinviato",
 ];
