@@ -10,9 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-// This error indicates that the '@radix-ui/react-icons' package needs to be installed.
-// Run: npm install @radix-ui/react-icons or yarn add @radix-ui/react-icons
-import { CalendarIcon, ClockIcon } from "@radix-ui/react-icons";
+import { CalendarIcon, Clock } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -176,7 +174,7 @@ export function ReportDetailsSection({
                 <Input type="time" {...field} />
               </FormControl>
               <Button type="button" variant="outline" size="icon" onClick={() => handleSetCurrentTime("startTime")}>
-                <ClockIcon className="h-4 w-4" />
+                <Clock className="h-4 w-4" />
               </Button>
             </div>
             <FormMessage />
@@ -196,7 +194,7 @@ export function ReportDetailsSection({
                 <Input type="time" {...field} />
               </FormControl>
               <Button type="button" variant="outline" size="icon" onClick={() => handleSetCurrentTime("endTime")}>
-                <ClockIcon className="h-4 w-4" />
+                <Clock className="h-4 w-4" />
               </Button>
             </div>
             <FormMessage />

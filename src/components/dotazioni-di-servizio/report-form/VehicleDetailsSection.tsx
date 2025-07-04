@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function VehicleDetailsSection() {
-  const { control, register } = useFormContext();
+  const { control } = useFormContext();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
