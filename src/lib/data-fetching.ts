@@ -207,14 +207,15 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
         }
 
         if (dayConfig) {
+          let hoursForDay = 0;
           if (dayConfig.is24h) {
-            totalHours += 24;
+            hoursForDay = 24;
           } else if (dayConfig.startTime && dayConfig.endTime) {
             const start = new Date(`2000-01-01T${dayConfig.startTime}`);
             const end = new Date(`2000-01-01T${dayConfig.endTime}`);
             let hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
             if (hoursDiff < 0) hoursDiff += 24; // Handle overnight shifts
-            totalHours += hoursDiff;
+            hoursForDay = hoursDiff;
           }
         }
         currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
@@ -223,7 +224,54 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
       break;
 
     case "intervento":
-      multiplier = 1; // Each service is one intervention
+      if (type === "Ispezioni") {
+        if (!daily_hours_config || daily_hours_config.length === 0) {
+          showError("Configurazione orari giornalieri mancante per il calcolo delle ispezioni.");
+          return null;
+        }
+        if (!cadence_hours || cadence_hours <= 0) {
+          showError("Cadenza oraria non valida per il calcolo delle ispezioni.");
+          return null;
+        }
+
+        let totalInspections = 0;
+        let currentDate = new Date(startDateObj);
+        while (currentDate <= endDateObj) {
+          const dayOfWeek = format(currentDate, 'EEEE', { locale: it }); // 'Lunedì', 'Martedì', etc.
+          const isHoliday = isDateHoliday(currentDate);
+          const isWeekendDay = isWeekend(currentDate);
+
+          let dayConfig;
+          if (isHoliday) {
+            dayConfig = daily_hours_config.find(d => d.day === "Festivi");
+          } else if (isWeekendDay) {
+            dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+            if (!dayConfig) dayConfig = daily_hours_config.find(d => d.day === "Domenica"); // Fallback for Sunday if specific config not found
+          } else {
+            dayConfig = daily_hours_config.find(d => d.day === dayOfWeek);
+          }
+
+          if (dayConfig) {
+            let hoursForDay = 0;
+            if (dayConfig.is24h) {
+              hoursForDay = 24;
+            } else if (dayConfig.startTime && dayConfig.endTime) {
+              const start = new Date(`2000-01-01T${dayConfig.startTime}`);
+              const end = new Date(`2000-01-01T${dayConfig.endTime}`);
+              let hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+              if (hoursDiff < 0) hoursDiff += 24; // Handle overnight shifts
+              hoursForDay = hoursDiff;
+            }
+            totalInspections += (hoursForDay / cadence_hours);
+          }
+          currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
+        }
+        multiplier = totalInspections;
+      } else {
+        // For other service types that are 'intervento' but not 'Ispezioni' (e.g., Bonifiche, Gestione Chiavi, Apertura/Chiusura)
+        // These are typically single interventions, so multiplier remains 1.
+        multiplier = 1;
+      }
       break;
 
     case "km":
