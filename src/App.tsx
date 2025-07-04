@@ -8,32 +8,32 @@ import { SessionContextProvider, useSession } from "./components/auth/SessionCon
 import { Toaster as Sonner } from "@/components/ui/sonner"; // Ensure Sonner is imported if needed globally
 
 // Lazily load all page components
-const DashboardOverview = React.lazy(() => import("./pages/DashboardOverview"));
-const NotFound = React.lazy(() => import("./pages/NotFound"));
-const ServiceRequest = React.lazy(() => import("./pages/ServiceRequest"));
-const Anagrafiche = React.lazy(() => import("./pages/Anagrafiche"));
-const ClientiPage = React.lazy(() => import("./pages/ClientiPage"));
-const PuntiServizioPage = React.lazy(() => import("./pages/PuntiServizioPage"));
-const PersonalePage = React.lazy(() => import("./pages/PersonalePage"));
-const OperatoriNetworkPage = React.lazy(() => import("./pages/OperatoriNetworkPage"));
-const FornitoriPage = React.lazy(() => import("./pages/FornitoriPage"));
-const TariffePage = React.lazy(() => import("./pages/TariffePage"));
-const ProcedurePage = React.lazy(() => import("./pages/ProcedurePage"));
-const DotazioniDiServizio = React.lazy(() => import("./pages/DotazioniDiServizio"));
-const ServiceList = React.lazy(() => import("./pages/ServiceList"));
-const RegistroDiCantiere = React.lazy(() => import("./pages/RegistroDiCantiere"));
-const CentraleOperativa = React.lazy(() => import("./pages/CentraleOperativa"));
-const ServiziCanone = React.lazy(() => import("./pages/ServiziCanone"));
-const EditAlarmEventPage = React.lazy(() => import("./pages/EditAlarmEventPage"));
-const PublicSuccessPage = React.lazy(() => import("./pages/PublicSuccessPage"));
-const Login = React.lazy(() => import("./pages/Login"));
-const IncomingEmailsPage = React.lazy(() => import("./pages/IncomingEmails"));
-const AnalisiContabile = React.lazy(() => import("./pages/AnalisiContabile"));
-const EditServiceRequestPage = React.lazy(() => import("./pages/EditServiceRequestPage"));
-const RichiestaManutenzione = React.lazy(() => import("./pages/RichiestaManutenzione"));
-const EditServiceReportPage = React.lazy(() => import("./pages/EditServiceReportPage"));
-const EditMaintenanceRequestPage = React.lazy(() => import("./pages/EditMaintenanceRequestPage"));
-const AccessManagementPage = React.lazy(() => import("./pages/AccessManagementPage"));
+const DashboardOverview = React.lazy(() => import("@/pages/DashboardOverview.tsx"));
+const NotFound = React.lazy(() => import("@/pages/NotFound.tsx"));
+const ServiceRequest = React.lazy(() => import("@/pages/ServiceRequest.tsx"));
+const Anagrafiche = React.lazy(() => import("@/pages/Anagrafiche.tsx"));
+const ClientiPage = React.lazy(() => import("@/pages/ClientiPage.tsx"));
+const PuntiServizioPage = React.lazy(() => import("@/pages/PuntiServizioPage.tsx"));
+const PersonalePage = React.lazy(() => import("@/pages/PersonalePage.tsx"));
+const OperatoriNetworkPage = React.lazy(() => import("@/pages/OperatoriNetworkPage.tsx"));
+const FornitoriPage = React.lazy(() => import("@/pages/FornitoriPage.tsx"));
+const TariffePage = React.lazy(() => import("@/pages/TariffePage.tsx"));
+const ProcedurePage = React.lazy(() => import("@/pages/ProcedurePage.tsx"));
+const DotazioniDiServizio = React.lazy(() => import("@/pages/DotazioniDiServizio.tsx"));
+const ServiceList = React.lazy(() => import("@/pages/ServiceList.tsx"));
+const RegistroDiCantiere = React.lazy(() => import("@/pages/RegistroDiCantiere.tsx"));
+const CentraleOperativa = React.lazy(() => import("@/pages/CentraleOperativa.tsx"));
+const ServiziCanone = React.lazy(() => import("@/pages/ServiziCanone.tsx"));
+const EditAlarmEventPage = React.lazy(() => import("@/pages/EditAlarmEventPage.tsx"));
+const PublicSuccessPage = React.lazy(() => import("@/pages/PublicSuccessPage.tsx"));
+const Login = React.lazy(() => import("@/pages/Login.tsx"));
+const IncomingEmailsPage = React.lazy(() => import("@/pages/IncomingEmails.tsx"));
+const AnalisiContabile = React.lazy(() => import("@/pages/AnalisiContabile.tsx"));
+const EditServiceRequestPage = React.lazy(() => import("@/pages/EditServiceRequestPage.tsx"));
+const RichiestaManutenzione = React.lazy(() => import("@/pages/RichiestaManutenzione.tsx"));
+const EditServiceReportPage = React.lazy(() => import("@/pages/EditServiceReportPage.tsx"));
+const EditMaintenanceRequestPage = React.lazy(() => import("@/pages/EditMaintenanceRequestPage.tsx"));
+const AccessManagementPage = React.lazy(() => import("@/pages/AccessManagementPage.tsx"));
 
 const queryClient = new QueryClient();
 

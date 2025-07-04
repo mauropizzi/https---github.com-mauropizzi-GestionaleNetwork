@@ -7,24 +7,24 @@ const prefetchCache = new Set<string>();
 // Mapping of route paths to their dynamic import function
 // This must be kept in sync with the routes in App.tsx
 const routePrefetchMap: { [key: string]: () => Promise<any> } = {
-  '/': () => import('@/pages/CentraleOperativa'),
-  '/service-request': () => import('@/pages/ServiceRequest'),
-  '/anagrafiche': () => import('@/pages/Anagrafiche'),
-  '/anagrafiche/clienti': () => import('@/pages/ClientiPage'),
-  '/anagrafiche/punti-servizio': () => import('@/pages/PuntiServizioPage'),
-  '/anagrafiche/personale': () => import('@/pages/PersonalePage'),
-  '/anagrafiche/operatori-network': () => import('@/pages/OperatoriNetworkPage'),
-  '/anagrafiche/fornitori': () => import('@/pages/FornitoriPage'),
-  '/anagrafiche/tariffe': () => import('@/pages/TariffePage'),
-  '/anagrafiche/procedure': () => import('@/pages/ProcedurePage'),
-  '/dotazioni-di-servizio': () => import('@/pages/DotazioniDiServizio'),
-  '/service-list': () => import('@/pages/ServiceList'),
-  '/registro-di-cantiere': () => import('@/pages/RegistroDiCantiere'),
-  '/servizi-a-canone': () => import('@/pages/ServiziCanone'),
-  '/incoming-emails': () => import('@/pages/IncomingEmails'),
-  '/analisi-contabile': () => import('@/pages/AnalisiContabile'),
-  '/richiesta-manutenzione': () => import('@/pages/RichiestaManutenzione'), // New route
-  '/access-management': () => import('@/pages/AccessManagementPage'), // New route
+  '/': () => import('@/pages/CentraleOperativa.tsx'),
+  '/service-request': () => import('@/pages/ServiceRequest.tsx'),
+  '/anagrafiche': () => import('@/pages/Anagrafiche.tsx'),
+  '/anagrafiche/clienti': () => import('@/pages/ClientiPage.tsx'),
+  '/anagrafiche/punti-servizio': () => import('@/pages/PuntiServizioPage.tsx'),
+  '/anagrafiche/personale': () => import('@/pages/PersonalePage.tsx'),
+  '/anagrafiche/operatori-network': () => import('@/pages/OperatoriNetworkPage.tsx'),
+  '/anagrafiche/fornitori': () => import('@/pages/FornitoriPage.tsx'),
+  '/anagrafiche/tariffe': () => import('@/pages/TariffePage.tsx'),
+  '/anagrafiche/procedure': () => import('@/pages/ProcedurePage.tsx'),
+  '/dotazioni-di-servizio': () => import('@/pages/DotazioniDiServizio.tsx'),
+  '/service-list': () => import('@/pages/ServiceList.tsx'),
+  '/registro-di-cantiere': () => import('@/pages/RegistroDiCantiere.tsx'),
+  '/servizi-a-canone': () => import('@/pages/ServiziCanone.tsx'),
+  '/incoming-emails': () => import('@/pages/IncomingEmails.tsx'),
+  '/analisi-contabile': () => import('@/pages/AnalisiContabile.tsx'),
+  '/richiesta-manutenzione': () => import('@/pages/RichiestaManutenzione.tsx'), // New route
+  '/access-management': () => import('@/pages/AccessManagementPage.tsx'), // New route
 };
 
 export const PrefetchLink: React.FC<LinkProps> = ({ to, onMouseOver, ...props }) => {
