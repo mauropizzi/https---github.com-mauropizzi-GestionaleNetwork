@@ -45,6 +45,10 @@ export function MaintenanceRequestDetailsDialog({ isOpen, onClose, request }: Ma
             <span className="text-sm font-medium">Descrizione Problema:</span>
             <span className="col-span-2 text-sm whitespace-pre-wrap">{request.issue_description || 'N/A'}</span>
           </div>
+          <div className="grid grid-cols-3 items-start gap-4">
+            <span className="text-sm font-medium">Attività di Riparazione:</span>
+            <span className="col-span-2 text-sm whitespace-pre-wrap">{request.repair_activities || 'N/A'}</span>
+          </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Stato:</span>
             <span className="col-span-2 text-sm">{request.status || 'N/A'}</span>

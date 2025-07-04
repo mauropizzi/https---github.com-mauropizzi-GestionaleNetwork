@@ -153,6 +153,7 @@ export interface RichiestaManutenzione {
   priority: "Low" | "Medium" | "High" | "Urgent";
   requested_by_employee_id?: string | null;
   requested_at: string;
+  repair_activities?: string | null; // Nuovo campo
   // Joined fields for display
   service_point?: { nome_punto_servizio: string } | null;
   requested_by_employee?: { nome: string; cognome: string } | null;

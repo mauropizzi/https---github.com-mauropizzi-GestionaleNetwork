@@ -47,6 +47,7 @@ const formSchema = z.object({
   requested_at: z.date({
     required_error: "La data di richiesta è richiesta.",
   }),
+  repair_activities: z.string().optional().nullable(), // Nuovo campo
 });
 
 interface MaintenanceRequestEditFormProps {
@@ -73,6 +74,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
       priority: "Medium",
       requested_by_employee_id: null,
       requested_at: new Date(),
+      repair_activities: null, // Default per il nuovo campo
     },
   });
 
@@ -112,6 +114,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
             priority: request.priority,
             requested_by_employee_id: request.requested_by_employee_id || null,
             requested_at: (request.requested_at && typeof request.requested_at === 'string') ? parseISO(request.requested_at) : new Date(),
+            repair_activities: request.repair_activities || null, // Popola il nuovo campo
           });
         }
         setLoadingInitialData(false);
@@ -129,6 +132,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
       priority: values.priority,
       requested_by_employee_id: values.requested_by_employee_id,
       requested_at: format(values.requested_at, 'yyyy-MM-dd HH:mm:ssXXX'), // Ensure correct format for timestamp with timezone
+      repair_activities: values.repair_activities, // Includi il nuovo campo
     };
 
     const { error } = await supabase
@@ -228,6 +232,19 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
               <FormLabel>Descrizione Problema</FormLabel>
               <FormControl>
                 <Textarea placeholder="Descrivi il problema riscontrato..." rows={4} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="repair_activities" // Nuovo campo
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attività di Riparazione</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Descrivi le attività di riparazione effettuate..." rows={4} {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -97,7 +97,8 @@ export function MaintenanceRequestsTable() {
         (request.issue_description?.toLowerCase().includes(searchLower)) ||
         employeeName.toLowerCase().includes(searchLower) ||
         request.status.toLowerCase().includes(searchLower) ||
-        request.priority.toLowerCase().includes(searchLower)
+        request.priority.toLowerCase().includes(searchLower) ||
+        (request.repair_activities?.toLowerCase().includes(searchLower)) // Include new field in search
       );
     });
   }, [data, searchTerm]);
@@ -117,6 +118,11 @@ export function MaintenanceRequestsTable() {
       accessorKey: "issue_description",
       header: "Descrizione Problema",
       cell: ({ row }) => <span className="line-clamp-2">{row.original.issue_description || 'N/A'}</span>,
+    },
+    {
+      accessorKey: "repair_activities", // New column
+      header: "Attività di Riparazione",
+      cell: ({ row }) => <span className="line-clamp-2">{row.original.repair_activities || 'N/A'}</span>,
     },
     {
       accessorKey: "requested_by_employee_id",
