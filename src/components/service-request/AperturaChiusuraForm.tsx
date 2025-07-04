@@ -179,7 +179,7 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       inspection_type: values.operationType,
     };
 
-    const calculatedCostResult = await calculateServiceCost(costDetails);
+    const calculatedResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Apertura/Chiusura",
@@ -191,7 +191,9 @@ export function AperturaChiusuraForm({ serviceId, onSaveSuccess, onCancel }: Ape
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: normalizedEndTime,
       status: "Pending",
-      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
+      calculated_cost: calculatedResult ? (calculatedResult.multiplier * calculatedResult.clientRate) : null, // Corrected here
+      total_units: calculatedResult ? calculatedResult.multiplier : null, // Salva il moltiplicatore
+      unit_of_measure: calculatedResult ? calculatedResult.unitOfMeasure : null, // Salva l'unità di misura
       num_agents: null,
       cadence_hours: null,
       inspection_type: values.operationType,

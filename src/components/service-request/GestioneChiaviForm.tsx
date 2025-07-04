@@ -137,7 +137,7 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       inspection_type: values.keyManagementType, // Pass keyManagementType for cost calculation
     };
 
-    const calculatedCostResult = await calculateServiceCost(costDetails);
+    const calculatedResult = await calculateServiceCost(costDetails);
 
     const payload = {
       type: "Gestione Chiavi",
@@ -149,7 +149,9 @@ export function GestioneChiaviForm({ serviceId, onSaveSuccess, onCancel }: Gesti
       end_date: format(values.startDate, 'yyyy-MM-dd'), // Set end_date to start_date
       end_time: normalizedStartTime, // Set end_time to start_time
       status: "Pending",
-      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
+      calculated_cost: calculatedResult ? (calculatedResult.multiplier * calculatedResult.clientRate) : null, // Corrected here
+      total_units: calculatedResult ? calculatedResult.multiplier : null, // Salva il moltiplicatore
+      unit_of_measure: calculatedResult ? calculatedResult.unitOfMeasure : null, // Salva l'unità di misura
       num_agents: null,
       cadence_hours: null,
       inspection_type: values.keyManagementType, // Save keyManagementType to inspection_type

@@ -169,6 +169,8 @@ export interface ServiziRichiesti { // Renamed from ServiceRequest
   end_time?: string | null;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   calculated_cost?: number | null;
+  total_units?: number | null; // Nuovo campo per le unità totali (ore/interventi)
+  unit_of_measure?: string | null; // Nuovo campo per l'unità di misura
   num_agents?: number | null;
   cadence_hours?: number | null;
   inspection_type?: string | null;

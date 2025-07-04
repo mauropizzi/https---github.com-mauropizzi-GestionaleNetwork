@@ -4,6 +4,7 @@ import { format, differenceInDays, differenceInMonths, getDaysInMonth, isWeekend
 import { it } from 'date-fns/locale';
 import { isDateHoliday } from "@/lib/date-utils";
 import { showError } from "@/utils/toast";
+import { getUnitaMisuraForServizio } from "@/lib/tariff-utils"; // Import the utility
 
 // Cache for fetched data to reduce redundant API calls
 const dataCache: { [key: string]: any } = {};
@@ -128,7 +129,7 @@ interface ServiceCostDetails {
   inspection_type?: string | null;
 }
 
-export async function calculateServiceCost(details: ServiceCostDetails): Promise<{ clientRate: number; supplierRate: number; multiplier: number } | null> {
+export async function calculateServiceCost(details: ServiceCostDetails): Promise<{ clientRate: number; supplierRate: number; multiplier: number; unitOfMeasure: string } | null> {
   const { type, client_id, service_point_id, fornitore_id, start_date, end_date, start_time, end_time, num_agents, cadence_hours, daily_hours_config, inspection_type } = details;
 
   // Fetch all tariffs
@@ -174,13 +175,14 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
   let multiplier = 0;
   const startDateObj = start_date;
   const endDateObj = end_date;
+  const unitOfMeasure = tariff.unita_misura; // Get unit of measure from the matched tariff
 
   if (!isValid(startDateObj) || !isValid(endDateObj)) {
     showError("Date di inizio/fine servizio non valide per il calcolo del costo.");
     return null;
   }
 
-  switch (tariff.unita_misura) {
+  switch (unitOfMeasure) { // Use unitOfMeasure from tariff
     case "ora":
       if (!daily_hours_config || daily_hours_config.length === 0) {
         showError("Configurazione orari giornalieri mancante per il calcolo orario.");
@@ -271,6 +273,7 @@ export async function calculateServiceCost(details: ServiceCostDetails): Promise
     clientRate: tariff.client_rate,
     supplierRate: tariff.supplier_rate,
     multiplier: multiplier,
+    unitOfMeasure: unitOfMeasure, // Return the unit of measure
   };
 }
 
