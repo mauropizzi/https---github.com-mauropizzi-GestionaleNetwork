@@ -1,6 +1,18 @@
 export interface Cliente {
   id: string;
   nome_cliente: string;
+  codice_fiscale?: string | null;
+  partita_iva?: string | null;
+  indirizzo?: string | null;
+  citta?: string | null;
+  cap?: string | null;
+  provincia?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  pec?: string | null;
+  sdi?: string | null;
+  attivo?: boolean | null;
+  note?: string | null;
 }
 
 export interface PuntoServizio {
