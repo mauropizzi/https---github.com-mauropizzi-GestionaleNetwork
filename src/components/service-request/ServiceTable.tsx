@@ -34,18 +34,27 @@ export function ServiceTable() {
 
   const fetchServiceRequests = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('servizi_richiesti') // Corrected table name
-      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, calculated_cost, total_units, unit_of_measure, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
+    // Query for the related tables. The result will contain arrays for the joined tables.
+    const { data: rawData, error } = await supabase
+      .from('servizi_richiesti')
+      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, calculated_cost, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
       .order('created_at', { ascending: false });
 
     if (error) {
       showError(`Errore nel recupero delle richieste di servizio: ${error.message}`);
       console.error("Error fetching service requests:", error);
       setData([]);
+    } else if (rawData) {
+      // FIX: Supabase returns joined tables as arrays. We map the data to extract the single related object to match the ServiziRichiesti type.
+      const formattedData = rawData.map(item => ({
+        ...item,
+        clienti: Array.isArray(item.clienti) ? item.clienti[0] : item.clienti,
+        punti_servizio: Array.isArray(item.punti_servizio) ? item.punti_servizio[0] : item.punti_servizio,
+        fornitori: Array.isArray(item.fornitori) ? item.fornitori[0] : item.fornitori,
+      }));
+      setData(formattedData as unknown as ServiziRichiesti[]);
     } else {
-      // Data is already mapped correctly by Supabase select with joins
-      setData(data || []);
+      setData([]);
     }
     setLoading(false);
   }, []);
@@ -137,15 +146,9 @@ export function ServiceTable() {
       cell: ({ row }) => <span>{row.original.status}</span>,
     },
     {
-      accessorKey: "total_units", // Changed accessorKey
-      header: "Quantità Totale (Ore/Unità)", // Changed header
-      cell: ({ row }) => (
-        <span>
-          {row.original.total_units !== null && row.original.total_units !== undefined
-            ? `${row.original.total_units.toFixed(2)} ${row.original.unit_of_measure || ''}`
-            : 'N/A'}
-        </span>
-      ),
+      id: "total_quantity",
+      header: "Quantità Totale (Ore/Unità)",
+      cell: () => <span>N/A</span>,
     },
     {
       id: "actions",
