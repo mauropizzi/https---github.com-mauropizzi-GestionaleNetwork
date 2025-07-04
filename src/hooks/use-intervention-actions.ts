@@ -107,7 +107,7 @@ export const useInterventionActions = ({
       const doc = new jsPDF();
       let y = 20;
 
-      const currentFormData = getValues(); // Get the latest form data
+      const currentFormData = getValues(); // Call the function to get latest values
 
       doc.setFontSize(18);
       doc.text("Rapporto Intervento Centrale Operativa", 14, y);
@@ -209,7 +209,7 @@ export const useInterventionActions = ({
   }, [generatePdfBlob]);
 
   const handleEmail = useCallback(async () => {
-    const currentFormData = getValues(); // Get the latest form data
+    const currentFormData = getValues(); // Call the function to get latest form data
     const selectedServicePoint = puntiServizioList.find(p => p.id === currentFormData.servicePoint);
     const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
