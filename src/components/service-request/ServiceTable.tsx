@@ -36,7 +36,7 @@ export function ServiceTable() {
     setLoading(true);
     const { data, error } = await supabase
       .from('servizi_richiesti') // Corrected table name
-      .select('*, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
+      .select('id, type, client_id, service_point_id, fornitore_id, start_date, start_time, end_date, end_time, status, calculated_cost, total_units, unit_of_measure, num_agents, cadence_hours, inspection_type, daily_hours_config, clienti(nome_cliente), punti_servizio(nome_punto_servizio), fornitori(nome_fornitore)')
       .order('created_at', { ascending: false });
 
     if (error) {
