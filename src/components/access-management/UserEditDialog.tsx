@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
-import { UserProfile } from '@/lib/anagrafiche-data'; // Import UserProfile
+import { UserProfile } from '@/lib/anagrafiche-data';
 
 interface UserEditDialogProps {
   isOpen: boolean;
