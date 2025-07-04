@@ -22,7 +22,7 @@ import { OperatoreNetwork } from "@/lib/anagrafiche-data";
 import { OperatoreNetworkEditDialog } from "./OperatoriNetworkEditDialog"; // Import the new dialog
 
 interface OperatoreNetworkExtended extends OperatoreNetwork {
-  nome_cliente?: string; // To display the client name
+  clienti?: { nome_cliente: string } | null; // To display the client name
 }
 
 export function OperatoriNetworkTable() {

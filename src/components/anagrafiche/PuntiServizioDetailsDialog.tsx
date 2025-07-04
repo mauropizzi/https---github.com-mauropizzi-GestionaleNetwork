@@ -30,7 +30,7 @@ export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Cliente Associato:</span>
-            <span className="col-span-2 text-sm">{puntoServizio.nome_cliente || 'N/A'}</span>
+            <span className="col-span-2 text-sm">{puntoServizio.clienti?.nome_cliente || 'N/A'}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Indirizzo:</span>
@@ -74,7 +74,7 @@ export function PuntiServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Fornitore Associato:</span>
-            <span className="col-span-2 text-sm">{puntoServizio.nome_fornitore || 'N/A'}</span>
+            <span className="col-span-2 text-sm">{puntoServizio.fornitori?.nome_fornitore || 'N/A'}</span>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <span className="text-sm font-medium">Codice Cliente Punto:</span>

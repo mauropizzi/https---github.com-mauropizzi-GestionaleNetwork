@@ -1,14 +1,15 @@
 import React from 'react';
 import { useInterventionForm } from '@/hooks/use-intervention-form';
+import { it } from 'date-fns/locale'; // Import it locale
 
 // Import modular components
-import { EventDetailsSection } from './EventDetailsSection';
-import { InterventionTimesSection } from './InterventionTimesSection';
-import { AccessDetailsSection } from './AccessDetailsSection';
-import { PersonnelSection } from './PersonnelSection';
-import { AnomaliesDelaySection } from './AnomaliesDelaySection';
-import { OutcomeBarcodeSection } from './OutcomeBarcodeSection';
-import { InterventionActionButtons } from './InterventionActionButtons';
+import { EventDetailsSection } from '../centrale-operativa/EventDetailsSection';
+import { InterventionTimesSection } from '../centrale-operativa/InterventionTimesSection';
+import { AccessDetailsSection } from '../centrale-operativa/AccessDetailsSection';
+import { PersonnelSection } from '../centrale-operativa/PersonnelSection';
+import { AnomaliesDelaySection } from '../centrale-operativa/AnomaliesDelaySection';
+import { OutcomeBarcodeSection } from '../centrale-operativa/OutcomeBarcodeSection';
+import { InterventionActionButtons } from '../centrale-operativa/InterventionActionButtons';
 
 interface InterventionFormProps {
   eventId?: string; // Optional ID for editing

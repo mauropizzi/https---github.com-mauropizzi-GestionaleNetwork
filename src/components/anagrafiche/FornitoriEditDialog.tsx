@@ -48,7 +48,7 @@ const formSchema = z.object({
   pec: z.string().email("Formato PEC non valido.").optional().nullable().or(z.literal("")),
   tipo_fornitura: z.enum(["piantonamento", "fiduciario", "entrambi"], {
     required_error: "Seleziona un tipo di servizio.",
-  }).optional().nullable().or(z.literal("")),
+  }).optional().nullable(), // Removed .or(z.literal("")) as it's handled by nullable()
   attivo: z.boolean().default(true).optional(),
   note: z.string().optional().nullable(),
 });

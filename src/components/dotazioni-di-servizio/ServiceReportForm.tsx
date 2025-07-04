@@ -149,7 +149,7 @@ export default function ServiceReportForm({ reportId, onSaveSuccess, onCancel }:
           });
         }
         setLoadingInitialReport(false);
-      } else if (!reportId) {
+      } else if (!reportId) { // If no reportId, ensure loading is false
         setLoadingInitialReport(false);
       }
     };
@@ -338,7 +338,7 @@ export default function ServiceReportForm({ reportId, onSaveSuccess, onCancel }:
     const textBody = "Si trasmettono in allegato i dettagli del rapporto dotazioni di servizio.\n\nCordiali saluti.";
     
     showInfo("Generazione PDF per l'allegato email...");
-    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values, personaleList, puntiServizioList);
+    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values as DotazioniFormValues, personaleList, puntiServizioList);
 
     if (pdfBlob) {
       const reader = new FileReader();
@@ -365,7 +365,7 @@ export default function ServiceReportForm({ reportId, onSaveSuccess, onCancel }:
 
   const handlePrintPdf = methods.handleSubmit(async (values) => {
     showInfo("Generazione PDF per la stampa...");
-    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values, personaleList, puntiServizioList);
+    const pdfBlob = await generateDotazioniReportPdfBlob(reportId, values as DotazioniFormValues, personaleList, puntiServizioList);
     if (pdfBlob) {
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, '_blank');

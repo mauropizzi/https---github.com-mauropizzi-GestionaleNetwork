@@ -24,9 +24,9 @@ import { ServiziCanone } from "@/lib/anagrafiche-data";
 import { CanoneEditDialog } from "./CanoneEditDialog";
 
 interface ServiziCanoneExtended extends ServiziCanone {
-  nome_punto_servizio?: string;
-  nome_fornitore?: string;
-  nome_cliente?: string;
+  punti_servizio?: { nome_punto_servizio: string } | null;
+  fornitori?: { nome_fornitore: string } | null;
+  clienti?: { nome_cliente: string } | null;
 }
 
 export function CanoneTable() {
