@@ -6,10 +6,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Personale, OperatoreNetwork } from '@/lib/anagrafiche-data';
+import { useFormContext } from 'react-hook-form'; // Import useFormContext
 
 interface PersonnelSectionProps {
-  formData: any;
-  handleSelectChange: (name: string, value: string) => void;
   operatoriNetworkList: OperatoreNetwork[];
   pattugliaPersonale: Personale[];
   isOperatorNetworkOpen: boolean;
@@ -19,8 +18,6 @@ interface PersonnelSectionProps {
 }
 
 export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
-  formData,
-  handleSelectChange,
   operatoriNetworkList,
   pattugliaPersonale,
   isOperatorNetworkOpen,
@@ -28,6 +25,10 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
   isGpgInterventionOpen,
   setIsGpgInterventionOpen,
 }) => {
+  const { watch, setValue } = useFormContext(); // Get form methods from context
+
+  const formData = watch(); // Watch all form data
+
   return (
     <section className="space-y-4">
       <div className="space-y-2">
@@ -56,7 +57,7 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
                     key={op.id}
                     value={`${op.nome} ${op.cognome || ''}`}
                     onSelect={() => {
-                      handleSelectChange('operatorNetworkId', op.id);
+                      setValue('operatorNetworkId', op.id); // Use setValue
                       setIsOperatorNetworkOpen(false);
                     }}
                   >
@@ -101,7 +102,7 @@ export const PersonnelSection: React.FC<PersonnelSectionProps> = ({
                     key={personale.id}
                     value={`${personale.nome} ${personale.cognome || ''}`}
                     onSelect={() => {
-                      handleSelectChange('gpgIntervention', personale.id);
+                      setValue('gpgIntervention', personale.id); // Use setValue
                       setIsGpgInterventionOpen(false);
                     }}
                   >

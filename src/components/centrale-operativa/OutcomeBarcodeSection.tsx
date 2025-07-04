@@ -3,24 +3,19 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { serviceOutcomeOptions } from '@/lib/centrale-options';
+import { useFormContext } from 'react-hook-form'; // Import useFormContext
 
-interface OutcomeBarcodeSectionProps {
-  formData: any;
-  handleSelectChange: (name: string, value: string) => void;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-}
+export const OutcomeBarcodeSection: React.FC = () => {
+  const { watch, setValue } = useFormContext(); // Get form methods from context
 
-export const OutcomeBarcodeSection: React.FC<OutcomeBarcodeSectionProps> = ({
-  formData,
-  handleSelectChange,
-  handleInputChange,
-}) => {
+  const formData = watch(); // Watch all form data
+
   return (
     <section className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="service-outcome">Esito Evento</Label>
         <Select
-          onValueChange={(value) => handleSelectChange('serviceOutcome', value)}
+          onValueChange={(value) => setValue('serviceOutcome', value)} // Use setValue
           value={formData.serviceOutcome}
         >
           <SelectTrigger>
@@ -43,8 +38,8 @@ export const OutcomeBarcodeSection: React.FC<OutcomeBarcodeSectionProps> = ({
           id="barcode"
           name="barcode"
           placeholder="Inserisci barcode..."
-          value={formData.barcode}
-          onChange={handleInputChange}
+          value={formData.barcode || ''} // Ensure controlled component
+          onChange={(e) => setValue('barcode', e.target.value)} // Use setValue
         />
       </div>
     </section>

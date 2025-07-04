@@ -46,7 +46,7 @@ export const InterventionTimesSection: React.FC<InterventionTimesSectionProps> =
                 className="w-full bg-blue-600 hover:bg-blue-700" 
                 onClick={handleEndGpsTracking}
               >
-                Posizione GPS Inizio Intervento
+                Posizione GPS Fine Intervento
               </Button>
               {(watch('startLatitude') !== null && watch('startLongitude') !== null) && (
                 <p className="text-sm text-gray-500 mt-1 text-center">

@@ -9,11 +9,9 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PuntoServizio, Personale } from '@/lib/anagrafiche-data';
 import { requestTypeOptions } from '@/lib/centrale-options';
+import { useFormContext } from 'react-hook-form'; // Import useFormContext
 
 interface EventDetailsSectionProps {
-  formData: any;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  handleSelectChange: (name: string, value: string) => void;
   handleSetCurrentTime: (field: string) => void;
   handleStartGpsTracking: () => void;
   puntiServizioList: PuntoServizio[];
@@ -25,9 +23,6 @@ interface EventDetailsSectionProps {
 }
 
 export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
-  formData,
-  handleInputChange,
-  handleSelectChange,
   handleSetCurrentTime,
   handleStartGpsTracking,
   puntiServizioList,
@@ -37,6 +32,9 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
   isCoOperatorOpen,
   setIsCoOperatorOpen,
 }) => {
+  const { control, watch, setValue } = useFormContext(); // Get form methods from context
+
+  const formData = watch(); // Watch all form data
   const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
 
   return (
@@ -67,7 +65,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
                     key={point.id}
                     value={point.nome_punto_servizio}
                     onSelect={() => {
-                      handleSelectChange('servicePoint', point.id);
+                      setValue('servicePoint', point.id); // Use setValue
                       setIsServicePointOpen(false);
                     }}
                   >
@@ -98,7 +96,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
       <div className="space-y-2">
         <Label htmlFor="request-type">Tipologia Servizio Richiesto *</Label>
         <Select
-          onValueChange={(value) => handleSelectChange('requestType', value)}
+          onValueChange={(value) => setValue('requestType', value)} // Use setValue
           value={formData.requestType}
         >
           <SelectTrigger>
@@ -140,7 +138,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
                     key={op.id}
                     value={`${op.nome} ${op.cognome || ''}`}
                     onSelect={() => {
-                      handleSelectChange('coOperator', op.id);
+                      setValue('coOperator', op.id); // Use setValue
                       setIsCoOperatorOpen(false);
                     }}
                   >
@@ -167,7 +165,7 @@ export const EventDetailsSection: React.FC<EventDetailsSectionProps> = ({
             id="request-time"
             name="requestTime"
             value={formData.requestTime}
-            onChange={handleInputChange}
+            onChange={(e) => setValue('requestTime', e.target.value)} // Use setValue
             className="flex-1"
             readOnly // Made read-only
           />

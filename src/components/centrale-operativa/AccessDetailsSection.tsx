@@ -1,23 +1,20 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useFormContext } from 'react-hook-form'; // Import useFormContext
 
-interface AccessDetailsSectionProps {
-  formData: any;
-  handleRadioChange: (name: string, value: 'si' | 'no') => void;
-}
+export const AccessDetailsSection: React.FC = () => {
+  const { watch, setValue } = useFormContext(); // Get form methods from context
 
-export const AccessDetailsSection: React.FC<AccessDetailsSectionProps> = ({
-  formData,
-  handleRadioChange,
-}) => {
+  const formData = watch(); // Watch all form data
+
   return (
     <section className="space-y-4">
       <div className="space-y-2">
         <Label>Accesso Completo</Label>
         <RadioGroup
           value={formData.fullAccess}
-          onValueChange={(value: 'si' | 'no') => handleRadioChange('fullAccess', value)}
+          onValueChange={(value: 'si' | 'no') => setValue('fullAccess', value)} // Use setValue
           className="flex space-x-4"
         >
           <div className="flex items-center space-x-2">
@@ -35,7 +32,7 @@ export const AccessDetailsSection: React.FC<AccessDetailsSectionProps> = ({
         <Label>Accesso Caveau</Label>
         <RadioGroup
           value={formData.vaultAccess}
-          onValueChange={(value: 'si' | 'no') => handleRadioChange('vaultAccess', value)}
+          onValueChange={(value: 'si' | 'no') => setValue('vaultAccess', value)} // Use setValue
           className="flex space-x-4"
         >
           <div className="flex items-center space-x-2">

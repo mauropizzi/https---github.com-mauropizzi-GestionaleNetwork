@@ -2,25 +2,20 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { useFormContext } from 'react-hook-form'; // Import useFormContext
 
-interface AnomaliesDelaySectionProps {
-  formData: any;
-  handleRadioChange: (name: string, value: 'si' | 'no') => void;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-}
+export const AnomaliesDelaySection: React.FC = () => {
+  const { watch, setValue } = useFormContext(); // Get form methods from context
 
-export const AnomaliesDelaySection: React.FC<AnomaliesDelaySectionProps> = ({
-  formData,
-  handleRadioChange,
-  handleInputChange,
-}) => {
+  const formData = watch(); // Watch all form data
+
   return (
     <section className="space-y-4">
       <div className="space-y-2">
         <Label>Anomalie Riscontrate</Label>
         <RadioGroup
           value={formData.anomalies}
-          onValueChange={(value: 'si' | 'no') => handleRadioChange('anomalies', value)}
+          onValueChange={(value: 'si' | 'no') => setValue('anomalies', value)} // Use setValue
           className="flex space-x-4"
         >
           <div className="flex items-center space-x-2">
@@ -37,8 +32,8 @@ export const AnomaliesDelaySection: React.FC<AnomaliesDelaySectionProps> = ({
             id="anomalyDescription"
             name="anomalyDescription"
             placeholder="Descrivi le anomalie riscontrate..."
-            value={formData.anomalyDescription}
-            onChange={handleInputChange}
+            value={formData.anomalyDescription || ''} // Ensure controlled component
+            onChange={(e) => setValue('anomalyDescription', e.target.value)} // Use setValue
             className="mt-2"
           />
         )}
@@ -48,7 +43,7 @@ export const AnomaliesDelaySection: React.FC<AnomaliesDelaySectionProps> = ({
         <Label>Ritardo</Label>
         <RadioGroup
           value={formData.delay}
-          onValueChange={(value: 'si' | 'no') => handleRadioChange('delay', value)}
+          onValueChange={(value: 'si' | 'no') => setValue('delay', value)} // Use setValue
           className="flex space-x-4"
         >
           <div className="flex items-center space-x-2">
@@ -65,8 +60,8 @@ export const AnomaliesDelaySection: React.FC<AnomaliesDelaySectionProps> = ({
             id="delayNotes"
             name="delayNotes"
             placeholder="Motivo del ritardo..."
-            value={formData.delayNotes}
-            onChange={handleInputChange}
+            value={formData.delayNotes || ''} // Ensure controlled component
+            onChange={(e) => setValue('delayNotes', e.target.value)} // Use setValue
             className="mt-2"
           />
         )}

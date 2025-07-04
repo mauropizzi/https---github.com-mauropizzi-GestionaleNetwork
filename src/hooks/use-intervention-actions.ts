@@ -40,7 +40,6 @@ const interventionFormSchema = z.object({
 type InterventionFormState = z.infer<typeof interventionFormSchema>;
 
 interface UseInterventionActionsProps {
-  formData: InterventionFormState; // This will be passed from getValues()
   puntiServizioList: PuntoServizio[];
   coOperatorsPersonnel: Personale[];
   operatoriNetworkList: OperatoreNetwork[];
@@ -52,10 +51,10 @@ interface UseInterventionActionsProps {
   triggerValidation: UseFormTrigger<InterventionFormState>; // Add triggerValidation
   setError: UseFormSetError<InterventionFormState>; // Add setError
   clearErrors: UseFormClearErrors<InterventionFormState>; // Add clearErrors
+  getValues: () => InterventionFormState; // Add getValues to access current form state
 }
 
 export const useInterventionActions = ({
-  formData,
   puntiServizioList,
   coOperatorsPersonnel,
   operatoriNetworkList,
@@ -67,6 +66,7 @@ export const useInterventionActions = ({
   triggerValidation,
   setError,
   clearErrors,
+  getValues, // Destructure getValues
 }: UseInterventionActionsProps) => {
 
   const generateBarcodeImage = useCallback((text: string): string | null => {
@@ -107,81 +107,83 @@ export const useInterventionActions = ({
       const doc = new jsPDF();
       let y = 20;
 
+      const currentFormData = getValues(); // Get the latest form data
+
       doc.setFontSize(18);
       doc.text("Rapporto Intervento Centrale Operativa", 14, y);
       y += 10;
 
       doc.setFontSize(10);
-      const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+      const selectedServicePoint = puntiServizioList.find(p => p.id === currentFormData.servicePoint);
       const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
       const interventionTime = selectedServicePoint?.tempo_intervento || 'N/A';
-      const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === formData.coOperator);
+      const selectedCoOperatorForPdf = coOperatorsPersonnel.find(op => op.id === currentFormData.coOperator);
       const coOperatorName = selectedCoOperatorForPdf ? `${selectedCoOperatorForPdf.nome} ${selectedCoOperatorForPdf.cognome || ''}` : 'N/A';
 
       doc.text(`Punto Servizio: ${servicePointName}`, 14, y);
       y += 7;
       doc.text(`Intervento da effettuarsi ENTRO: ${interventionTime} minuti`, 14, y);
       y += 7;
-      doc.text(`Tipologia Servizio Richiesto: ${formData.requestType}`, 14, y);
+      doc.text(`Tipologia Servizio Richiesto: ${currentFormData.requestType}`, 14, y);
       y += 7;
       doc.text(`Operatore C.O. Security Service: ${coOperatorName}`, 14, y);
       y += 7;
-      doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(formData.requestTime)}`, 14, y);
+      doc.text(`Orario Richiesta C.O. Security Service: ${formatDateTimeForPdf(currentFormData.requestTime)}`, 14, y);
       y += 7;
-      if (formData.startLatitude !== undefined && formData.startLongitude !== undefined && formData.startLatitude !== null && formData.startLongitude !== null) {
-        doc.text(`Posizione GPS Inizio Intervento: Lat ${formData.startLatitude.toFixed(6)}, Lon ${formData.startLongitude.toFixed(6)}`, 14, y);
+      if (currentFormData.startLatitude !== undefined && currentFormData.startLatitude !== null && currentFormData.startLongitude !== undefined && currentFormData.startLongitude !== null) {
+        doc.text(`Posizione GPS Inizio Intervento: Lat ${currentFormData.startLatitude.toFixed(6)}, Lon ${currentFormData.startLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(formData.startTime)}`, 14, y);
+      doc.text(`Orario Inizio Intervento: ${formatDateTimeForPdf(currentFormData.startTime)}`, 14, y);
       y += 7;
-      if (formData.endLatitude !== undefined && formData.endLatitude !== null && formData.endLongitude !== undefined && formData.endLongitude !== null) {
-        doc.text(`Posizione GPS Fine Intervento: Lat ${formData.endLatitude.toFixed(6)}, Lon ${formData.endLongitude.toFixed(6)}`, 14, y);
+      if (currentFormData.endLatitude !== undefined && currentFormData.endLatitude !== null && currentFormData.endLongitude !== undefined && currentFormData.endLongitude !== null) {
+        doc.text(`Posizione GPS Fine Intervento: Lat ${currentFormData.endLatitude.toFixed(6)}, Lon ${currentFormData.endLongitude.toFixed(6)}`, 14, y);
         y += 7;
       }
-      doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(formData.endTime)}`, 14, y);
+      doc.text(`Orario Fine Intervento: ${formatDateTimeForPdf(currentFormData.endTime)}`, 14, y);
       y += 7;
-      doc.text(`Accesso Completo: ${formData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
+      doc.text(`Accesso Completo: ${currentFormData.fullAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Accesso Caveau: ${formData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
+      doc.text(`Accesso Caveau: ${currentFormData.vaultAccess?.toUpperCase() || 'N/A'}`, 14, y);
       y += 7;
-      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === formData.operatorNetworkId);
+      const selectedOperatorNetworkForPdf = operatoriNetworkList.find(op => op.id === currentFormData.operatorNetworkId);
       doc.text(`Operatore Network: ${selectedOperatorNetworkForPdf ? `${selectedOperatorNetworkForPdf.nome} ${selectedOperatorNetworkForPdf.cognome || ''}` : 'N/A'}`, 14, y);
       y += 7;
-      const gpgInterventionName = pattugliaPersonale.find(p => p.id === formData.gpgIntervention);
+      const gpgInterventionName = pattugliaPersonale.find(p => p.id === currentFormData.gpgIntervention);
       doc.text(`G.P.G. Intervento: ${gpgInterventionName ? `${gpgInterventionName.nome} ${gpgInterventionName.cognome}` : 'N/A'}`, 14, y);
       y += 7;
-      doc.text(`Anomalie Riscontrate: ${formData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
-      if (formData.anomalies === 'si' && formData.anomalyDescription) {
+      doc.text(`Anomalie Riscontrate: ${currentFormData.anomalies?.toUpperCase() || 'N/A'}`, 14, y);
+      if (currentFormData.anomalies === 'si' && currentFormData.anomalyDescription) {
         y += 5;
         doc.setFontSize(9);
-        const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${formData.anomalyDescription}`, 180);
+        const splitAnomalyDesc = doc.splitTextToSize(`Descrizione Anomalie: ${currentFormData.anomalyDescription}`, 180);
         doc.text(splitAnomalyDesc, 18, y);
         y += (splitAnomalyDesc.length * 4);
         doc.setFontSize(10);
       }
       y += 7;
-      doc.text(`Ritardo: ${formData.delay?.toUpperCase() || 'N/A'}`, 14, y);
-      if (formData.delay === 'si' && formData.delayNotes) {
+      doc.text(`Ritardo: ${currentFormData.delay?.toUpperCase() || 'N/A'}`, 14, y);
+      if (currentFormData.delay === 'si' && currentFormData.delayNotes) {
         y += 5;
         doc.setFontSize(9);
-        const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${formData.delayNotes}`, 180);
+        const splitDelayNotes = doc.splitTextToSize(`Motivo Ritardo: ${currentFormData.delayNotes}`, 180);
         doc.text(splitDelayNotes, 18, y);
         y += (splitDelayNotes.length * 4);
         doc.setFontSize(10);
       }
       y += 7;
-      doc.text(`Esito Evento: ${formData.serviceOutcome || 'N/A'}`, 14, y);
+      doc.text(`Esito Evento: ${currentFormData.serviceOutcome || 'N/A'}`, 14, y);
       y += 7;
 
-      if (formData.barcode) {
-        const barcodeDataURL = generateBarcodeImage(formData.barcode);
+      if (currentFormData.barcode) {
+        const barcodeDataURL = generateBarcodeImage(currentFormData.barcode);
         if (barcodeDataURL) {
-          doc.text(`Barcode: ${formData.barcode}`, 14, y);
+          doc.text(`Barcode: ${currentFormData.barcode}`, 14, y);
           y += 5;
           doc.addImage(barcodeDataURL, 'PNG', 14, y, 100, 20);
           y += 25;
         } else {
-          doc.text(`Barcode: ${formData.barcode} (Impossibile generare immagine)`, 14, y);
+          doc.text(`Barcode: ${currentFormData.barcode} (Impossibile generare immagine)`, 14, y);
           y += 7;
         }
       } else {
@@ -192,7 +194,7 @@ export const useInterventionActions = ({
       const pdfBlob = doc.output('blob');
       resolve(pdfBlob);
     });
-  }, [formData, puntiServizioList, coOperatorsPersonnel, operatoriNetworkList, pattugliaPersonale, generateBarcodeImage, formatDateTimeForPdf]);
+  }, [getValues, puntiServizioList, coOperatorsPersonnel, operatoriNetworkList, pattugliaPersonale, generateBarcodeImage, formatDateTimeForPdf]);
 
   const handlePrintPdf = useCallback(async () => {
     showInfo("Generazione PDF per la stampa...");
@@ -207,7 +209,8 @@ export const useInterventionActions = ({
   }, [generatePdfBlob]);
 
   const handleEmail = useCallback(async () => {
-    const selectedServicePoint = puntiServizioList.find(p => p.id === formData.servicePoint);
+    const currentFormData = getValues(); // Get the latest form data
+    const selectedServicePoint = puntiServizioList.find(p => p.id === currentFormData.servicePoint);
     const servicePointName = selectedServicePoint?.nome_punto_servizio || 'N/A';
     const subject = `Rapporto Intervento Centrale Operativa - ${servicePointName} - ${format(new Date(), 'dd/MM/yyyy HH:mm')}`;
     const textBody = "Si trasmettono in allegato i dettagli del servizio richiesto.\n\nBuon lavoro.";
@@ -236,7 +239,7 @@ export const useInterventionActions = ({
     } else {
       showError("Impossibile generare il PDF per l'allegato.");
     }
-  }, [formData, puntiServizioList, generatePdfBlob]);
+  }, [getValues, puntiServizioList, generatePdfBlob]);
 
   const buildNotesString = useCallback((dataToUse: InterventionFormState) => {
     const notesCombined = [];
@@ -255,7 +258,7 @@ export const useInterventionActions = ({
     return notesCombined.length > 0 ? notesCombined.join('; ') : null;
   }, []);
 
-  const saveIntervention = useCallback(async (isFinal: boolean) => {
+  const saveIntervention = useCallback(async (values: InterventionFormState, isFinal: boolean) => {
     clearErrors(); // Clear previous errors
 
     // Trigger validation for all fields
@@ -302,7 +305,7 @@ export const useInterventionActions = ({
         if (data.endLatitude === null || data.endLatitude === undefined || data.endLongitude === null || data.endLongitude === undefined) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La 'Posizione GPS Fine Intervento' è obbligatoria per la chiusura.", path: ['endLatitude'] });
         }
-      }).safeParse(formData);
+      }).safeParse(values);
 
       if (!finalValidationResult.success) {
         finalValidationResult.error.errors.forEach(err => {
@@ -313,12 +316,12 @@ export const useInterventionActions = ({
       }
     }
 
-    let currentRequestTime = formData.requestTime;
+    let currentRequestTime = values.requestTime;
     if (!eventId) {
       currentRequestTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
     }
 
-    const formDataToUse = { ...formData, requestTime: currentRequestTime };
+    const formDataToUse = { ...values, requestTime: currentRequestTime };
 
     const {
       servicePoint,
@@ -355,8 +358,7 @@ export const useInterventionActions = ({
       barcode: barcode || null,
       start_latitude: startLatitude || null,
       start_longitude: startLongitude || null,
-      end_latitude: endLatitude || null,
-      end_longitude: endLongitude || null,
+      end_latitude: endLongitude || null,
     };
 
     let allarmeResult;
@@ -467,16 +469,14 @@ export const useInterventionActions = ({
     if (onSaveSuccess) {
       onSaveSuccess();
     }
-  }, [formData, eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, resetForm, triggerValidation, setError, clearErrors]);
+  }, [eventId, isPublicMode, onSaveSuccess, puntiServizioList, buildNotesString, resetForm, triggerValidation, setError, clearErrors, getValues]);
 
-  const handleCloseEvent = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    saveIntervention(true);
+  const handleCloseEvent = useCallback((values: InterventionFormState) => {
+    saveIntervention(values, true);
   }, [saveIntervention]);
 
-  const handleRegisterEvent = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    saveIntervention(false);
+  const handleRegisterEvent = useCallback((values: InterventionFormState) => {
+    saveIntervention(values, false);
   }, [saveIntervention]);
 
   return {
