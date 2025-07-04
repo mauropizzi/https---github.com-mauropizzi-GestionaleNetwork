@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -210,7 +212,7 @@ export function PuntiServizioTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row.original)} title="Visualizza Dettagli">
+          <Button variant="outline" size="sm" onClick={() => handleView(row.original)} title="Visualizza Dettagli">
             <Eye className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
@@ -259,7 +261,36 @@ export function PuntiServizioTable() {
                         )}
                   </TableHead>
                 ))}
-              </TableHeader>
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Caricamento punti di servizio...
+                </TableCell>
+              </TableRow>
+            ) : (table && table.getRowModel().rows?.length) ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Nessun punto di servizio trovato.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

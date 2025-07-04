@@ -48,7 +48,7 @@ interface AllarmeIntervento {
 }
 
 interface PuntoServizioExtended extends PuntoServizio {
-  procedure?: { nome_procedura: string } | null; // Adjusted to match the fetched data structure
+  procedure?: { nome_procedura: string }[] | null; // Adjusted to match the fetched data structure
 }
 
 interface AlarmEventsTableProps {
@@ -212,7 +212,7 @@ export function AlarmEventsTable({ type }: AlarmEventsTableProps) {
   const handleViewProcedure = useCallback((servicePointCode: string) => {
     const servicePoint = puntiServizioMap.get(servicePointCode);
     if (servicePoint && servicePoint.procedure) {
-      setSelectedProcedureForDetails(servicePoint.procedure as Procedure); // Cast to Procedure
+      setSelectedProcedureForDetails(servicePoint.procedure[0] as Procedure); // Cast to Procedure
       setIsProcedureDetailsDialogOpen(true);
     } else {
       showInfo("Nessuna procedura associata a questo punto servizio o dettagli non disponibili.");
