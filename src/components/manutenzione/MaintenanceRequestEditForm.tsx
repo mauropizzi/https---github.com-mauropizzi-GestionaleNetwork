@@ -43,7 +43,7 @@ const formSchema = z.object({
   priority: z.enum(["Low", "Medium", "High", "Urgent"], {
     required_error: "La priorità è richiesta.",
   }),
-  requested_by_employee_id: z.string().uuid("Seleziona un dipendente valido.").optional().nullable(),
+  requested_by_employee_id: z.string().uuid("Seleziona un dipendente valido.").nonempty("Il dipendente che ha richiesto la manutenzione è richiesto."), // Made required
   requested_at: z.date({
     required_error: "La data di richiesta è richiesta.",
   }),
@@ -72,7 +72,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
       issue_description: "",
       status: "Pending",
       priority: "Medium",
-      requested_by_employee_id: null,
+      requested_by_employee_id: "", // Changed default to empty string for required field
       requested_at: new Date(),
       repair_activities: null, // Default per il nuovo campo
     },
@@ -112,7 +112,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
             issue_description: request.issue_description || "",
             status: request.status,
             priority: request.priority,
-            requested_by_employee_id: request.requested_by_employee_id || null,
+            requested_by_employee_id: request.requested_by_employee_id || "", // Ensure it's not null for required field
             requested_at: (request.requested_at && typeof request.requested_at === 'string') ? parseISO(request.requested_at) : new Date(),
             repair_activities: request.repair_activities || null, // Popola il nuovo campo
           });
