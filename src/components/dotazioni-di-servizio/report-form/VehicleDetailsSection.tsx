@@ -1,173 +1,136 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   FormControl,
-  FormField,
-  FormItem,
+  FormField, // Import FormField
+  FormItem, // Import FormItem
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  vehicleMakeModelOptions,
-  vehiclePlateOptions,
-  vehicleInitialStateOptions,
-  vehicleDamageOptions,
-} from "@/lib/dotazioni-data";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export const VehicleDetailsSection: React.FC = () => {
-  const { control } = useFormContext();
+export function VehicleDetailsSection() {
+  const { control, register } = useFormContext();
 
   return (
-    <section className="p-4 border rounded-lg shadow-sm bg-card">
-      <h3 className="text-lg font-semibold mb-4">Dettagli Veicolo</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={control}
-          name="vehicleMakeModel"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marca/Modello Veicolo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona marca/modello" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {vehicleMakeModelOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="vehiclePlate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Targa Veicolo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona targa" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {vehiclePlateOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <FormField
-          control={control}
-          name="startKm"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>KM Iniziali</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.1" placeholder="0.0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="endKm"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>KM Finali</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.1" placeholder="0.0" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <FormField
-          control={control}
-          name="vehicleInitialState"
-          render={({ field }) => (
-            <FormItem className="mt-4">
-              <FormLabel>Stato Veicolo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona stato" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {vehicleInitialStateOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      <FormField
-          control={control}
-          name="danniVeicolo"
-          render={({ field }) => (
-            <FormItem className="mt-4">
-              <FormLabel>Danni Veicolo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona danni" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {vehicleDamageOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Vehicle Make/Model */}
       <FormField
         control={control}
-        name="vehicleAnomalies"
+        name="vehicleMakeModel"
         render={({ field }) => (
-          <FormItem className="mt-4">
-            <FormLabel>Anomalie Veicolo (se presenti)</FormLabel>
+          <FormItem>
+            <FormLabel>Marca/Modello Veicolo</FormLabel>
             <FormControl>
-              <Textarea placeholder="Descrivi eventuali anomalie..." rows={3} {...field} value={field.value || ''} />
+              <Input placeholder="Es. Fiat Panda" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-    </section>
+
+      {/* Vehicle Plate */}
+      <FormField
+        control={control}
+        name="vehiclePlate"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Targa Veicolo</FormLabel>
+            <FormControl>
+              <Input placeholder="Es. AB123CD" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Start KM */}
+      <FormField
+        control={control}
+        name="startKm"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>KM Iniziali</FormLabel>
+            <FormControl>
+              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* End KM */}
+      <FormField
+        control={control}
+        name="endKm"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>KM Finali</FormLabel>
+            <FormControl>
+              <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Vehicle Initial State */}
+      <FormField
+        control={control}
+        name="vehicleInitialState"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Stato Veicolo</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona lo stato del veicolo" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="OTTIMO">OTTIMO</SelectItem>
+                <SelectItem value="BUONO">BUONO</SelectItem>
+                <SelectItem value="DISCRETO">DISCRETO</SelectItem>
+                <SelectItem value="SCARSO">SCARSO</SelectItem>
+                <SelectItem value="RICHIESTA MANUTENZIONE">RICHIESTA MANUTENZIONE</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Danni Veicolo */}
+      <FormField
+        control={control}
+        name="danniVeicolo"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Danni Veicolo (se presenti)</FormLabel>
+            <FormControl>
+              <Textarea placeholder="Descrivi eventuali danni" {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Vehicle Anomalies */}
+      <FormField
+        control={control}
+        name="vehicleAnomalies"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Anomalie Veicolo (se presenti)</FormLabel>
+            <FormControl>
+              <Textarea placeholder="Descrivi eventuali anomalie" {...field} value={field.value || ''} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
   );
-};
+}
