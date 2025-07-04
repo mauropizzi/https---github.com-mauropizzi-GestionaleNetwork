@@ -1,5 +1,5 @@
 import React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showSuccess, showError } from "@/utils/toast"; // Import toast utilities
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { Separator } from "@/components/ui/separator";
+import { PlusCircle } from "lucide-react";
+import { ClientContactFormSection } from "./ClientContactFormSection"; // Import the new component
+
+const contactSchema = z.object({
+  department: z.string().min(1, "Il dipartimento è richiesto."),
+  contact_name: z.string().optional().nullable(),
+  email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
+  phone: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
 
 const formSchema = z.object({
   nome_cliente: z.string().min(2, "La ragione sociale è richiesta."), // Changed to nome_cliente to match DB
@@ -32,6 +43,7 @@ const formSchema = z.object({
   sdi: z.string().optional().nullable(),
   attivo: z.boolean().default(true).optional(),
   note: z.string().optional().nullable(),
+  contacts: z.array(contactSchema).optional(), // New field for contacts
 });
 
 export function ClientiForm() {
@@ -51,12 +63,18 @@ export function ClientiForm() {
       sdi: null,
       attivo: true,
       note: null,
+      contacts: [], // Initialize with an empty array
     },
+  });
+
+  const { fields: contactFields, append: appendContact, remove: removeContact } = useFieldArray({
+    control: form.control,
+    name: "contacts",
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Ensure empty strings are converted to null for optional fields
-    const payload = {
+    const clientPayload = {
       nome_cliente: values.nome_cliente,
       partita_iva: values.partita_iva || null,
       codice_fiscale: values.codice_fiscale || null,
@@ -72,19 +90,48 @@ export function ClientiForm() {
       note: values.note || null,
     };
 
-    const { data, error } = await supabase
+    const { data: clientData, error: clientError } = await supabase
       .from('clienti')
-      .insert([payload])
-      .select(); // Use .select() to get the inserted data back
+      .insert([clientPayload])
+      .select('id'); // Select the ID of the newly inserted client
 
-    if (error) {
-      showError(`Errore durante la registrazione del cliente: ${error.message}`);
-      console.error("Error inserting cliente:", error);
-    } else {
-      showSuccess("Cliente salvato con successo!");
-      console.log("Dati Cliente salvati:", data);
-      form.reset(); // Reset form after successful submission
+    if (clientError) {
+      showError(`Errore durante la registrazione del cliente: ${clientError.message}`);
+      console.error("Error inserting cliente:", clientError);
+      return;
     }
+
+    const newClientId = clientData?.[0]?.id;
+    if (!newClientId) {
+      showError("Errore: ID cliente non ricevuto dopo la registrazione.");
+      return;
+    }
+
+    // Handle contacts
+    if (values.contacts && values.contacts.length > 0) {
+      const contactsPayload = values.contacts.map(contact => ({
+        ...contact,
+        client_id: newClientId, // Link contact to the new client
+        contact_name: contact.contact_name || null,
+        email: contact.email || null,
+        phone: contact.phone || null,
+        notes: contact.notes || null,
+      }));
+
+      const { error: contactsError } = await supabase
+        .from('client_contacts')
+        .insert(contactsPayload);
+
+      if (contactsError) {
+        showError(`Errore durante la registrazione dei contatti: ${contactsError.message}`);
+        console.error("Error inserting client contacts:", contactsError);
+        // Optionally, you might want to delete the client if contacts fail to save
+      }
+    }
+
+    showSuccess("Cliente e contatti salvati con successo!");
+    console.log("Dati Cliente salvati:", clientData);
+    form.reset(); // Reset form after successful submission
   };
 
   return (
@@ -274,6 +321,24 @@ export function ClientiForm() {
             </FormItem>
           )}
         />
+
+        <Separator className="my-8" />
+
+        <h3 className="text-lg font-semibold mb-4">Rubrica Contatti</h3>
+        <div className="space-y-4">
+          {contactFields.map((item, index) => (
+            <ClientContactFormSection key={item.id} index={index} onRemove={removeContact} />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => appendContact({ department: "", contact_name: "", email: "", phone: "", notes: "" })}
+          className="mt-4 w-full"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Contatto
+        </Button>
+
         <Button type="submit" className="w-full">Salva Cliente</Button>
       </form>
     </Form>

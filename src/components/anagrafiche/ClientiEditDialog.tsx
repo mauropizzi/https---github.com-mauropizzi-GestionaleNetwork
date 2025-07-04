@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -19,13 +19,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Cliente } from '@/lib/anagrafiche-data';
+import { Separator } from "@/components/ui/separator";
+import { PlusCircle } from "lucide-react";
+import { ClientContactFormSection } from "./ClientContactFormSection"; // Import the new component
 
-interface ClienteEditDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  cliente: Cliente | null;
-  onSave: (updatedCliente: Cliente) => void;
+interface ClientContact {
+  id?: string; // Optional for new contacts, present for existing ones
+  department: string;
+  contact_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  notes?: string | null;
 }
+
+const contactSchema = z.object({
+  id: z.string().optional(), // Allow existing contacts to have an ID
+  department: z.string().min(1, "Il dipartimento è richiesto."),
+  contact_name: z.string().optional().nullable(),
+  email: z.string().email("Formato email non valido.").optional().nullable().or(z.literal("")),
+  phone: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
 
 const formSchema = z.object({
   nome_cliente: z.string().min(2, "La ragione sociale è richiesta."),
@@ -41,6 +55,7 @@ const formSchema = z.object({
   sdi: z.string().optional().nullable(),
   attivo: z.boolean().default(true).optional(),
   note: z.string().optional().nullable(),
+  contacts: z.array(contactSchema).optional(), // New field for contacts
 });
 
 export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteEditDialogProps) {
@@ -51,7 +66,6 @@ export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteE
       partita_iva: null,
       codice_fiscale: null,
       indirizzo: null,
-      cap: null,
       citta: null,
       provincia: null,
       telefono: null,
@@ -60,27 +74,48 @@ export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteE
       sdi: null,
       attivo: true,
       note: null,
+      contacts: [],
     },
   });
 
+  const { fields: contactFields, append: appendContact, remove: removeContact } = useFieldArray({
+    control: form.control,
+    name: "contacts",
+  });
+
   useEffect(() => {
-    if (cliente) {
-      form.reset({
-        nome_cliente: cliente.nome_cliente,
-        partita_iva: cliente.partita_iva || null,
-        codice_fiscale: cliente.codice_fiscale || null,
-        indirizzo: cliente.indirizzo || null,
-        citta: cliente.citta || null,
-        cap: cliente.cap || null,
-        provincia: cliente.provincia || null,
-        telefono: cliente.telefono || null,
-        email: cliente.email || null,
-        pec: cliente.pec || null,
-        sdi: cliente.sdi || null,
-        attivo: cliente.attivo ?? true,
-        note: cliente.note || null,
-      });
-    }
+    const loadContacts = async () => {
+      if (cliente) {
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('client_contacts')
+          .select('*')
+          .eq('client_id', cliente.id);
+
+        if (contactsError) {
+          console.error("Error fetching client contacts:", contactsError);
+          showError("Errore nel caricamento dei contatti del cliente.");
+          return;
+        }
+
+        form.reset({
+          nome_cliente: cliente.nome_cliente,
+          partita_iva: cliente.partita_iva || null,
+          codice_fiscale: cliente.codice_fiscale || null,
+          indirizzo: cliente.indirizzo || null,
+          citta: cliente.citta || null,
+          cap: cliente.cap || null,
+          provincia: cliente.provincia || null,
+          telefono: cliente.telefono || null,
+          email: cliente.email || null,
+          pec: cliente.pec || null,
+          sdi: cliente.sdi || null,
+          attivo: cliente.attivo ?? true,
+          note: cliente.note || null,
+          contacts: contactsData || [], // Populate contacts
+        });
+      }
+    };
+    loadContacts();
   }, [cliente, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -90,7 +125,7 @@ export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteE
       return;
     }
 
-    const updatedData = {
+    const updatedClientData = {
       nome_cliente: values.nome_cliente,
       partita_iva: values.partita_iva,
       codice_fiscale: values.codice_fiscale,
@@ -106,19 +141,52 @@ export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteE
       note: values.note,
     };
 
-    const { data, error } = await supabase
+    const { data: clientUpdateData, error: clientError } = await supabase
       .from('clienti')
-      .update(updatedData)
+      .update(updatedClientData)
       .eq('id', cliente.id)
       .select();
 
-    if (error) {
-      showError(`Errore durante l'aggiornamento del cliente: ${error.message}`);
-      console.error("Error updating cliente:", error);
-    } else {
-      showSuccess(`Cliente "${cliente.nome_cliente}" aggiornato con successo!`);
-      onSave({ ...cliente, ...updatedData });
+    if (clientError) {
+      showError(`Errore durante l'aggiornamento del cliente: ${clientError.message}`);
+      console.error("Error updating cliente:", clientError);
+      return;
     }
+
+    // Handle contacts: delete existing and insert new/updated ones
+    const { error: deleteContactsError } = await supabase
+      .from('client_contacts')
+      .delete()
+      .eq('client_id', cliente.id);
+
+    if (deleteContactsError) {
+      showError(`Errore durante l'eliminazione dei vecchi contatti: ${deleteContactsError.message}`);
+      console.error("Error deleting old client contacts:", deleteContactsError);
+      // Continue anyway, as client data is more critical
+    }
+
+    if (values.contacts && values.contacts.length > 0) {
+      const contactsPayload = values.contacts.map(contact => ({
+        ...contact,
+        client_id: cliente.id, // Link contact to the current client
+        contact_name: contact.contact_name || null,
+        email: contact.email || null,
+        phone: contact.phone || null,
+        notes: contact.notes || null,
+      }));
+
+      const { error: insertContactsError } = await supabase
+        .from('client_contacts')
+        .insert(contactsPayload);
+
+      if (insertContactsError) {
+        showError(`Errore durante l'inserimento dei nuovi contatti: ${insertContactsError.message}`);
+        console.error("Error inserting new client contacts:", insertContactsError);
+      }
+    }
+
+    showSuccess(`Cliente "${cliente.nome_cliente}" e contatti aggiornati con successo!`);
+    onSave({ ...cliente, ...updatedClientData });
     onClose();
   };
 
@@ -316,6 +384,24 @@ export function ClientiEditDialog({ isOpen, onClose, cliente, onSave }: ClienteE
                 </FormItem>
               )}
             />
+
+            <Separator className="my-8" />
+
+            <h3 className="text-lg font-semibold mb-4">Rubrica Contatti</h3>
+            <div className="space-y-4">
+              {contactFields.map((item, index) => (
+                <ClientContactFormSection key={item.id} index={index} onRemove={removeContact} />
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => appendContact({ department: "", contact_name: "", email: "", phone: "", notes: "" })}
+              className="mt-4 w-full"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Contatto
+            </Button>
+
             <DialogFooter>
               <Button type="submit">Salva Modifiche</Button>
             </DialogFooter>

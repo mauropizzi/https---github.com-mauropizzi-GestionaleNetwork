@@ -63,10 +63,10 @@ export function ClientiTable() {
       )
     );
     // Optionally, refetch all data to ensure consistency with backend
-    // fetchClientiData(); // Uncomment if you prefer a full re-fetch
+    fetchClientiData(); // Uncomment if you prefer a full re-fetch
     setIsEditDialogOpen(false);
     setSelectedClienteForEdit(null);
-  }, []);
+  }, [fetchClientiData]);
 
   const handleCloseDialog = useCallback(() => {
     setIsEditDialogOpen(false);
