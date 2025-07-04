@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ColumnDef,
@@ -17,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { it } from 'date-fns/locale';
-import { RefreshCcw, Eye } from "lucide-react";
+import { RefreshCcw, Eye, Edit } from "lucide-react"; // Import Edit icon
 import { showInfo, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { RichiestaManutenzione } from "@/lib/anagrafiche-data";
@@ -28,8 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export function MaintenanceRequestsTable() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [data, setData] = useState<RichiestaManutenzione[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +80,10 @@ export function MaintenanceRequestsTable() {
       fetchMaintenanceRequests(); // Refresh data
     }
   };
+
+  const handleEdit = useCallback((requestId: string) => {
+    navigate(`/richiesta-manutenzione/edit/${requestId}`);
+  }, [navigate]);
 
   const filteredData = useMemo(() => {
     return data.filter(request => {
@@ -161,12 +169,23 @@ export function MaintenanceRequestsTable() {
         </Select>
       ),
     },
-  ], [handleUpdateStatus]);
+    {
+      id: "actions",
+      header: "Azioni",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original.id)} title="Modifica">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [handleUpdateStatus, handleEdit]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    getCoreRowModel: getCoreRowodel(),
   });
 
   return (
