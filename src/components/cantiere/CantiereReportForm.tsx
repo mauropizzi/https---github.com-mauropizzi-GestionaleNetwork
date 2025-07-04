@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -866,12 +865,12 @@ export function CantiereReportForm({ reportId, report, onSaveSuccess, onCancel }
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           {/* Removed INVIA EMAIL button as per request */}
-          {(reportId || report) && (
+          {reportId && (
             <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => generatePdfAndEmail('print')}>
               STAMPA PDF
             </Button>
           )}
-          {(reportId || report) ? (
+          {reportId ? (
             <>
               <Button type="button" className="w-full bg-purple-600 hover:bg-purple-700" onClick={form.handleSubmit(handleSaveDraft)}>
                 SALVA MODIFICHE
