@@ -862,11 +862,7 @@ export function CantiereForm({ reportId, onCancel }: CantiereFormProps) {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          {reportId && ( // Only show INVIA EMAIL if reportId exists
-            <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => generatePdfAndEmail('email')}>
-              INVIA EMAIL
-            </Button>
-          )}
+          {/* Removed INVIA EMAIL button as per request */}
           {reportId && (
             <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={() => generatePdfAndEmail('print')}>
               STAMPA PDF
