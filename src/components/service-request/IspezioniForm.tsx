@@ -38,11 +38,11 @@ import { supabase } from "@/integrations/supabase/client"; // Import Supabase cl
 const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
 
 const dailyHoursSchema = z.object({
-  day: z.string().min(1, "Il giorno è richiesto."), // Made 'day' required
+  day: z.string().min(1, "Il giorno è richiesto."),
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
-}); // Removed .refine from here
+});
 
 const formSchema = z.object({
   servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
@@ -58,7 +58,7 @@ const formSchema = z.object({
     required_error: "Seleziona un tipo di ispezione.",
   }),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
-}); // Removed .refine from here
+});
 
 interface IspezioniFormProps {
   serviceId?: string;
@@ -93,7 +93,6 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
     },
   });
 
-  // Effect to load initial data for editing
   useEffect(() => {
     const loadInitialServiceData = async () => {
       if (serviceId) {
@@ -115,12 +114,11 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            // Add checks for null/undefined/empty string before parsing
             startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             cadenceHours: service.cadence_hours || 2,
             inspectionType: (service.inspection_type as "perimetrale" | "interna" | "completa") || "perimetrale",
-            dailyHours: service.daily_hours_config || [ // Ensure default structure if null
+            dailyHours: service.daily_hours_config || [
               { day: "Lunedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Martedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Mercoledì", startTime: "09:00", endTime: "17:00", is24h: false },
@@ -155,7 +153,6 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Manual date validation
     if (values.endDate.getTime() < values.startDate.getTime()) {
       form.setError("endDate", {
         type: "manual",
@@ -165,14 +162,9 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       return;
     }
 
-    // Manual validation for dailyHours
     for (const [index, dayConfig] of values.dailyHours.entries()) {
       if (!dayConfig.is24h && (!dayConfig.startTime || !dayConfig.endTime)) {
         form.setError(`dailyHours.${index}.startTime`, {
-          type: "manual",
-          message: "Inserisci orari o seleziona H24.",
-        });
-        form.setError(`dailyHours.${index}.endTime`, {
           type: "manual",
           message: "Inserisci orari o seleziona H24.",
         });
@@ -190,9 +182,10 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
     }
 
     const normalizedDailyHours = values.dailyHours.map(dh => ({
-      ...dh,
+      day: dh.day,
       startTime: dh.startTime.replace('.', ':'),
       endTime: dh.endTime.replace('.', ':'),
+      is24h: dh.is24h,
     }));
 
     let effectiveStartTime = "00:00";
@@ -219,8 +212,8 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,
       daily_hours_config: normalizedDailyHours,
-      start_time: effectiveStartTime, // Pass to cost calculation
-      end_time: effectiveEndTime, // Pass to cost calculation
+      start_time: effectiveStartTime,
+      end_time: effectiveEndTime,
     };
 
     const calculatedCostResult = await calculateServiceCost(costDetails);
@@ -235,7 +228,7 @@ export function IspezioniForm({ serviceId, onSaveSuccess, onCancel }: IspezioniF
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: effectiveEndTime,
       status: "Pending",
-      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null,
       num_agents: null,
       cadence_hours: values.cadenceHours,
       inspection_type: values.inspectionType,

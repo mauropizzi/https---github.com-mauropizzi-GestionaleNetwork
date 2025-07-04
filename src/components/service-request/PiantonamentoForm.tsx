@@ -38,16 +38,10 @@ import { supabase } from "@/integrations/supabase/client"; // Import Supabase cl
 const timeRegex = /^([01]\d|2[0-3])[:.]([0-5]\d)$/; // Updated regex to accept : or .
 
 const dailyHoursSchema = z.object({
-  day: z.string().min(1, "Il giorno è richiesto."), // Made 'day' required
+  day: z.string().min(1, "Il giorno è richiesto."),
   startTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   endTime: z.string().regex(timeRegex, "Formato ora non valido (HH:MM o HH.MM).").or(z.literal("")),
   is24h: z.boolean().default(false),
-}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
-  message: "Inserisci orari o seleziona H24.",
-  path: ["startTime"],
-}).refine(data => data.is24h || (data.startTime !== "" && data.endTime !== ""), {
-  message: "Inserisci orari o seleziona H24.",
-  path: ["endTime"],
 });
 
 const formSchema = z.object({
@@ -63,7 +57,7 @@ const formSchema = z.object({
   endTime: z.string().regex(timeRegex, "Formato ora fine non valido (HH:MM o HH.MM)."),
   numAgents: z.coerce.number().min(1, "Il numero di agenti deve essere almeno 1."),
   dailyHours: z.array(dailyHoursSchema).min(8, "Definisci gli orari per tutti i giorni e i festivi."),
-}); // Removed .refine from here
+});
 
 interface PiantonamentoFormProps {
   serviceId?: string; // Optional ID for editing
@@ -99,7 +93,6 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
     },
   });
 
-  // Effect to load initial data for editing
   useEffect(() => {
     const loadInitialServiceData = async () => {
       if (serviceId) {
@@ -121,13 +114,12 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
           form.reset({
             servicePointId: service.service_point_id || "",
             fornitoreId: service.fornitore_id || "",
-            // Add checks for null/undefined/empty string before parsing
             startDate: (service.start_date && typeof service.start_date === 'string') ? parseISO(service.start_date) : new Date(),
             startTime: service.start_time || "09:00",
             endDate: (service.end_date && typeof service.end_date === 'string') ? parseISO(service.end_date) : new Date(),
             endTime: service.end_time || "17:00",
             numAgents: service.num_agents || 1,
-            dailyHours: service.daily_hours_config || [ // Ensure default structure if null
+            dailyHours: service.daily_hours_config || [
               { day: "Lunedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Martedì", startTime: "09:00", endTime: "17:00", is24h: false },
               { day: "Mercoledì", startTime: "09:00", endTime: "17:00", is24h: false },
@@ -162,7 +154,6 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Manual date/time validation
     const normalizedStartTime = values.startTime.replace('.', ':');
     const normalizedEndTime = values.endTime.replace('.', ':');
     const startDateTimeStr = `${format(values.startDate, "yyyy-MM-dd")}T${normalizedStartTime}:00`;
@@ -179,6 +170,17 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
       return;
     }
 
+    for (const [index, dayConfig] of values.dailyHours.entries()) {
+      if (!dayConfig.is24h && (!dayConfig.startTime || !dayConfig.endTime)) {
+        form.setError(`dailyHours.${index}.startTime`, {
+          type: "manual",
+          message: "Inserisci orari o seleziona H24.",
+        });
+        showError(`Per ${dayConfig.day}: Inserisci orari o seleziona H24.`);
+        return;
+      }
+    }
+
     const selectedServicePoint = puntiServizio.find(p => p.id === values.servicePointId);
     const clientId = selectedServicePoint?.id_cliente || null;
 
@@ -187,11 +189,11 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
       return;
     }
 
-    // Normalize time inputs
     const normalizedDailyHours = values.dailyHours.map(dh => ({
-      ...dh,
+      day: dh.day,
       startTime: dh.startTime.replace('.', ':'),
       endTime: dh.endTime.replace('.', ':'),
+      is24h: dh.is24h,
     }));
 
     const costDetails = {
@@ -205,37 +207,35 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
       end_time: normalizedEndTime,
       num_agents: values.numAgents,
       daily_hours_config: normalizedDailyHours,
-      inspection_type: null, // Not applicable for Piantonamento
+      inspection_type: null,
     };
 
     const calculatedCostResult = await calculateServiceCost(costDetails);
 
     const payload = {
-      type: "Piantonamento", // Fixed type for this form
-      client_id: clientId, // Now correctly setting client_id
+      type: "Piantonamento",
+      client_id: clientId,
       service_point_id: values.servicePointId,
-      fornitore_id: values.fornitoreId, // Aggiunto fornitore_id al payload
+      fornitore_id: values.fornitoreId,
       start_date: format(values.startDate, 'yyyy-MM-dd'),
       start_time: normalizedStartTime,
       end_date: format(values.endDate, 'yyyy-MM-dd'),
       end_time: normalizedEndTime,
-      status: "Pending", // Default status
-      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null, // Corrected here
+      status: "Pending",
+      calculated_cost: calculatedCostResult ? (calculatedCostResult.multiplier * calculatedCostResult.clientRate) : null,
       num_agents: values.numAgents,
-      cadence_hours: null, // Not applicable for Piantonamento
-      inspection_type: null, // Not applicable for Piantonamento
-      daily_hours_config: normalizedDailyHours, // Save the daily hours configuration
+      cadence_hours: null,
+      inspection_type: null,
+      daily_hours_config: normalizedDailyHours,
     };
 
     let result;
     if (serviceId) {
-      // Update existing record
       result = await supabase
         .from('servizi_richiesti')
         .update(payload)
         .eq('id', serviceId);
     } else {
-      // Insert new record
       result = await supabase
         .from('servizi_richiesti')
         .insert([payload]);
@@ -247,8 +247,8 @@ export function PiantonamentoForm({ serviceId, onSaveSuccess, onCancel }: Pianto
     } else {
       showSuccess(`Richiesta di piantonamento ${serviceId ? 'modificata' : 'registrata'} con successo!`);
       console.log(`Service request ${serviceId ? 'updated' : 'saved'} successfully:`, result.data);
-      form.reset(); // Reset form after submission
-      onSaveSuccess?.(); // Call success callback
+      form.reset();
+      onSaveSuccess?.();
     }
   };
 

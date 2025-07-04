@@ -1,381 +1,263 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { format, parseISO, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import { RapportoServizio } from "@/lib/anagrafiche-data"; // Corrected import
+import { RapportoServizio, Personale, PuntoServizio } from "@/lib/anagrafiche-data";
+import { fetchPersonale, fetchPuntiServizio } from "@/lib/data-fetching";
+import { sendEmail } from "@/utils/email";
+import { generateDotazioniReportPdfBlob } from "@/utils/printReport";
 
-const dotazioniFormSchema = z.object({
-  report_date: z.date({ required_error: "La data del report è richiesta." }),
-  report_time: z.string().min(1, "L'ora del report è richiesta."),
-  client_id: z.string().min(1, "Il cliente è richiesto."),
-  site_name: z.string().min(1, "Il nome del cantiere è richiesto."),
-  employee_id: z.string().min(1, "L'addetto è richiesto."),
-  service_provided: z.string().min(1, "Il servizio fornito è richiesto."),
-  automezzi_used: z.boolean().default(false),
-  automezzi_details: z.string().optional(),
-  attrezzi_used: z.boolean().default(false),
-  attrezzi_details: z.string().optional(),
-  notes: z.string().optional(),
+// Import modular components
+import { ReportDetailsSection } from "./report-form/ReportDetailsSection";
+import { VehicleDetailsSection } from "./report-form/VehicleDetailsSection";
+import { EquipmentCheckSection } from "./report-form/EquipmentCheckSection";
+import { ReportActionButtons } from "./report-form/ReportActionButtons";
+
+const formSchema = z.object({
+  serviceDate: z.date({ required_error: "La data del servizio è richiesta." }),
+  employeeId: z.string().uuid("Seleziona un dipendente valido.").nonempty("Il dipendente è richiesto."),
+  servicePointId: z.string().uuid("Seleziona un punto servizio valido.").nonempty("Il punto servizio è richiesto."),
+  serviceType: z.string().min(1, "Il tipo di servizio è richiesto."),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato ora non valido (HH:MM)."),
+  vehicleMakeModel: z.string().min(1, "La marca/modello del veicolo è richiesta."),
+  vehiclePlate: z.string().min(1, "La targa del veicolo è richiesta."),
+  startKm: z.coerce.number().min(0, "I KM iniziali devono essere un numero positivo."),
+  endKm: z.coerce.number().min(0, "I KM finali devono essere un numero positivo."),
+  vehicleInitialState: z.string().min(1, "Lo stato del veicolo è richiesto."),
+  danniVeicolo: z.string().optional().nullable(),
+  vehicleAnomalies: z.string().optional().nullable(),
+  gps: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per il GPS." }),
+  radioVehicle: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per la Radio Veicolare." }),
+  swivelingLamp: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per il Faro Girevole." }),
+  radioPortable: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per la Radio Portatile." }),
+  flashlight: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per la Torcia." }),
+  extinguisher: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per l'Estintore." }),
+  spareTire: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per la Ruota di Scorta." }),
+  highVisibilityVest: z.enum(['si', 'no'], { required_error: "Seleziona un'opzione per il Giubbotto Alta Visibilità." }),
+}).refine(data => data.endKm >= data.startKm, {
+  message: "I KM finali non possono essere inferiori a quelli iniziali.",
+  path: ["endKm"],
 });
 
-type DotazioniFormValues = z.infer<typeof dotazioniFormSchema>;
+type DotazioniFormValues = z.infer<typeof formSchema>;
 
 interface ServiceReportFormProps {
-  report?: RapportoServizio; // Corrected type
-  onSaveSuccess?: () => void; // Made optional
-  onCancel?: () => void; // Made optional
+  reportId?: string;
+  onSaveSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function ServiceReportForm({ report, onSaveSuccess, onCancel }: ServiceReportFormProps) {
-  const [clients, setClients] = useState<{ id: string; nome_cliente: string }[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; nome: string; cognome: string }[]>([]);
+export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: ServiceReportFormProps) {
+  const [personaleList, setPersonaleList] = useState<Personale[]>([]);
+  const [puntiServizioList, setPuntiServizioList] = useState<PuntoServizio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
+  const [isServicePointSelectOpen, setIsServicePointSelectOpen] = useState(false);
 
-  const form = useForm<DotazioniFormValues>({
-    resolver: zodResolver(dotazioniFormSchema),
-    defaultValues: report
-      ? {
-          ...report,
-          report_date: new Date(report.service_date), // Map service_date to report_date
-          report_time: report.start_time, // Map start_time to report_time
-          client_id: report.service_location_id || "", // Assuming service_location_id maps to client_id for this form's purpose
-          site_name: report.service_location, // Map service_location to site_name
-          employee_id: report.employee_id,
-          service_provided: report.service_type, // Map service_type to service_provided
-          automezzi_used: false, // These fields are not in RapportoServizio, set defaults
-          automezzi_details: "",
-          attrezzi_used: false,
-          attrezzi_details: "",
-          notes: report.vehicle_anomalies || "", // Map vehicle_anomalies to notes
-        }
-      : {
-          report_date: new Date(),
-          report_time: format(new Date(), "HH:mm"),
-          automezzi_used: false,
-          automezzi_details: "",
-          attrezzi_used: false,
-          attrezzi_details: "",
-          notes: "",
-        },
+  const methods = useForm<DotazioniFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      serviceDate: new Date(),
+      startTime: format(new Date(), "HH:mm"),
+      endTime: format(new Date(), "HH:mm"),
+      startKm: 0,
+      endKm: 0,
+      danniVeicolo: null,
+      vehicleAnomalies: null,
+    },
   });
 
-  const fetchDependencies = useCallback(async () => {
-    setLoading(true);
-    const { data: clientsData, error: clientsError } = await supabase
-      .from('clienti')
-      .select('id, nome_cliente');
-    if (clientsError) {
-      showError(`Errore nel recupero clienti: ${clientsError.message}`);
-      console.error("Error fetching clients:", clientsError);
-    } else {
-      setClients(clientsData || []);
-    }
-
-    const { data: employeesData, error: employeesError } = await supabase
-      .from('personale') // Fetch from 'personale' table
-      .select('id, nome, cognome');
-    if (employeesError) {
-      showError(`Errore nel recupero personale: ${employeesError.message}`);
-      console.error("Error fetching employees:", employeesError);
-    } else {
-      setEmployees(employeesData || []);
-    }
-    setLoading(false);
+  useEffect(() => {
+    const fetchDependencies = async () => {
+      setLoading(true);
+      const [personale, puntiServizio] = await Promise.all([
+        fetchPersonale(),
+        fetchPuntiServizio(),
+      ]);
+      setPersonaleList(personale);
+      setPuntiServizioList(puntiServizio);
+      setLoading(false);
+    };
+    fetchDependencies();
   }, []);
 
   useEffect(() => {
-    fetchDependencies();
-  }, [fetchDependencies]);
+    const fetchReportData = async () => {
+      if (reportId && !loading) {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('rapporti_servizio')
+          .select('*')
+          .eq('id', reportId)
+          .single();
+
+        if (error) {
+          showError(`Errore nel recupero del report: ${error.message}`);
+        } else if (data) {
+          methods.reset({
+            serviceDate: parseISO(data.service_date),
+            employeeId: data.employee_id,
+            servicePointId: data.service_location_id || '',
+            serviceType: data.service_type,
+            startTime: data.start_time,
+            endTime: data.end_time,
+            vehicleMakeModel: data.vehicle_make_model,
+            vehiclePlate: data.vehicle_plate,
+            startKm: data.start_km,
+            endKm: data.end_km,
+            vehicleInitialState: data.vehicle_initial_state,
+            danniVeicolo: data.danni_veicolo,
+            vehicleAnomalies: data.vehicle_anomalies,
+            gps: data.gps ? 'si' : 'no',
+            radioVehicle: data.radio_vehicle ? 'si' : 'no',
+            swivelingLamp: data.swiveling_lamp ? 'si' : 'no',
+            radioPortable: data.radio_portable ? 'si' : 'no',
+            flashlight: data.flashlight ? 'si' : 'no',
+            extinguisher: data.extinguisher ? 'si' : 'no',
+            spareTire: data.spare_tire ? 'si' : 'no',
+            highVisibilityVest: data.high_visibility_vest ? 'si' : 'no',
+          });
+        }
+        setLoading(false);
+      }
+    };
+    fetchReportData();
+  }, [reportId, loading, methods]);
+
+  const handleSetCurrentTime = useCallback((field: "startTime" | "endTime") => {
+    methods.setValue(field, format(new Date(), "HH:mm"));
+  }, [methods]);
 
   const onSubmit = async (values: DotazioniFormValues) => {
-    const formattedValues = {
-      service_date: format(values.report_date, "yyyy-MM-dd"), // Map back to service_date
-      start_time: values.report_time, // Map back to start_time
-      employee_id: values.employee_id,
-      service_location: values.site_name, // Map back to service_location
-      service_location_id: values.client_id, // Map client_id to service_location_id
-      service_type: values.service_provided, // Map back to service_type
-      end_time: values.report_time, // Assuming end_time is same as start_time for this form
-      vehicle_make_model: "", // Not present in this form, set default
-      vehicle_plate: "", // Not present in this form, set default
-      start_km: 0, // Not present in this form, set default
-      end_km: 0, // Not present in this form, set default
-      vehicle_initial_state: "", // Not present in this form, set default
-      danni_veicolo: null, // Not present in this form, set default
-      vehicle_anomalies: values.notes, // Map notes to vehicle_anomalies
-      gps: false, // Not present in this form, set default
-      radio_vehicle: false, // Not present in this form, set default
-      swiveling_lamp: false, // Not present in this form, set default
-      radio_portable: false, // Not present in this form, set default
-      flashlight: false, // Not present in this form, set default
-      extinguisher: false, // Not present in this form, set default
-      spare_tire: false, // Not present in this form, set default
-      high_visibility_vest: false, // Not present in this form, set default
+    const serviceLocationName = puntiServizioList.find(p => p.id === values.servicePointId)?.nome_punto_servizio || 'N/A';
+
+    const payload = {
+      service_date: format(values.serviceDate, "yyyy-MM-dd"),
+      employee_id: values.employeeId,
+      service_location: serviceLocationName,
+      service_location_id: values.servicePointId,
+      service_type: values.serviceType,
+      start_time: values.startTime,
+      end_time: values.endTime,
+      vehicle_make_model: values.vehicleMakeModel,
+      vehicle_plate: values.vehiclePlate,
+      start_km: values.startKm,
+      end_km: values.endKm,
+      vehicle_initial_state: values.vehicleInitialState,
+      danni_veicolo: values.danniVeicolo,
+      vehicle_anomalies: values.vehicleAnomalies,
+      gps: values.gps === 'si',
+      radio_vehicle: values.radioVehicle === 'si',
+      swiveling_lamp: values.swivelingLamp === 'si',
+      radio_portable: values.radioPortable === 'si',
+      flashlight: values.flashlight === 'si',
+      extinguisher: values.extinguisher === 'si',
+      spare_tire: values.spareTire === 'si',
+      high_visibility_vest: values.highVisibilityVest === 'si',
     };
 
-    let error = null;
-    if (report) {
-      const { error: updateError } = await supabase
-        .from('rapporti_servizio') // Corrected table name
-        .update(formattedValues)
-        .eq('id', report.id);
-      error = updateError;
+    let result;
+    if (reportId) {
+      result = await supabase.from('rapporti_servizio').update(payload).eq('id', reportId);
     } else {
-      const { error: insertError } = await supabase
-        .from('rapporti_servizio') // Corrected table name
-        .insert(formattedValues);
-      error = insertError;
+      result = await supabase.from('rapporti_servizio').insert([payload]);
     }
 
-    if (error) {
-      showError(`Errore nel salvataggio del report: ${error.message}`);
-      console.error("Error saving report:", error);
+    if (result.error) {
+      showError(`Errore nel salvataggio del report: ${result.error.message}`);
     } else {
-      showSuccess("Report salvato con successo!");
-      onSaveSuccess?.(); // Call success callback
+      showSuccess(`Report ${reportId ? 'aggiornato' : 'creato'} con successo!`);
+      if (values.vehicleInitialState === "RICHIESTA MANUTENZIONE") {
+        await createMaintenanceRequest(values, serviceLocationName);
+      }
+      onSaveSuccess?.();
+    }
+  };
+
+  const createMaintenanceRequest = async (formValues: DotazioniFormValues, serviceLocationName: string) => {
+    const payload = {
+      report_id: reportId,
+      service_point_id: formValues.servicePointId,
+      vehicle_plate: formValues.vehiclePlate,
+      issue_description: `Richiesta di manutenzione da rapporto di servizio. Stato veicolo: ${formValues.vehicleInitialState}. Danni: ${formValues.danniVeicolo || 'Nessuno'}. Anomalie: ${formValues.vehicleAnomalies || 'Nessuna'}.`,
+      status: "Pending",
+      priority: "Medium",
+      requested_by_employee_id: formValues.employeeId,
+      requested_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('richieste_manutenzione').insert([payload]);
+    if (error) {
+      showError(`Errore nella creazione della richiesta di manutenzione: ${error.message}`);
+    } else {
+      showSuccess("Richiesta di manutenzione creata e inviata con successo.");
+      await handleEmail();
+    }
+  };
+
+  const handleEmail = async () => {
+    const values = methods.getValues();
+    if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
+      showInfo("Nessuna richiesta di manutenzione da inviare.");
+      return;
+    }
+    const subject = `Richiesta Manutenzione Veicolo - Targa: ${values.vehiclePlate}`;
+    const body = `
+      È stata generata una nuova richiesta di manutenzione per il veicolo con targa ${values.vehiclePlate}.
+
+      Dettagli:
+      - Stato Veicolo: ${values.vehicleInitialState}
+      - Danni Rilevati: ${values.danniVeicolo || 'Nessuno'}
+      - Anomalie Descritte: ${values.vehicleAnomalies || 'Nessuna'}
+      - Dipendente: ${personaleList.find(p => p.id === values.employeeId)?.nome || 'N/A'} ${personaleList.find(p => p.id === values.employeeId)?.cognome || ''}
+      - Data: ${format(values.serviceDate, 'dd/MM/yyyy')}
+
+      Si prega di prendere visione della richiesta nella sezione "Richiesta Manutenzione" dell'app.
+    `;
+    await sendEmail(subject, body);
+  };
+
+  const handlePrintPdf = async () => {
+    const values = methods.getValues();
+    const pdfBlob = await generateDotazioniReportPdfBlob(undefined, values, personaleList, puntiServizioList);
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
     }
   };
 
   if (loading) {
-    return <div>Caricamento dati...</div>;
+    return <div className="text-center py-8">Caricamento dati...</div>;
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="report_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data Report</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Seleziona una data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="report_time"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Ora Report</FormLabel>
-              <FormControl>
-                <Input type="time" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="client_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cliente</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un cliente" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.nome_cliente}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="site_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome Cantiere</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="employee_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Addetto</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un addetto" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {`${employee.nome} ${employee.cognome}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="service_provided"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Servizio Fornito</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="automezzi_used"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Automezzi Utilizzati</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        {form.watch("automezzi_used") && (
-          <FormField
-            control={form.control}
-            name="automezzi_details"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Dettagli Automezzi</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+    <FormProvider {...methods}>
+      <Form {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+          <ReportDetailsSection
+            personaleList={personaleList}
+            puntiServizioList={puntiServizioList}
+            isEmployeeSelectOpen={isEmployeeSelectOpen}
+            setIsEmployeeSelectOpen={setIsEmployeeSelectOpen}
+            isServicePointSelectOpen={isServicePointSelectOpen}
+            setIsServicePointSelectOpen={setIsServicePointSelectOpen}
+            handleSetCurrentTime={handleSetCurrentTime}
           />
-        )}
-        <FormField
-          control={form.control}
-          name="attrezzi_used"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Attrezzi Utilizzati</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        {form.watch("attrezzi_used") && (
-          <FormField
-            control={form.control}
-            name="attrezzi_details"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Dettagli Attrezzi</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+          <VehicleDetailsSection />
+          <EquipmentCheckSection />
+          <ReportActionButtons
+            isEditMode={!!reportId}
+            vehicleInitialState={methods.watch("vehicleInitialState")}
+            handleEmail={handleEmail}
+            handlePrintPdf={handlePrintPdf}
+            onCancel={onCancel}
           />
-        )}
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Note</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Annulla
-          </Button>
-          <Button type="submit">Salva Report</Button>
-        </div>
-      </form>
-    </Form>
+        </form>
+      </Form>
+    </FormProvider>
   );
 }
