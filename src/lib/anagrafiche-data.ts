@@ -38,9 +38,9 @@ export interface PuntoServizio {
   codice_sicep?: string | null;
   codice_fatturazione?: string | null;
   procedure_id?: string | null;
-  clienti?: { nome_cliente: string } | null; // For direct join
-  fornitori?: { nome_fornitore: string } | null; // For direct join
-  procedure?: { nome_procedura: string } | null; // For direct join
+  clienti?: { nome_cliente: string }[] | null; // Changed to array
+  fornitori?: { nome_fornitore: string }[] | null; // Changed to array
+  procedure?: { nome_procedura: string }[] | null; // Changed to array
 }
 
 export interface Fornitore {

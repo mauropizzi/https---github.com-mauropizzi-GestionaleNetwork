@@ -36,9 +36,9 @@ interface ImportResult {
 
 // Extend PuntoServizio to include joined data for display
 interface PuntoServizioExtended extends PuntoServizio {
-  fornitori?: { nome_fornitore: string }[];
-  clienti?: { nome_cliente: string }[];
-  procedure?: { nome_procedura: string }[];
+  fornitori?: { nome_fornitore: string }[] | null; // Changed to array
+  clienti?: { nome_cliente: string }[] | null; // Changed to array
+  procedure?: { nome_procedura: string }[] | null; // Changed to array
 }
 
 export default function PuntiServizioList() {
@@ -64,9 +64,9 @@ export default function PuntiServizioList() {
     } else {
       const mappedData: PuntoServizioExtended[] = data.map(ps => ({
         ...ps,
-        fornitori: ps.fornitori || [],
-        clienti: ps.clienti || [],
-        procedure: ps.procedure || [],
+        fornitori: ps.fornitori || null,
+        clienti: ps.clienti || null,
+        procedure: ps.procedure || null,
       }));
       setData(mappedData);
     }
@@ -165,10 +165,10 @@ export default function PuntiServizioList() {
       const searchLower = searchTerm.toLowerCase();
       return (
         puntoServizio.nome_punto_servizio.toLowerCase().includes(searchLower) ||
-        (puntoServizio.address?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.city?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.fornitori && puntoServizio.fornitori[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
-        (puntoServizio.clienti && puntoServizio.clienti[0]?.nome_cliente?.toLowerCase().includes(searchLower))
+        (puntoServizio.indirizzo?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.citta?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.fornitori?.[0]?.nome_fornitore?.toLowerCase().includes(searchLower)) ||
+        (puntoServizio.clienti?.[0]?.nome_cliente?.toLowerCase().includes(searchLower))
       );
     });
   }, [data, searchTerm]);
@@ -180,14 +180,14 @@ export default function PuntiServizioList() {
       cell: ({ row }) => <span>{row.original.nome_punto_servizio}</span>,
     },
     {
-      accessorKey: "address",
+      accessorKey: "indirizzo",
       header: "Indirizzo",
-      cell: ({ row }) => <span>{row.original.address || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.indirizzo || 'N/A'}</span>,
     },
     {
-      accessorKey: "city",
+      accessorKey: "citta",
       header: "Città",
-      cell: ({ row }) => <span>{row.original.city || 'N/A'}</span>,
+      cell: ({ row }) => <span>{row.original.citta || 'N/A'}</span>,
     },
     {
       accessorKey: "fornitore_id",
@@ -200,9 +200,20 @@ export default function PuntiServizioList() {
       cell: ({ row }) => <span>{row.original.clienti?.[0]?.nome_cliente || 'N/A'}</span>,
     },
     {
-      accessorKey: "service_type",
-      header: "Tipo Servizio",
-      cell: ({ row }) => <span>{row.original.service_type || 'N/A'}</span>,
+      id: "posizione_gps", // New ID for the combined column
+      header: "Posizione GPS",
+      cell: ({ row }) => {
+        const { latitude, longitude } = row.original;
+        if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
+          const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+          return (
+            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
+              <MapPin className="h-4 w-4 mr-1" /> Visualizza
+            </a>
+          );
+        }
+        return <span>N/A</span>;
+      },
     },
     {
       id: "actions",
@@ -310,12 +321,14 @@ export default function PuntiServizioList() {
         </Table>
       </div>
 
-      <PuntoServizioEditDialog
-        isOpen={isEditDialogOpen}
-        onClose={handleCloseEditDialog}
-        puntoServizio={selectedPuntoServizioForEdit}
-        onSaveSuccess={handleSaveEdit}
-      />
+      {selectedPuntoServizioForEdit && (
+        <PuntiServizioEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          puntoServizio={selectedPuntoServizioForEdit}
+          onSave={handleSaveEdit}
+        />
+      )}
 
       {selectedPuntoServizioForDetails && (
         <PuntoServizioDetailsDialog

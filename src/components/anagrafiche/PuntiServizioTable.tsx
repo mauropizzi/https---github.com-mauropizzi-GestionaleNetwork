@@ -26,7 +26,7 @@ import { PuntoServizioDetailsDialog } from "./PuntiServizioDetailsDialog"; // Co
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;
   nome_fornitore?: string;
-  procedure?: { nome_procedura: string } | null; // Aggiunto per il nome della procedura
+  procedure?: { nome_procedura: string }[] | null; // Aggiunto per il nome della procedura
 }
 
 export function PuntiServizioTable() {
@@ -55,8 +55,8 @@ export function PuntiServizioTable() {
         console.log(`Fetched point name: ${ps.nome_punto_servizio}`); // Log each point name
         return {
           ...ps,
-          nome_cliente: ps.clienti?.nome_cliente || 'N/A',
-          nome_fornitore: ps.fornitori?.nome_fornitore || 'N/A',
+          nome_cliente: ps.clienti?.[0]?.nome_cliente || 'N/A',
+          nome_fornitore: ps.fornitori?.[0]?.nome_fornitore || 'N/A',
           procedure: ps.procedure || null, // Mappa la procedura
         };
       });
@@ -131,7 +131,7 @@ export function PuntiServizioTable() {
       const indirizzoLower = (punto.indirizzo || '').toLowerCase().trim();
       const cittaLower = (punto.citta || '').toLowerCase().trim();
       const referenteLower = (punto.referente || '').toLowerCase().trim();
-      const nomeProceduraLower = (punto.procedure?.nome_procedura || '').toLowerCase().trim(); // Nuovo campo
+      const nomeProceduraLower = (punto.procedure?.[0]?.nome_procedura || '').toLowerCase().trim(); // Nuovo campo
 
       const matches =
         nomePuntoServizioLower.includes(searchLower) ||
@@ -160,7 +160,7 @@ export function PuntiServizioTable() {
         console.log(`  referente (raw): "${punto.referente}"`);
         console.log(`  referente (processed): "${referenteLower}"`);
         console.log(`  referente match: ${referenteLower.includes(searchLower)}`);
-        console.log(`  nome_procedura (raw): "${punto.procedure?.nome_procedura}"`); // Log nuovo campo
+        console.log(`  nome_procedura (raw): "${punto.procedure?.[0]?.nome_procedura}"`); // Log nuovo campo
         console.log(`  nome_procedura (processed): "${nomeProceduraLower}"`); // Log nuovo campo
         console.log(`  nome_procedura match: ${nomeProceduraLower.includes(searchLower)}`); // Log nuovo campo
         console.log(`  Overall match for ${punto.nome_punto_servizio}: ${matches}`);
@@ -210,13 +210,13 @@ export function PuntiServizioTable() {
       header: "Azioni",
       cell: ({ row }) => (
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleView(row.original)} title="Visualizza Dettagli">
+          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row.original)} title="Visualizza Dettagli">
             <Eye className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)} title="Modifica">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id, row.original.nome_punto_servizio)} title="Elimina">
+          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original.id!, row.original.nome_punto_servizio)} title="Elimina">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -259,36 +259,7 @@ export function PuntiServizioTable() {
                         )}
                   </TableHead>
                 ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Caricamento punti servizio...
-                </TableCell>
-              </TableRow>
-            ) : (table && table.getRowModel().rows?.length) ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nessun punto servizio trovato.
-                </TableCell>
-              </TableRow>
-            )}
+              </TableHeader>
           </TableBody>
         </Table>
       </div>

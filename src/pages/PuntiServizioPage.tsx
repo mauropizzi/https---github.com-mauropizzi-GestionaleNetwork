@@ -59,14 +59,10 @@ const PuntiServizioPage = () => {
       showInfo(`Inizio importazione del file "${file.name}" per i Punti Servizio...`);
       const result = await importDataFromExcel(file, "punti-servizio");
 
-      setImportSummary(result.details);
+      setImportSummary(result); // Directly pass the result object
       setIsSummaryDialogOpen(true); // Always open dialog to show summary
 
-      if (result.success) {
-        // showSuccess(result.message); // Handled by dialog
-      } else {
-        // showError(result.message); // Handled by dialog
-      }
+      // No need for if (result.success) as the dialog handles displaying all outcomes
       event.target.value = '';
     }
   };

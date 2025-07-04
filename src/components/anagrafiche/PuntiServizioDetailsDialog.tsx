@@ -4,9 +4,9 @@ import { PuntoServizio } from "@/lib/anagrafiche-data";
 import { Separator } from "@/components/ui/separator";
 
 interface PuntoServizioExtended extends PuntoServizio {
-  fornitori?: { nome_fornitore: string } | null;
-  procedure?: { nome_procedura: string } | null;
-  clienti?: { nome_cliente: string } | null;
+  fornitori?: { nome_fornitore: string }[] | null; // Changed to array
+  procedure?: { nome_procedura: string }[] | null; // Changed to array
+  clienti?: { nome_cliente: string }[] | null; // Changed to array
 }
 
 interface PuntoServizioDetailsDialogProps {
@@ -58,7 +58,7 @@ export function PuntoServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Fornitore:</p>
-            <p className="text-sm col-span-3">{puntoServizio.fornitori?.nome_fornitore || 'N/A'}</p>
+            <p className="text-sm col-span-3">{puntoServizio.fornitori?.[0]?.nome_fornitore || 'N/A'}</p>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Note:</p>
@@ -66,7 +66,7 @@ export function PuntoServizioDetailsDialog({ isOpen, onClose, puntoServizio }: P
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <p className="text-sm font-medium col-span-1">Procedura:</p>
-            <p className="text-sm col-span-3">{puntoServizio.procedure?.nome_procedura || 'N/A'}</p>
+            <p className="text-sm col-span-3">{puntoServizio.procedure?.[0]?.nome_procedura || 'N/A'}</p>
           </div>
           <Separator className="my-2" />
           <div className="grid grid-cols-4 items-center gap-4">
