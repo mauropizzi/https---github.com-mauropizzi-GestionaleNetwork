@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PuntoServizio, Cliente, Fornitore } from "@/lib/anagrafiche-data";
 import { fetchClienti, fetchFornitori } from "@/lib/data-fetching";
 import { PuntiServizioEditDialog } from "./PuntiServizioEditDialog";
-import { PuntiServizioDetailsDialog } from "./PuntiServizioDetailsDialog";
+import { PuntoServizioDetailsDialog } from "./PuntoServizioDetailsDialog"; // Corrected import name
 
 interface PuntoServizioExtended extends PuntoServizio {
   nome_cliente?: string;
@@ -114,11 +114,11 @@ export function PuntiServizioTable() {
         showError(`Errore durante l'eliminazione del punto servizio: ${error.message}`);
         console.error("Error deleting punto_servizio:", error);
       } else {
-        showSuccess(`Punto servizio "${nomePuntoServizio}" eliminato con successo!`);
+        showSuccess(`Punto di servizio "${nomePuntoServizio}" eliminato con successo!`);
         fetchPuntiServizioData(); // Refresh data after deletion
       }
     } else {
-      showInfo(`Eliminazione del punto servizio "${nomePuntoServizio}" annullata.`);
+      showInfo(`Eliminazione del punto di servizio "${nomePuntoServizio}" annullata.`);
     }
   };
 
@@ -303,7 +303,7 @@ export function PuntiServizioTable() {
       )}
 
       {selectedPuntoServizioForDetails && (
-        <PuntiServizioDetailsDialog
+        <PuntoServizioDetailsDialog
           isOpen={isDetailsDialogOpen}
           onClose={handleCloseDetailsDialog}
           puntoServizio={selectedPuntoServizioForDetails}
