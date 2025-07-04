@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid } from "date-fns";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -154,7 +153,7 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
@@ -401,6 +400,6 @@ export function MaintenanceRequestEditForm({ requestId, onSaveSuccess, onCancel 
           </Button>
         </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }
