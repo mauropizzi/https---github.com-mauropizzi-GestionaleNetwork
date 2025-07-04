@@ -146,6 +146,52 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
     methods.setValue(field, format(new Date(), "HH:mm"));
   }, [methods]);
 
+  const handleEmail = async (values: DotazioniFormValues) => {
+    if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
+      showInfo("Nessuna richiesta di manutenzione da inviare.");
+      return;
+    }
+    if (!values.serviceDate) {
+      showError("Data del servizio non specificata. Impossibile inviare l'email.");
+      return;
+    }
+    const subject = `Richiesta Manutenzione Veicolo - Targa: ${values.vehiclePlate}`;
+    const body = `
+      È stata generata una nuova richiesta di manutenzione per il veicolo con targa ${values.vehiclePlate}.
+
+      Dettagli:
+      - Stato Veicolo: ${values.vehicleInitialState}
+      - Danni Rilevati: ${values.danniVeicolo || 'Nessuno'}
+      - Anomalie Descritte: ${values.vehicleAnomalies || 'Nessuna'}
+      - Dipendente: ${personaleList.find(p => p.id === values.employeeId)?.nome || 'N/A'} ${personaleList.find(p => p.id === values.employeeId)?.cognome || ''}
+      - Data: ${format(values.serviceDate, 'dd/MM/yyyy')}
+
+      Si prega di prendere visione della richiesta nella sezione "Richiesta Manutenzione" dell'app.
+    `;
+    await sendEmail(subject, body);
+  };
+
+  const createMaintenanceRequest = async (formValues: DotazioniFormValues, serviceLocationName: string) => {
+    const payload = {
+      report_id: reportId,
+      service_point_id: formValues.servicePointId,
+      vehicle_plate: formValues.vehiclePlate,
+      issue_description: `Richiesta di manutenzione da rapporto di servizio. Stato veicolo: ${formValues.vehicleInitialState}. Danni: ${formValues.danniVeicolo || 'Nessuno'}. Anomalie: ${formValues.vehicleAnomalies || 'Nessuna'}.`,
+      status: "Pending",
+      priority: "Medium",
+      requested_by_employee_id: formValues.employeeId,
+      requested_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('richieste_manutenzione').insert([payload]);
+    if (error) {
+      showError(`Errore nella creazione della richiesta di manutenzione: ${error.message}`);
+    } else {
+      showSuccess("Richiesta di manutenzione creata e inviata con successo.");
+      await handleEmail(formValues);
+    }
+  };
+
   const onSubmit = async (values: DotazioniFormValues) => {
     const serviceLocationName = puntiServizioList.find(p => p.id === values.servicePointId)?.nome_punto_servizio || 'N/A';
 
@@ -192,53 +238,6 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
     }
   };
 
-  const createMaintenanceRequest = async (formValues: DotazioniFormValues, serviceLocationName: string) => {
-    const payload = {
-      report_id: reportId,
-      service_point_id: formValues.servicePointId,
-      vehicle_plate: formValues.vehiclePlate,
-      issue_description: `Richiesta di manutenzione da rapporto di servizio. Stato veicolo: ${formValues.vehicleInitialState}. Danni: ${formValues.danniVeicolo || 'Nessuno'}. Anomalie: ${formValues.vehicleAnomalies || 'Nessuna'}.`,
-      status: "Pending",
-      priority: "Medium",
-      requested_by_employee_id: formValues.employeeId,
-      requested_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from('richieste_manutenzione').insert([payload]);
-    if (error) {
-      showError(`Errore nella creazione della richiesta di manutenzione: ${error.message}`);
-    } else {
-      showSuccess("Richiesta di manutenzione creata e inviata con successo.");
-      await handleEmail();
-    }
-  };
-
-  const handleEmail = async () => {
-    const values = methods.getValues();
-    if (values.vehicleInitialState !== "RICHIESTA MANUTENZIONE") {
-      showInfo("Nessuna richiesta di manutenzione da inviare.");
-      return;
-    }
-    if (!values.serviceDate) {
-      showError("Data del servizio non specificata. Impossibile inviare l'email.");
-      return;
-    }
-    const subject = `Richiesta Manutenzione Veicolo - Targa: ${values.vehiclePlate}`;
-    const body = `
-      È stata generata una nuova richiesta di manutenzione per il veicolo con targa ${values.vehiclePlate}.
-
-      Dettagli:
-      - Stato Veicolo: ${values.vehicleInitialState}
-      - Danni Rilevati: ${values.danniVeicolo || 'Nessuno'}
-      - Anomalie Descritte: ${values.vehicleAnomalies || 'Nessuna'}
-      - Dipendente: ${personaleList.find(p => p.id === values.employeeId)?.nome || 'N/A'} ${personaleList.find(p => p.id === values.employeeId)?.cognome || ''}
-      - Data: ${format(values.serviceDate, 'dd/MM/yyyy')}
-
-      Si prega di prendere visione della richiesta nella sezione "Richiesta Manutenzione" dell'app.
-    `;
-    await sendEmail(subject, body);
-  };
-
   const handlePrintPdf = async () => {
     const values = methods.getValues();
     const pdfBlob = await generateDotazioniReportPdfBlob(undefined, values, personaleList, puntiServizioList);
@@ -269,7 +268,7 @@ export function ServiceReportForm({ reportId, onSaveSuccess, onCancel }: Service
           <ReportActionButtons
             isEditMode={!!reportId}
             vehicleInitialState={methods.watch("vehicleInitialState")}
-            handleEmail={handleEmail}
+            handleEmail={() => handleEmail(methods.getValues())}
             handlePrintPdf={handlePrintPdf}
             onCancel={onCancel}
           />

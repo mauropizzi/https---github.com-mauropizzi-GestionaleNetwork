@@ -1,11 +1,10 @@
 import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -122,7 +121,7 @@ export function FornitoriEditForm({ fornitore, onSaveSuccess, onCancel }: Fornit
   };
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <h3 className="text-lg font-semibold">Dettagli Fornitore</h3>
         <FormField
@@ -326,6 +325,6 @@ export function FornitoriEditForm({ fornitore, onSaveSuccess, onCancel }: Fornit
           <Button type="submit">Salva Modifiche</Button>
         </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }
