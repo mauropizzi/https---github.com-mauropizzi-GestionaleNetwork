@@ -1,0 +1,26 @@
+export const appRoutes = [
+  { path: '/', label: 'Centrale Operativa (Home)' },
+  { path: '/centrale-operativa', label: 'Centrale Operativa' },
+  { path: '/service-request', label: 'Richiesta Servizi' },
+  { path: '/service-list', label: 'Elenco Servizi Richiesti' },
+  { path: '/servizi-a-canone', label: 'Servizi a Canone' },
+  { path: '/dotazioni-di-servizio', label: 'Dotazioni di Servizio' },
+  { path: '/registro-di-cantiere', label: 'Registro di Cantiere' },
+  { path: '/incoming-emails', label: 'Email in Arrivo' },
+  { path: '/analisi-contabile', label: 'Analisi Contabile' },
+  { path: '/richiesta-manutenzione', label: 'Richiesta Manutenzione' },
+  { path: '/access-management', label: 'Gestione Accessi' },
+  // Anagrafiche sub-routes (base path /anagrafiche covers all)
+  { path: '/anagrafiche/clienti', label: 'Anagrafiche - Clienti' },
+  { path: '/anagrafiche/punti-servizio', label: 'Anagrafiche - Punti Servizio' },
+  { path: '/anagrafiche/personale', label: 'Anagrafiche - Personale' },
+  { path: '/anagrafiche/operatori-network', label: 'Anagrafiche - Operatori Network' },
+  { path: '/anagrafiche/fornitori', label: 'Anagrafiche - Fornitori' },
+  { path: '/anagrafiche/tariffe', label: 'Anagrafiche - Tariffe' },
+  { path: '/anagrafiche/procedure', label: 'Anagrafiche - Procedure' },
+  // Edit pages (dynamic IDs, so we'll check base path)
+  { path: '/centrale-operativa/edit', label: 'Modifica Evento Allarme' },
+  { path: '/service-list/edit', label: 'Modifica Servizio Richiesto' },
+  { path: '/dotazioni-di-servizio/edit', label: 'Modifica Rapporto Dotazioni' },
+  { path: '/richiesta-manutenzione/edit', label: 'Modifica Richiesta Manutenzione' },
+];

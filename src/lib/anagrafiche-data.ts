@@ -226,6 +226,7 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   role: 'Amministratore' | 'Amministrazione' | 'Centrale Operativa' | 'Personale esterno';
+  allowed_routes?: string[]; // Added new field
   created_at?: string;
 }
 

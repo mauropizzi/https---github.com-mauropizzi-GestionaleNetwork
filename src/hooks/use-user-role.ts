@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { supabase } from '@/integrations/supabase/client';
+import { UserProfile } from '@/lib/anagrafiche-data'; // Import UserProfile
 
 export const useUserRole = () => {
   const { session, loading: sessionLoading } = useSession();
-  const [role, setRole] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,30 +14,37 @@ export const useUserRole = () => {
     }
 
     if (!session?.user) {
-      setRole(null);
+      setUserProfile(null);
       setLoading(false);
       return;
     }
 
-    const fetchRole = async () => {
+    const fetchProfile = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('id, first_name, last_name, role, allowed_routes') // Select allowed_routes
         .eq('id', session.user.id)
         .single();
 
       if (error) {
-        console.error("Error fetching user role:", error);
-        setRole(null);
+        console.error("Error fetching user profile:", error);
+        setUserProfile(null);
       } else {
-        setRole(data?.role || null);
+        setUserProfile({
+          id: data.id,
+          email: session.user.email || '', // Email from session
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          role: data.role,
+          allowed_routes: data.allowed_routes || [], // Ensure it's an array
+        });
       }
       setLoading(false);
     };
 
-    fetchRole();
+    fetchProfile();
   }, [session, sessionLoading]);
 
-  return { role, loading };
+  return { userProfile, loading };
 };

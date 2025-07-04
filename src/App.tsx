@@ -1,11 +1,13 @@
 import React from "react"; // Explicitly import React
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet, useNavigate, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useNavigate, Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import PublicFormLayout from "./components/layout/PublicFormLayout";
 import { SessionContextProvider, useSession } from "./components/auth/SessionContextProvider";
-import { Toaster as Sonner } from "@/components/ui/sonner"; // Ensure Sonner is imported if needed globally
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { useUserRole } from "@/hooks/use-user-role"; // Import useUserRole
+import { appRoutes } from "@/lib/app-routes"; // Import appRoutes
 
 // Lazily load all page components
 const DashboardOverview = React.lazy(() => import("@/pages/DashboardOverview.tsx"));
@@ -34,6 +36,7 @@ const RichiestaManutenzione = React.lazy(() => import("@/pages/RichiestaManutenz
 const EditServiceReportPage = React.lazy(() => import("@/pages/EditServiceReportPage.tsx"));
 const EditMaintenanceRequestPage = React.lazy(() => import("@/pages/EditMaintenanceRequestPage.tsx"));
 const AccessManagementPage = React.lazy(() => import("@/pages/AccessManagementPage.tsx"));
+const Unauthorized = React.lazy(() => import("@/pages/Unauthorized.tsx")); // Import Unauthorized page
 
 const queryClient = new QueryClient();
 
@@ -43,8 +46,14 @@ const IS_AUTH_DISABLED_TEMPORARILY = false;
 
 // Componente per proteggere le rotte
 const ProtectedRoute = () => {
-  const { session, loading } = useSession();
-  console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null', 'currentPath:', window.location.pathname);
+  const { session, loading: sessionLoading } = useSession();
+  const { userProfile, loading: userRoleLoading } = useUserRole();
+  const location = useLocation();
+
+  const loading = sessionLoading || userRoleLoading;
+
+  console.log('ProtectedRoute: Session status - loading:', loading, 'session:', session ? 'present' : 'null', 'currentPath:', location.pathname);
+  console.log('ProtectedRoute: User Profile - loading:', userRoleLoading, 'profile:', userProfile);
 
   if (IS_AUTH_DISABLED_TEMPORARILY) {
     console.log('ProtectedRoute: Authentication is temporarily disabled. Bypassing login.');
@@ -52,28 +61,67 @@ const ProtectedRoute = () => {
   }
 
   if (loading) {
-    console.log('ProtectedRoute: Session is loading, showing loading message.');
+    console.log('ProtectedRoute: Session or user role is loading, showing loading message.');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <p className="text-xl text-gray-600 dark:text-gray-400">Caricamento sessione...</p>
+        <p className="text-xl text-gray-600 dark:text-gray-400">Caricamento sessione e permessi...</p>
       </div>
     );
   }
 
-  // Se la sessione è presente E siamo sulla pagina di login, reindirizza alla home
-  if (session && window.location.pathname === '/login') {
+  // If session is present AND we are on the login page, redirect to home
+  if (session && location.pathname === '/login') {
     console.log('ProtectedRoute: Session found on login page, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
+  // If no session, redirect to login
   if (!session) {
-    // Reindirizza al login se non autenticato
     console.log('ProtectedRoute: No session found, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
-  // Render nested routes if authenticated
-  console.log('ProtectedRoute: Session found, rendering protected content.');
+  // If session exists but no user profile (shouldn't happen often, but as a fallback)
+  if (!userProfile) {
+    console.warn('ProtectedRoute: User session exists but profile not found. Redirecting to Unauthorized.');
+    return <Unauthorized />;
+  }
+
+  // Admin users always have full access
+  if (userProfile.role === 'Amministratore') {
+    console.log('ProtectedRoute: Admin user, granting full access.');
+    return <Outlet />;
+  }
+
+  // Check if the current path is allowed for the user's role
+  const currentPath = location.pathname;
+  const allowedRoutes = userProfile.allowed_routes || [];
+
+  // Special handling for dynamic routes like /edit/:id
+  const isAllowed = allowedRoutes.some(allowedPath => {
+    if (allowedPath.endsWith('/edit')) {
+      // Check if currentPath starts with the base edit path
+      return currentPath.startsWith(allowedPath);
+    }
+    // For exact matches or base paths like /anagrafiche
+    if (allowedPath === '/anagrafiche/clienti' && currentPath.startsWith('/anagrafiche')) {
+      // If /anagrafiche/clienti is allowed, allow all /anagrafiche/* routes except /anagrafiche/procedure
+      return !currentPath.startsWith('/anagrafiche/procedure');
+    }
+    if (allowedPath === '/anagrafiche/procedure' && currentPath.startsWith('/anagrafiche/procedure')) {
+      // If /anagrafiche/procedure is specifically allowed
+      return true;
+    }
+    return currentPath === allowedPath;
+  });
+
+  if (!isAllowed) {
+    console.log(`ProtectedRoute: User role '${userProfile.role}' not allowed to access '${currentPath}'. Allowed routes:`, allowedRoutes);
+    return <Unauthorized />;
+  }
+
+  // Render nested routes if authenticated and authorized
+  console.log('ProtectedRoute: User authenticated and authorized, rendering protected content.');
   return <Outlet />;
 };
 
@@ -234,8 +282,7 @@ const App = () => (
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </QueryClientProvider>
-  </>
+    </>
 );
 
 export default App;

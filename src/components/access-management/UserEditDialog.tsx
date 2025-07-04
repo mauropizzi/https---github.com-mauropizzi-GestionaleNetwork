@@ -20,9 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfile } from '@/lib/anagrafiche-data';
+import { appRoutes } from '@/lib/app-routes'; // Import the app routes
 
 interface UserEditDialogProps {
   isOpen: boolean;
@@ -37,6 +39,7 @@ const formSchema = z.object({
   role: z.enum(['Amministratore', 'Amministrazione', 'Centrale Operativa', 'Personale esterno'], {
     required_error: "Il ruolo è richiesto.",
   }),
+  allowed_routes: z.array(z.string()).optional(), // New field for allowed routes
 });
 
 export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialogProps) {
@@ -46,6 +49,7 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
       first_name: null,
       last_name: null,
       role: 'Personale esterno',
+      allowed_routes: [], // Initialize as empty array
     },
   });
 
@@ -55,6 +59,7 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
         first_name: user.first_name || null,
         last_name: user.last_name || null,
         role: user.role,
+        allowed_routes: user.allowed_routes || [], // Populate from user data
       });
     }
   }, [user, form]);
@@ -70,6 +75,7 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
       first_name: values.first_name,
       last_name: values.last_name,
       role: values.role,
+      allowed_routes: values.allowed_routes, // Save allowed routes
     };
 
     const { data, error } = await supabase
@@ -90,7 +96,7 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifica Utente: {user?.email}</DialogTitle>
           <DialogDescription>
@@ -148,6 +154,49 @@ export function UserEditDialog({ isOpen, onClose, user, onSave }: UserEditDialog
                 </FormItem>
               )}
             />
+
+            {/* New section for Allowed Routes */}
+            <div className="space-y-2 mt-4">
+              <FormLabel>Pagine Consentite</FormLabel>
+              <p className="text-sm text-muted-foreground">Seleziona le pagine a cui questo utente può accedere. Se nessuna pagina è selezionata, l'utente non potrà accedere a nessuna pagina protetta (eccetto gli Amministratori).</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto border p-2 rounded-md">
+                {appRoutes.map((route) => (
+                  <FormField
+                    key={route.path}
+                    control={form.control}
+                    name="allowed_routes"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={route.path}
+                          className="flex flex-row items-start space-x-2 space-y-0"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(route.path)}
+                              onCheckedChange={(checked) => {
+                                return checked
+                                  ? field.onChange([...(field.value || []), route.path])
+                                  : field.onChange(
+                                      (field.value || []).filter(
+                                        (value) => value !== route.path
+                                      )
+                                    );
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            {route.label}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+              <FormMessage />
+            </div>
+
             <DialogFooter>
               <Button type="submit">Salva Modifiche</Button>
             </DialogFooter>
