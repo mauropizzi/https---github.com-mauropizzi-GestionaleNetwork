@@ -12,40 +12,66 @@ serve(async (req) => {
   }
 
   try {
+    // Create a Supabase client with the service role key to query auth.users
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
-    if (usersError) throw usersError;
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+    const jwt = authHeader.replace('Bearer ', '')
 
-    const { data: profiles, error: profilesError } = await supabaseAdmin.from('profiles').select('*');
-    if (profilesError) throw profilesError;
+    // Get the user from the JWT
+    const { data: { user } } = await supabaseAdmin.auth.getUser(jwt)
+    if (!user) {
+      throw new Error('Invalid user token')
+    }
 
-    const profilesMap = new Map(profiles.map(p => [p.id, p]));
+    // Check if the user is an admin by querying their profile
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-    const usersWithProfiles = users.map(user => {
-      const profile = profilesMap.get(user.id) || {};
+    if (profileError || !userProfile || userProfile.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Unauthorized: User is not an admin' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // If user is admin, fetch all users and their profiles
+    const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
+    if (usersError) throw usersError
+
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+    if (profilesError) throw profilesError
+
+    // Join users and profiles
+    const usersWithProfiles = users.users.map(u => {
+      const profile = profiles.find(p => p.id === u.id)
       return {
-        id: user.id,
-        email: user.email,
-        first_name: profile.first_name || '',
-        last_name: profile.last_name || '',
-        role: profile.role || 'user',
-      };
-    });
+        id: u.id,
+        email: u.email,
+        first_name: profile?.first_name || '',
+        last_name: profile?.last_name || '',
+        role: profile?.role || 'user',
+      }
+    })
 
     return new Response(JSON.stringify(usersWithProfiles), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
+
   } catch (error) {
     console.error('Error in get-users-with-profiles function:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
