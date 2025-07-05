@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the service role key to perform admin actions
+    // Create a Supabase client with the service role key to manage users
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -27,26 +27,25 @@ serve(async (req) => {
     const jwt = authHeader.replace('Bearer ', '')
 
     // Verify the user making the request is an admin
-    const { data: { user } } = await supabaseAdmin.auth.getUser(jwt)
-    if (!user) {
+    const { data: { user: requestingUser } } = await supabaseAdmin.auth.getUser(jwt)
+    if (!requestingUser) {
       throw new Error('Invalid user token')
     }
 
-    const { data: userProfile, error: profileError } = await supabaseAdmin
+    const { data: requestingUserProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', requestingUser.id)
       .single()
 
-    if (profileError || !userProfile || userProfile.role !== 'Amministratore') {
+    if (profileError || !requestingUserProfile || requestingUserProfile.role !== 'Amministratore') {
       return new Response(JSON.stringify({ error: 'Unauthorized: Only administrators can create users.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Parse the request body for new user data
-    const { email, password, first_name, last_name, role } = await req.json()
+    const { email, password, first_name, last_name, role, allowed_routes } = await req.json()
 
     if (!email || !password || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields: email, password, role.' }), {
@@ -55,15 +54,12 @@ serve(async (req) => {
       })
     }
 
-    // Create the user using Supabase Admin API
+    // Create the user in Supabase Auth
     const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Automatically confirm email for admin-created users
-      user_metadata: {
-        first_name: first_name || null,
-        last_name: last_name || null,
-      },
+      email_confirm: true, // Automatically confirm email
+      user_metadata: { first_name, last_name }, // Store in user_metadata for handle_new_user trigger
     })
 
     if (createUserError) {
@@ -74,44 +70,31 @@ serve(async (req) => {
       })
     }
 
-    // Update the profile table with the specified role and allowed routes
-    // The handle_new_user trigger will create the initial profile,
-    // then we update it with the specific role and allowed_routes.
-    const defaultAllowedRoutes = '[]' // Default empty array for new users
-    let allowedRoutesForNewUser = defaultAllowedRoutes;
-
-    // Define default allowed routes based on role
-    if (role === 'Amministratore') {
-      // Admins can access all routes, so we might not need to explicitly list them
-      // Or, if we want to enforce explicit routes even for admins, list them all.
-      // For simplicity, let's assume 'Amministratore' implies full access,
-      // but we'll still store a default set if the client sends it.
-      // The client-side form will send the selected routes.
-    } else if (role === 'Amministrazione') {
-      allowedRoutesForNewUser = '["/anagrafiche/clienti", "/anagrafiche/punti-servizio", "/anagrafiche/personale", "/anagrafiche/operatori-network", "/anagrafiche/fornitori", "/anagrafiche/tariffe", "/anagrafiche/procedure", "/servizi-a-canone", "/analisi-contabile", "/incoming-emails"]';
-    } else if (role === 'Centrale Operativa') {
-      allowedRoutesForNewUser = '["/", "/centrale-operativa", "/centrale-operativa/edit", "/incoming-emails"]';
-    } else if (role === 'Personale esterno') {
-      allowedRoutesForNewUser = '["/", "/centrale-operativa", "/service-request", "/service-list", "/dotazioni-di-servizio", "/registro-di-cantiere", "/richiesta-manutenzione"]';
-    }
-
+    // Update the user's profile with the specified role and allowed routes
+    // The handle_new_user trigger will create a basic profile, then we update it.
     const { error: updateProfileError } = await supabaseAdmin
       .from('profiles')
-      .update({ role: role, allowed_routes: JSON.parse(allowedRoutesForNewUser) }) // Parse JSON string to jsonb
+      .update({
+        first_name: first_name || null,
+        last_name: last_name || null,
+        role: role,
+        allowed_routes: allowed_routes || [],
+      })
       .eq('id', newUser.user.id)
 
     if (updateProfileError) {
-      console.error('Error updating new user profile:', updateProfileError);
-      // Consider rolling back user creation if profile update is critical
-      return new Response(JSON.stringify({ error: `User created but failed to set profile: ${updateProfileError.message}` }), {
+      console.error('Error updating user profile:', updateProfileError);
+      // Optionally delete the user if profile update fails to prevent orphaned users
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      return new Response(JSON.stringify({ error: `User created but failed to update profile: ${updateProfileError.message}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ message: 'User created successfully', userId: newUser.user.id }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ message: 'User created and profile updated successfully', userId: newUser.user.id }), {
       status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
