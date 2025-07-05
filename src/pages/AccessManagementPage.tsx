@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import { useUserRole } from '@/hooks/use-user-role';
 import Unauthorized from './Unauthorized';
 import { UserAccessTable } from '@/components/access-management/UserAccessTable';
-import { UserCreateDialog } from '@/components/access-management/UserCreateDialog'; // Import the new dialog
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { UserCreateDialog } from '@/components/access-management/UserCreateDialog';
 
 const AccessManagementPage = () => {
   const { userProfile, loading } = useUserRole();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  const handleCreateUserSuccess = () => {
-    setIsCreateDialogOpen(false);
-    // The UserAccessTable will automatically refetch data when its refresh button is clicked,
-    // or we can trigger a refresh here if needed. For now, let's rely on manual refresh or
-    // assume the table's internal state management is sufficient.
-  };
+  const [refreshKey, setRefreshKey] = useState(0); // State to trigger table refresh
 
   if (loading) {
     return (
@@ -30,13 +24,18 @@ const AccessManagementPage = () => {
     return <Unauthorized />;
   }
 
+  const handleUserCreated = () => {
+    setIsCreateDialogOpen(false);
+    setRefreshKey(oldKey => oldKey + 1);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-center">Gestione Accessi Utenti</CardTitle>
           <CardDescription className="text-center">
-            Visualizza e modifica i ruoli degli utenti registrati nel sistema.
+            Visualizza, crea e modifica i ruoli e i permessi degli utenti registrati nel sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -45,14 +44,13 @@ const AccessManagementPage = () => {
               <PlusCircle className="mr-2 h-4 w-4" /> Crea Nuovo Utente
             </Button>
           </div>
-          <UserAccessTable />
+          <UserAccessTable key={refreshKey} />
         </CardContent>
       </Card>
-
       <UserCreateDialog
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        onSaveSuccess={handleCreateUserSuccess}
+        onUserCreated={handleUserCreated}
       />
     </div>
   );

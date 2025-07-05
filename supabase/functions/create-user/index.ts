@@ -12,96 +12,93 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the service role key to manage users
+    // Create a Supabase client with the service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Get the authorization header from the request
+    // 1. Check if the user making the request is an admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Missing authorization header')
     }
     const jwt = authHeader.replace('Bearer ', '')
-
-    // Verify the user making the request is an admin
     const { data: { user: requestingUser } } = await supabaseAdmin.auth.getUser(jwt)
     if (!requestingUser) {
       throw new Error('Invalid user token')
     }
 
-    const { data: requestingUserProfile, error: profileError } = await supabaseAdmin
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', requestingUser.id)
       .single()
 
-    if (profileError || !requestingUserProfile || requestingUserProfile.role !== 'Amministratore') {
-      return new Response(JSON.stringify({ error: 'Unauthorized: Only administrators can create users.' }), {
+    if (profileError || !userProfile || userProfile.role !== 'Amministratore') {
+      return new Response(JSON.stringify({ error: 'Unauthorized: User is not an admin' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    // 2. Get the new user details from the request body
     const { email, password, first_name, last_name, role, allowed_routes } = await req.json()
 
     if (!email || !password || !role) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: email, password, role.' }), {
+      return new Response(JSON.stringify({ error: 'Missing required fields: email, password, role' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Create the user in Supabase Auth
+    // 3. Create the new user in auth.users
     const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Automatically confirm email
-      user_metadata: { first_name, last_name }, // Store in user_metadata for handle_new_user trigger
+      email: email,
+      password: password,
+      email_confirm: true, // User will need to confirm their email
+      user_metadata: {
+        first_name: first_name,
+        last_name: last_name,
+      },
     })
 
     if (createUserError) {
-      console.error('Error creating user:', createUserError);
-      return new Response(JSON.stringify({ error: createUserError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      throw createUserError
     }
 
-    // Update the user's profile with the specified role and allowed routes
-    // The handle_new_user trigger will create a basic profile, then we update it.
+    if (!newUser || !newUser.user) {
+        throw new Error("User creation did not return a user object.");
+    }
+
+    // The `handle_new_user` trigger will have already created a profile with default values.
+    // 4. Update the newly created profile with the correct role and allowed routes.
     const { error: updateProfileError } = await supabaseAdmin
       .from('profiles')
       .update({
-        first_name: first_name || null,
-        last_name: last_name || null,
         role: role,
         allowed_routes: allowed_routes || [],
+        // first_name and last_name are already set by the trigger via user_metadata
       })
       .eq('id', newUser.user.id)
 
     if (updateProfileError) {
-      console.error('Error updating user profile:', updateProfileError);
-      // Optionally delete the user if profile update fails to prevent orphaned users
+      // If updating the profile fails, we should probably delete the auth user to avoid an inconsistent state.
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
-      return new Response(JSON.stringify({ error: `User created but failed to update profile: ${updateProfileError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      throw new Error(`Failed to update profile for new user: ${updateProfileError.message}`);
     }
 
-    return new Response(JSON.stringify({ message: 'User created and profile updated successfully', userId: newUser.user.id }), {
-      status: 200,
+    return new Response(JSON.stringify({ message: 'User created successfully', user: newUser.user }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
     })
 
   } catch (error) {
     console.error('Error in create-user function:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
     })
   }
 })
